@@ -2,21 +2,15 @@ package com.japac.pac.Menu;
 
 import android.Manifest;
 import android.app.Dialog;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -62,11 +56,14 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionObra;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.Marcadores.MarcadoresObras;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.FueraDeHora;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -172,8 +169,8 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_mapa);
 
 
-        if (compruebapermisos()) {
-            if (isServicesOK()) {
+        if (Jornada()) {
+            if (compruebapermisos() && isServicesOK()) {
                 mAuth = FirebaseAuth.getInstance();
                 id = mAuth.getCurrentUser().getUid();
                 mDb = FirebaseFirestore.getInstance();
@@ -206,42 +203,23 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
             }
+        }else if(!Jornada()){
+            startActivity(new Intent(MapaActivity.this, FueraDeHora.class));
+            finish();
         }
     }
 
-    public void crearCanalDeNotificaciones(){
-        if(comp.equals("iniciada")){
-            IoF = "Has iniciado una jornada en " + obcomprueba;
-        }else if(comp.equals("finalizada") || comp.equals("no")){
-            IoF = "Has finalizado la jornada en " + obcomprueba;
+    public boolean Jornada() {
+        DateTimeZone zone = DateTimeZone.forID("Europe/London");
+        DateTime now = DateTime.now(zone);
+        Integer hour = now.getHourOfDay();
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        if (FueraDeHora.returnAcepta()) {
+            Intent intentSE = new Intent(MapaActivity.this, FueraDeHora.class);
+            stopService(intentSE);
+            hora = true;
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            NotificationChannel notificationChannel = new NotificationChannel("obras", nombre, NotificationManager.IMPORTANCE_DEFAULT);
-            notificationChannel.setDescription(IoF);
-            notificationChannel.setShowBadge(true);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(notificationChannel);
-            mostrarNotificacion();
-        }
-    }
-
-    public void mostrarNotificacion(){
-        Intent intent = new Intent(this, Login.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "obras")
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(nombre)
-                .setContentText(IoF)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(IoF))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .setChannelId("obras")
-                .setAutoCancel(true);
-
-        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-        notificationManagerCompat.notify(8991, builder.build());
+        return hora;
     }
 
     private void centrarCamara() {

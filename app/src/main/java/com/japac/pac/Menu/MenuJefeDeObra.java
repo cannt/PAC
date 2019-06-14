@@ -63,7 +63,11 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
 
@@ -122,8 +126,8 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoJefe);
 
-        if (compruebapermisos() == true) {
-            if(isServicesOK()){
+        if (Jornada()) {
+            if(compruebapermisos() && isServicesOK()){
 
                 logo = (ImageView) findViewById(R.id.logoJefeDeObra);
                 btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
@@ -169,9 +173,24 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                 });
                 overridePendingTransition(0, 0);
             }
+        }else if(!Jornada()){
+            startActivity(new Intent(MenuJefeDeObra.this, FueraDeHora.class));
+            finish();
         }
     }
 
+    public boolean Jornada() {
+        DateTimeZone zone = DateTimeZone.forID("Europe/London");
+        DateTime now = DateTime.now(zone);
+        Integer hour = now.getHourOfDay();
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        if (FueraDeHora.returnAcepta()) {
+            Intent intentSE = new Intent(MenuJefeDeObra.this, FueraDeHora.class);
+            stopService(intentSE);
+            hora = true;
+        }
+        return hora;
+    }
 
     public void crearCanalDeNotificaciones(){
         if(comp.equals("iniciada")){

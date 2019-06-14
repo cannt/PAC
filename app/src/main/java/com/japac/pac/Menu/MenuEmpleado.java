@@ -57,7 +57,11 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
 
@@ -80,7 +84,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Button Iniciar, Finalizar, Cerrar;
 
-    private String empresa,IoF, fecha, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
+    private String empresa, IoF, fecha, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
 
     private ArrayAdapter<String> obraAdapter;
 
@@ -111,8 +115,8 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoEmpleado);
 
-        if (compruebapermisos()) {
-            if (isServicesOK()) {
+        if (Jornada()) {
+            if (compruebapermisos() && isServicesOK()) {
 
                 Iniciar = (Button) findViewById(R.id.btnIniciarJornada);
                 Finalizar = (Button) findViewById(R.id.btnFinalizarJornada);
@@ -178,17 +182,32 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 overridePendingTransition(0, 0);
             }
 
+        }else if(!Jornada()){
+            startActivity(new Intent(MenuEmpleado.this, FueraDeHora.class));
+            finish();
         }
     }
 
+    public boolean Jornada() {
+        DateTimeZone zone = DateTimeZone.forID("Europe/London");
+        DateTime now = DateTime.now(zone);
+        Integer hour = now.getHourOfDay();
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        if (FueraDeHora.returnAcepta()) {
+            Intent intentSE = new Intent(MenuEmpleado.this, FueraDeHora.class);
+            stopService(intentSE);
+            hora = true;
+        }
+        return hora;
+    }
 
-    public void crearCanalDeNotificaciones(){
-        if(comp.equals("iniciada")){
+    public void crearCanalDeNotificaciones() {
+        if (comp.equals("iniciada")) {
             IoF = "Has iniciado una jornada en " + obcomprueba;
-        }else if(comp.equals("finalizada") || comp.equals("no")){
+        } else if (comp.equals("finalizada") || comp.equals("no")) {
             IoF = "Has finalizado la jornada en " + obcomprueba;
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("obras", nombre, NotificationManager.IMPORTANCE_DEFAULT);
             notificationChannel.setDescription(IoF);
             notificationChannel.setShowBadge(true);
@@ -198,7 +217,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    public void mostrarNotificacion(){
+    public void mostrarNotificacion() {
         Intent intent = new Intent(this, Login.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
@@ -427,10 +446,10 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                 trayecto = documentSnapshot.getString("marca temporal");
-                                                                if(trayecto!=null){
-                                                                    String fechaGuardada ="Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                            " del " + trayecto.charAt(19)+trayecto.charAt(20) +
-                                                                            " de " + trayecto.charAt(25)+trayecto.charAt(26)+trayecto.charAt(27)+trayecto.charAt(28);
+                                                                if (trayecto != null) {
+                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
                                                                     DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
                                                                     String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
                                                                     if (fechaAhora.equals(fechaGuardada)) {
@@ -542,7 +561,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         map.put("obra", obra);
         map.put("rol", roles);
         map.put("fecha", fecha);
-        map.put("hora",hora);
+        map.put("hora", hora);
         map.put("UID", id);
         if (trayectoBo) {
             trayectoBo = false;

@@ -31,14 +31,15 @@ public class FueraDeHora extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                         acepta = true;
-                        Intent intent = new Intent(FueraDeHora.this, Login.class);
-                        startActivity(intent);
+                        Intent intent2 = new Intent(FueraDeHora.this, Login.class);
+                        startActivity(intent2);
                     }
                 })
                 .setNegativeButton("salir", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
+                        acepta = false;
                         finish();
                         System.exit(0);
                     }
@@ -62,7 +63,7 @@ public class FueraDeHora extends AppCompatActivity {
                     }
                     @Override
                     public void onFinish() {
-                        if (((AlertDialog) dialogoFuera).isShowing()) {
+                        if ((dialogoFuera).isShowing()) {
                             dialogoFuera.dismiss();
                             finish();
                             System.exit(0);

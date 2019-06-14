@@ -72,9 +72,12 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
 
 import org.imperiumlabs.geofirestore.GeoFirestore;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
 
@@ -151,8 +154,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoAdmin);
 
-        if (compruebapermisos()) {
-            if (isServicesOK()) {
+        if (Jornada()) {
+            if (compruebapermisos() && isServicesOK()) {
                 btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
                 btnObras = (Button) findViewById(R.id.btnObras);
                 Cerrar = (Button) findViewById(R.id.btnCerrar);
@@ -224,9 +227,24 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 });
                 overridePendingTransition(0, 0);
             }
+        }else if(!Jornada()){
+            startActivity(new Intent(MenuAdmin.this, FueraDeHora.class));
+            finish();
         }
     }
 
+    public boolean Jornada() {
+        DateTimeZone zone = DateTimeZone.forID("Europe/London");
+        DateTime now = DateTime.now(zone);
+        Integer hour = now.getHourOfDay();
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        if (FueraDeHora.returnAcepta()) {
+            Intent intentSE = new Intent(MenuAdmin.this, FueraDeHora.class);
+            stopService(intentSE);
+            hora = true;
+        }
+        return hora;
+    }
 
     public void crearCanalDeNotificaciones() {
             if (comp.equals("iniciada")) {

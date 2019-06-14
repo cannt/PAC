@@ -32,7 +32,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
@@ -53,6 +55,7 @@ public class ServicioLocalizacion extends Service {
     FirebaseFirestore mDb;
     private LocalizacionUsuario mLocalizarUsuario;
     private String id, nombre, empresa, comprobar, obra;
+    private Boolean hora;
 
     @Nullable
     @Override
@@ -117,75 +120,64 @@ public class ServicioLocalizacion extends Service {
                 Looper.myLooper());
     }
 
-    public boolean Jornada() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        DateTime now = DateTime.now(zone);
-        Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
-        return hora;
-    }
-
     private void saveUserLocation(final GeoPoint geoPoint) {
-        if (Jornada()) {
-            try {
-                mAuth = FirebaseAuth.getInstance();
-                id = mAuth.getCurrentUser().getUid();
-                mDb = FirebaseFirestore.getInstance();
-                mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                    @Override
-                    public void onSuccess(DocumentSnapshot documentSnapshot0) {
-                        if (documentSnapshot0.exists()) {
-                            empresa = documentSnapshot0.getString("empresa");
-                            nombre = documentSnapshot0.getString("nombre");
-                            mLocalizarUsuario = new LocalizacionUsuario();
-                            mLocalizarUsuario.setGeoPoint(geoPoint);
-                            mLocalizarUsuario.setId(id);
-                            mLocalizarUsuario.setNombre(nombre);
-                            mLocalizarUsuario.setTimestamp(null);
-                            comprobar = documentSnapshot0.getString("comprobar");
-                            obra = documentSnapshot0.getString("obra");
-                            DocumentReference locationRef = FirebaseFirestore.getInstance()
-                                    .collection("Empresas")
-                                    .document(empresa).collection("Localizaciones").document(nombre);
-                            locationRef.set(mLocalizarUsuario).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    if (comprobar.equals("iniciada") && obra != null) {
-                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                            @Override
-                                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                                if(task.isSuccessful()){
-                                                    latitudGuardada =  task.getResult().getGeoPoint("geoPoint").getLatitude();
-                                                    longitudGuardada =  task.getResult().getGeoPoint("geoPoint").getLongitude();
-                                                    mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                                        @Override
-                                                        public void onSuccess(DocumentSnapshot documentSnapshot2) {
-                                                            geoPointLocalizayo = documentSnapshot2.getGeoPoint("geoPoint");
-                                                            latitudDetectada = geoPointLocalizayo.getLatitude();
-                                                            longitudDetectada = geoPointLocalizayo.getLongitude();
-                                                            distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
-                                                            if (Double.compare(distan, 25.0) > 0) {
-                                                                crearCanalDeNotificaciones();
-                                                            }
+        try {
+            mAuth = FirebaseAuth.getInstance();
+            id = mAuth.getCurrentUser().getUid();
+            mDb = FirebaseFirestore.getInstance();
+            mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot0) {
+                    if (documentSnapshot0.exists()) {
+                        empresa = documentSnapshot0.getString("empresa");
+                        nombre = documentSnapshot0.getString("nombre");
+                        mLocalizarUsuario = new LocalizacionUsuario();
+                        mLocalizarUsuario.setGeoPoint(geoPoint);
+                        mLocalizarUsuario.setId(id);
+                        mLocalizarUsuario.setNombre(nombre);
+                        mLocalizarUsuario.setTimestamp(null);
+                        comprobar = documentSnapshot0.getString("comprobar");
+                        obra = documentSnapshot0.getString("obra");
+                        DocumentReference locationRef = FirebaseFirestore.getInstance()
+                                .collection("Empresas")
+                                .document(empresa).collection("Localizaciones").document(nombre);
+                        locationRef.set(mLocalizarUsuario).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                if (comprobar.equals("iniciada") && obra != null) {
+                                    mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                            if (task.isSuccessful()) {
+                                                latitudGuardada = task.getResult().getGeoPoint("geoPoint").getLatitude();
+                                                longitudGuardada = task.getResult().getGeoPoint("geoPoint").getLongitude();
+                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onSuccess(DocumentSnapshot documentSnapshot2) {
+                                                        geoPointLocalizayo = documentSnapshot2.getGeoPoint("geoPoint");
+                                                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                                                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                                                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                                                        if (Double.compare(distan, 25.0) > 0) {
+                                                            crearCanalDeNotificaciones();
                                                         }
-                                                    });
-                                                }
+                                                    }
+                                                });
                                             }
-                                        });
-                                    }
+                                        }
+                                    });
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
-                });
-            } catch (NullPointerException e) {
-                stopSelf();
-            }
-        } else if (!Jornada()) {
-            startActivity(new Intent(ServicioLocalizacion.this, FueraDeHora.class));
+                }
+            });
+        } catch (NullPointerException e) {
             stopSelf();
         }
+
     }
+
     public void crearCanalDeNotificaciones() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("obras", nombre, NotificationManager.IMPORTANCE_DEFAULT);
