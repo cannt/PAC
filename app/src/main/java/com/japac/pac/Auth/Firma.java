@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Firma extends AppCompatActivity {
-
     public static final int Permisos = 8991;
     String[] permisos = new String[]{
             Manifest.permission.INTERNET,
@@ -43,7 +42,7 @@ public class Firma extends AppCompatActivity {
 
     private Button btnfirmar, btnborrar;
 
-    private String id;
+    private String id, hola;
 
     FirebaseAuth mAuth;
 
