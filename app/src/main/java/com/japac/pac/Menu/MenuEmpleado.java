@@ -47,7 +47,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -64,6 +66,8 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
+
+import javax.annotation.Nullable;
 
 public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LocationListener {
 
@@ -361,6 +365,20 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                         public void onFailure(@NonNull Exception e) {
                             logo.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    firebaseFirestore.collection("Todas las ids").document(id).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                        @Override
+                        public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+                            if(documentSnapshot.getString("jefe") != null && documentSnapshot.getString("jefe") != "no" && documentSnapshot.exists()){
+                                String oBr = documentSnapshot.getString("obra");
+                                if(oBr!=null){
+                                    IoF = nombre + " ahora eres el jefe de obra de " + oBr;
+                                    Intent intent = new Intent(MenuEmpleado.this, MenuJefeDeObra.class);
+                                    startActivity(intent);
+                                    finish();
+                                }
+                            }
                         }
                     });
                 } else {
