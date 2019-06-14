@@ -42,7 +42,7 @@ public class Firma extends AppCompatActivity {
 
     private Button btnfirmar, btnborrar;
 
-    private String id, hola;
+    private String id;
 
     FirebaseAuth mAuth;
 

@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="Gradle: com.sothree.slidinguppanel:library:3.4.0@aar">
     <CLASSES>
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/1748e38e26c4e3191b3d82af12e05198/res" />
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/1748e38e26c4e3191b3d82af12e05198/jars/classes.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/5a48e29a9fd3f2c522c7f0c9413b6a50/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/5a48e29a9fd3f2c522c7f0c9413b6a50/res" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
