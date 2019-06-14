@@ -1,0 +1,33 @@
+<resources>
+    <string name="logo">logo default</string>
+    <string name="volver">volver</string>
+    <string name="localizarYo">Localizarme</string>
+    <string name="usoCrear">crear obra</string>
+    <string name="buscador">Introduzca dirección, ciudad o codigo postal</string>
+    <string name="app_name">PAC</string>
+    <string name="regNombre">Nombre</string>
+    <string name="logEmail">Email</string>
+    <string name="logContraseña">Contraseña</string>
+    <string name="btnEntrar">Entrar</string>
+    <string name="noTiene">¿Aun no estas registrado?</string>
+    <string name="regEmail">Email</string>
+    <string name="confEmail">Confirmar Email</string>
+    <string name="regContraseña">Contraseña</string>
+    <string name="confContraseña">Confirmar Contraseña</string>
+    <string name="regCodigo">Codigo de empresa</string>
+    <string name="btnRegistrar">Registrar</string>
+    <string name="siTiene">¿Ya estas registrado?</string>
+    <string name="Administrador">Administrador</string>
+    <string name="Empleado">Empleado</string>
+    <string name="btnIniciarJornada">Iniciar jornada</string>
+    <string name="btnFinalizarJornada">Finalizar Jornada</string>
+    <string name="insObra">Obra</string>
+    <string name="btnCerrar">Cerrar Sesion</string>
+    <string name="btnRegistrarJornadas">Registrar Jornada</string>
+    <string name="btnEmpleados">Administrar empleados</string>
+    <string name="btnObras">Administrar obras</string>
+    <string name="btnFirmar">Registrar Firma</string>
+    <string name="btnBorrar">Borrar Firma</string>
+    <string name="btnRegistroPdf">Ver Registro</string>
+</resources>
+
