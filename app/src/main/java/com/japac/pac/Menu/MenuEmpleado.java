@@ -18,6 +18,7 @@ import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -45,12 +46,14 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -112,6 +115,8 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private boolean cerrar = false, finali = false, trayectoBo = false;
 
+    private static final String TAG = "MenuEmpleado";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -130,6 +135,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
 
                 firebaseFirestore = FirebaseFirestore.getInstance();
+
 
                 mAuth = FirebaseAuth.getInstance();
 
@@ -186,7 +192,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 overridePendingTransition(0, 0);
             }
 
-        }else if(!Jornada()){
+        } else if (!Jornada()) {
             startActivity(new Intent(MenuEmpleado.this, FueraDeHora.class));
             finish();
         }
@@ -196,7 +202,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
+        Boolean hora = ((hour >= 7) && (hour < 19));
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MenuEmpleado.this, FueraDeHora.class);
             stopService(intentSE);
@@ -367,16 +373,25 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     });
-                    firebaseFirestore.collection("Todas las ids").document(id).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                    firebaseFirestore.collection("Todas las ids").document(id).addSnapshotListener(MenuEmpleado.this, new EventListener<DocumentSnapshot>() {
                         @Override
-                        public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
-                            if(documentSnapshot.getString("jefe") != null && documentSnapshot.getString("jefe") != "no" && documentSnapshot.exists()){
-                                String oBr = documentSnapshot.getString("obra");
-                                if(oBr!=null){
-                                    IoF = nombre + " ahora eres el jefe de obra de " + oBr;
-                                    Intent intent = new Intent(MenuEmpleado.this, MenuJefeDeObra.class);
-                                    startActivity(intent);
-                                    finish();
+                        public void onEvent(@Nullable DocumentSnapshot documentSnapshot2, @Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+                                Toast.makeText(MenuEmpleado.this, "Error Jefe", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            if (documentSnapshot2.exists()) {
+                                String oBr = documentSnapshot2.getString("jefe");
+                                if (!oBr.equals(null)) {
+                                    if (!oBr.equals("no")) {
+                                        Log.d(TAG, oBr);
+                                        IoF = nombre + " ahora eres el jefe de la obra " + oBr;
+                                        Log.d(TAG, IoF);
+                                        mostrarNotificacion();
+                                        Intent intent = new Intent(MenuEmpleado.this, MenuJefeDeObra.class);
+                                        startActivity(intent);
+                                        finish();
+                                    }
                                 }
                             }
                         }

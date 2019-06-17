@@ -131,7 +131,7 @@ public class Login extends AppCompatActivity {
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
+        Boolean hora = ((hour >= 7) && (hour < 19));
         if(FueraDeHora.returnAcepta()){
             Intent intentSE = new Intent(Login.this, FueraDeHora.class);
             stopService(intentSE);
@@ -199,7 +199,7 @@ public class Login extends AppCompatActivity {
                         finish();
                     } else if (sroles.equals("Empleado")) {
                         codigoEmpleado = documentSnapshot.getString("codigo empleado");
-                        if (codigoEmpleado.length() > 13) {
+                        if (codigoEmpleado.length() > 14) {
                             cargandoloNO();
                             startActivity(new Intent(Login.this, MenuJefeDeObra.class));
                             finish();

@@ -213,7 +213,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
+        Boolean hora = ((hour >= 7) && (hour < 19));
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MapaActivity.this, FueraDeHora.class);
             stopService(intentSE);

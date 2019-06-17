@@ -237,7 +237,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
+        Boolean hora = ((hour >= 7) && (hour < 19));
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MenuAdmin.this, FueraDeHora.class);
             stopService(intentSE);
