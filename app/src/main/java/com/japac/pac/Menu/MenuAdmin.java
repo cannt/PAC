@@ -14,13 +14,13 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,6 +38,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -74,8 +75,6 @@ import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
 import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
-
-import org.imperiumlabs.geofirestore.GeoFirestore;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -95,8 +94,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     FirebaseFirestore firebaseFirestore;
 
     CollectionReference geoFirestoreRef, geoFirestoreRef2;
-
-    GeoFirestore geoFirestore;
 
     StorageReference almacenFirmas;
 
@@ -237,7 +234,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 19));
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        Calendar calendar = Calendar.getInstance();
+        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
+        DateFormatSymbols dfs = new DateFormatSymbols();
+        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
+            hora = false;
+        }
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MenuAdmin.this, FueraDeHora.class);
             stopService(intentSE);
@@ -501,10 +504,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void firestoreObras() {
-        geoFirestoreRef = firebaseFirestore.collection("Empresas").document(empresa).collection("Obras");
-        geoFirestore = new GeoFirestore(geoFirestoreRef);
         obs = new ArrayList<String>();
-        geoFirestoreRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if (task.isSuccessful()) {
@@ -1252,7 +1253,12 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                                             String JFob = document.getString("jefe");
                                                                             String obran = document.getString("obra");
                                                                             if (jefes.equals(JFob)) {
-                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obran).update("jefe", "no");
+                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obran).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                    @Override
+                                                                                    public void onSuccess(Void aVoid) {
+                                                                                        firebaseFirestore.collection("Jefes").document(idElim).delete();
+                                                                                    }
+                                                                                });
                                                                             }
                                                                         }
                                                                     }

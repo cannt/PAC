@@ -9,11 +9,11 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -66,7 +66,9 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
+import java.text.DateFormatSymbols;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -213,7 +215,13 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 19));
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        Calendar calendar = Calendar.getInstance();
+        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
+        DateFormatSymbols dfs = new DateFormatSymbols();
+        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
+            hora = false;
+        }
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MapaActivity.this, FueraDeHora.class);
             stopService(intentSE);
@@ -598,7 +606,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
                                             String jefe = documentSnapshot.getString("jefe");
-                                            if (!jefe.equals("no")) {
+                                            if (!jefe.equals("no") && !jefe.equals(null) && !jefe.equals("")) {
                                                 dJefeExiste(obraAd, jefe);
                                             } else {
                                                 dJefes(obraAd, jefe);
@@ -935,6 +943,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(jefes).update("codigo empleado", JFC);
                                             mDb.collection("Todas las ids").document(idNueva).update(obE);
                                             mDb.collection("Todas las ids").document(idNueva).update("codigo empleado", JFC);
+                                            mDb.collection("Jefes").document(idNueva).set(obE);
                                         }
                                     }
                                 });
@@ -967,6 +976,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(jefes).update("codigo empleado", JFC);
                                             mDb.collection("Todas las ids").document(idNueva).update(ob1);
                                             mDb.collection("Todas las ids").document(idNueva).update("codigo empleado", JFC);
+                                            mDb.collection("Jefes").document(idNueva).set(ob1);
                                         }
                                     }
                                 });
@@ -977,7 +987,40 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
         if (cambiar) {
-            mDb.collection("Empresas").document(empresa).collection("Empleado").document(obraAdJf).update("jefe", jefes);
+            mDb.collection("Empresas").document(empresa).collection("Empleado").document(obraAdJf).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if (documentSnapshot.exists()) {
+                        final String idCam = documentSnapshot.getString("id");
+                        JFC = documentSnapshot.getString("codigo empleado");
+                        JFO = documentSnapshot.getString("jefe");
+                        if (JFC.contains("," + obraAd)) {
+                            JFC = JFC.replace("," + obraAd, "");
+
+                        } else if (JFC.contains("/" + obraAd)) {
+                            if (JFC.contains("/" + obraAd + ",")) {
+                                JFC = JFC.replace("/" + obraAd + ",", "/");
+                            } else {
+                                JFC = JFC.replace("JeF/" + obraAd, "");
+                            }
+                        }
+                        if (JFO.contains("," + obraAd)) {
+                            JFO = JFO.replace("," + obraAd, "");
+                        } else if (JFO.contains(obraAd + ",")) {
+                            JFO = JFO.replace(obraAd + ",", "");
+                        } else if (JFO.contains(obraAd)) {
+                            JFO = JFO.replace(obraAd, "");
+                        }
+                        final Map<String, Object> MapC = new HashMap<>();
+                        MapC.put("codigo empleado", JFC);
+                        MapC.put("jefe", JFO);
+                        mDb.collection("Empresas").document(empresa).collection("Empleado").document(obraAdJf).update(MapC);
+                        mDb.collection("Todas las ids").document(idCam).update(MapC);
+                        mDb.collection("Codigos").document(codigoEmpresa).update(obraAdJf, JFC);
+                        mDb.collection("Jefes").document(idCam).update("jefe", JFO);
+                    }
+                }
+            });
             cambiar = false;
         }
         firestoreNombres();

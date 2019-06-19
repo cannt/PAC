@@ -12,13 +12,13 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +33,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,8 +54,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -70,6 +74,8 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
+
+import javax.annotation.Nullable;
 
 public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LocationListener {
 
@@ -90,7 +96,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     private Button btnRegistroJornada, Cerrar;
 
-    private String JefeDeObra,IoF, empresa, fecha, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, codigoEmpleado, id, comp, obcomp, obcomprueba,emailAn, nombreAm, trayecto;
+    private String JefeDeObra, IoF, empresa, fecha, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, codigoEmpleado, id, comp, obcomp, obcomprueba, emailAn, nombreAm, trayecto, JEFES1;
 
     private ArrayAdapter<String> obraAdapter, obraJefeAdapter;
 
@@ -106,7 +112,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     private TextView Bien, eresObras;
 
-    private boolean otro = false, cerrar = false, trayectoBo = false;
+    private boolean otro = false, cerrar = false, trayectoBo = false, refresca = false;
 
     private ProgressBar cargando;
 
@@ -115,8 +121,10 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
     private static final int ERROR_DIALOGO_PEDIR = 9001;
 
     private LocalizacionUsuario mLocalizarUsuario;
-
+    private List<String> oJeF;
     private FusedLocationProviderClient mProovedor;
+
+    private ListenerRegistration registration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +135,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         cargando = (ProgressBar) findViewById(R.id.cargandoJefe);
 
         if (Jornada()) {
-            if(compruebapermisos() && isServicesOK()){
+            if (compruebapermisos() && isServicesOK()) {
 
                 logo = (ImageView) findViewById(R.id.logoJefeDeObra);
                 btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
@@ -147,6 +155,16 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                 eresObras = (TextView) findViewById(R.id.eresDe);
 
                 primero();
+                registration = firebaseFirestore.collection("Jefes").document(id).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+                        String je = documentSnapshot.get("jefe").toString();
+                        if(!je.equals(JEFES1)){
+                            primero();
+                        }
+
+                    }
+                });
 
                 Cerrar.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -173,7 +191,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                 });
                 overridePendingTransition(0, 0);
             }
-        }else if(!Jornada()){
+        } else if (!Jornada()) {
             startActivity(new Intent(MenuJefeDeObra.this, FueraDeHora.class));
             finish();
         }
@@ -183,7 +201,13 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);
         Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 19));
+        Boolean hora = ((hour >= 7) && (hour < 17));
+        Calendar calendar = Calendar.getInstance();
+        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
+        DateFormatSymbols dfs = new DateFormatSymbols();
+        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
+            hora = false;
+        }
         if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(MenuJefeDeObra.this, FueraDeHora.class);
             stopService(intentSE);
@@ -192,13 +216,13 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         return hora;
     }
 
-    public void crearCanalDeNotificaciones(){
-        if(comp.equals("iniciada")){
+    public void crearCanalDeNotificaciones() {
+        if (comp.equals("iniciada")) {
             IoF = "Has iniciado una jornada en " + obcomprueba;
-        }else if(comp.equals("finalizada") || comp.equals("no")){
+        } else if (comp.equals("finalizada") || comp.equals("no")) {
             IoF = "Has finalizado la jornada en " + obcomprueba;
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("obras", nombre, NotificationManager.IMPORTANCE_DEFAULT);
             notificationChannel.setDescription(IoF);
             notificationChannel.setShowBadge(true);
@@ -208,7 +232,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         }
     }
 
-    public void mostrarNotificacion(){
+    public void mostrarNotificacion() {
         Intent intent = new Intent(this, Login.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
@@ -226,6 +250,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.notify(8991, builder.build());
     }
+
     private boolean compruebapermisos() {
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
@@ -248,8 +273,16 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
+
+                    firebaseFirestore.collection("Jefes").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            JEFES1 = documentSnapshot.getString("jefe");
+                        }
+                    });
+
                     comp = documentSnapshot.getString("comprobar");
-                    if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no" ) {
+                    if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
                         obcomprueba = documentSnapshot.getString("obra");
                         if (comp.equals("iniciada")) {
                             crearCanalDeNotificaciones();
@@ -266,16 +299,15 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                     nombre = documentSnapshot.getString("nombre");
                     roles = documentSnapshot.getString("rol");
                     JefeDeObra = documentSnapshot.getString("jefe");
-                    if(comp.equals("iniciada")){
+                    if (comp.equals("iniciada")) {
                         Cerrar.setEnabled(false);
                         cerrar = true;
-                    }else if(comp.equals("no") || comp.equals("finalizada")){
+                    } else if (comp.equals("no") || comp.equals("finalizada")) {
                         Cerrar.setEnabled(true);
                         cerrar = false;
                     }
                     Bien.setText("Bienvenido de nuevo " + nombreAm);
-
-                    firestore();
+                        firestore();
                     almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
                         public void onSuccess(Uri uri) {
@@ -290,6 +322,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
                         }
                     });
+
                 } else {
 
                     Toast.makeText(MenuJefeDeObra.this, "NO EXISTE ID", Toast.LENGTH_SHORT).show();
@@ -301,12 +334,11 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         overridePendingTransition(0, 0);
 
     }
-
     private void firestore() {
 
         geoFirestoreRef = firebaseFirestore.collection("Empresas").document(empresa).collection("Obras");
         final List<String> obs = new ArrayList<String>();
-        final List<String> oJeF = new ArrayList<String>();
+        oJeF = new ArrayList<String>();
         geoFirestoreRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
@@ -316,7 +348,9 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                         String JFob = document.getString("jefe");
                         obs.add(obran);
                         if (nombreAm.equals(JFob)) {
-                            oJeF.add(obran);
+                            if(!oJeF.contains(obran)){
+                                oJeF.add(obran);
+                            }
                         }
 
                     }
@@ -336,7 +370,13 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                             }
                         }
                     });
-                    eresObras.setText("Eres jefe de obra de : " + oJeF);
+                    if(!oJeF.isEmpty()){
+                        eresObras.setText("Eres jefe de obra de : " + oJeF);
+                    }else{
+                        registration.remove();
+                        startActivity(new Intent(MenuJefeDeObra.this, MenuEmpleado.class));
+                        finish();
+                    }
                     mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
                     obraSpinner.setOnItemSelectedListener(MenuJefeDeObra.this);
                 } else if (!task.isSuccessful()) {
@@ -437,10 +477,10 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                 trayecto = documentSnapshot.getString("marca temporal");
-                                                                if(trayecto!=null){
-                                                                    String fechaGuardada ="Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                            " del " + trayecto.charAt(19)+trayecto.charAt(20) +
-                                                                            " de " + trayecto.charAt(25)+trayecto.charAt(26)+trayecto.charAt(27)+trayecto.charAt(28);
+                                                                if (trayecto != null) {
+                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
                                                                     DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
                                                                     String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
                                                                     if (fechaAhora.equals(fechaGuardada)) {
@@ -473,7 +513,6 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
             }
         });
     }
-
 
 
     private int leeObras(Spinner spinner, String obraselecionada) {
@@ -527,7 +566,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     private void enviajornada() {
 
-        if(entrada_salida.equals("salida")){
+        if (entrada_salida.equals("salida")) {
             crearCanalDeNotificaciones();
         }
 
@@ -549,7 +588,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         map.put("obra", obra);
         map.put("rol", roles);
         map.put("fecha", fecha);
-        map.put("hora",hora);
+        map.put("hora", hora);
         map.put("UID", id);
         if (otro) {
             map.put("iniciado por", nombreAm);
@@ -867,9 +906,9 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     private void cargandoloNO() {
         btnRegistroJornada.setEnabled(true);
-        if(cerrar){
+        if (cerrar) {
             Cerrar.setEnabled(false);
-        }else if(!cerrar){
+        } else if (!cerrar) {
             Cerrar.setEnabled(true);
         }
         cargando.setVisibility(View.INVISIBLE);

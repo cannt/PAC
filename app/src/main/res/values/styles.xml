@@ -29,10 +29,6 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-  <style name="AppTheme.WhiteTextAppearance">
-    <item name="android:textColor">@android:color/white</item>
-  </style>
-
     <style name="noAnimTheme" parent="android:Theme">
         <item name="android:windowAnimationStyle">@null</item>
     </style>
