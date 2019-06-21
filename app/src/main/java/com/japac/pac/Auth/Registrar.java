@@ -41,9 +41,9 @@ public class Registrar extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
-    private String confirma, empresas, roles, cod, snombre, semail, sconfEmail, scontraseña, sconfContraseña,scodigoEmpresa;
+    private String confirma, empresas, roles, cod, snombre, semail, sconfEmail, scontraseña, sconfContraseña,scodigoEmpresa, snif;
 
-    private EditText nombre, email, confEmail, contraseña, confContraseña, codigoEmpresa, codigoEmpleado;
+    private EditText nombre, email, confEmail, contraseña, confContraseña, codigoEmpresa, codigoEmpleado, nif;
 
     private Button entrar, registrar;
 
@@ -94,8 +94,9 @@ public class Registrar extends AppCompatActivity {
                     scontraseña = contraseña.getText().toString();
                     sconfContraseña = confContraseña.getText().toString();
                     scodigoEmpresa = codigoEmpresa.getText().toString();
+                    snif = nif.getText().toString();
 
-                    if (snombre.isEmpty() || semail.isEmpty() || sconfEmail.isEmpty() || scontraseña.isEmpty() || sconfContraseña.isEmpty() || scodigoEmpresa.isEmpty()) {
+                    if (snombre.isEmpty() || semail.isEmpty() || sconfEmail.isEmpty() || scontraseña.isEmpty() || sconfContraseña.isEmpty() || scodigoEmpresa.isEmpty() || snif.isEmpty()) {
                         if (snombre.isEmpty()) {
                             nombre.setError("Escriba su nombre");
                         }
@@ -117,6 +118,9 @@ public class Registrar extends AppCompatActivity {
                         }
                         if (scodigoEmpresa.isEmpty()) {
                             codigoEmpresa.setError("Escriba el codigo de su empresa");
+                        }
+                        if(snif.isEmpty()){
+                            nif.setError("Escriba su NIF");
                         }
                         cargandoloNO();
                     } else if (contraseña.length() >= 6) {
@@ -236,14 +240,15 @@ public class Registrar extends AppCompatActivity {
                     final Map<String, Object> map = new HashMap<>();
                     map.put("empresa", empresas);
                     map.put("rol", roles);
-                    map.put("nombre", nombre.getText().toString());
-                    map.put("email", email.getText().toString());
-                    map.put("codigo empresa", codigoEmpresa.getText().toString());
+                    map.put("nombre", snombre);
+                    map.put("email", semail);
+                    map.put("codigo empresa", scodigoEmpresa);
                     map.put("codigo empleado", cod);
                     map.put("comprobar", "no");
                     map.put("id", id);
                     map.put("fuera de jornada", false);
                     map.put("notificacion", false);
+                    map.put("NIF", snif);
                     if (roles.equals("Administrador")) {
                         map.put("jefe", "todo");
                     } else if (roles.equals("Empleado")) {

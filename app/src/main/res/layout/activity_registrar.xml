@@ -12,26 +12,40 @@
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="34dp"
+        android:layout_marginBottom="8dp"
+        android:indeterminate="true"
+        android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:visibility="invisible"
-        android:indeterminate="true"/>
+        app:layout_constraintTop_toTopOf="@+id/regContraseña"
+        app:layout_constraintVertical_bias="0.0" />
 
     <EditText
         android:id="@+id/regNombre"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="95dp"
         android:ems="10"
         android:hint="@string/regNombre"
         android:inputType="textPersonName"
-        app:layout_constraintBottom_toTopOf="@+id/btnEntrar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.026"
+        tools:ignore="Autofill" />
+
+    <EditText
+        android:id="@+id/regNif"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:ems="10"
+        android:hint="@string/reNif"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toStartOf="@+id/regNombre"
+        app:layout_constraintTop_toBottomOf="@+id/regNombre"
         tools:ignore="Autofill" />
 
     <EditText
@@ -42,15 +56,15 @@
         android:ems="10"
         android:hint="@string/regEmail"
         android:inputType="textEmailAddress"
-        app:layout_constraintStart_toStartOf="@+id/regNombre"
-        app:layout_constraintTop_toBottomOf="@+id/regNombre"
+        app:layout_constraintStart_toStartOf="@+id/regNif"
+        app:layout_constraintTop_toBottomOf="@+id/regNif"
         tools:ignore="Autofill" />
 
     <EditText
         android:id="@+id/confEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="13dp"
+        android:layout_marginTop="9dp"
         android:ems="10"
         android:hint="@string/confEmail"
         android:inputType="textEmailAddress"
@@ -62,7 +76,7 @@
         android:id="@+id/regContraseña"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:ems="10"
         android:hint="@string/regContraseña"
         android:inputType="textPassword"
@@ -74,7 +88,7 @@
         android:id="@+id/confContraseña"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="13dp"
+        android:layout_marginTop="11dp"
         android:ems="10"
         android:hint="@string/confContraseña"
         android:inputType="textPassword"
@@ -82,21 +96,11 @@
         app:layout_constraintTop_toBottomOf="@+id/regContraseña"
         tools:ignore="Autofill" />
 
-    <Button
-        android:id="@+id/btnRegistrar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="@string/btnRegistrar"
-        app:layout_constraintStart_toStartOf="@+id/regCodigoEmpresa"
-        app:layout_constraintTop_toBottomOf="@+id/regCodigoEmpresa"
-        android:layout_marginStart="56dp" />
-
     <EditText
         android:id="@+id/regCodigoEmpresa"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="13dp"
+        android:layout_marginTop="8dp"
         android:autofillHints=""
         android:ems="10"
         android:hint="@string/regCodigo"
@@ -107,6 +111,7 @@
         tools:targetApi="o" />
 
     <TextView
+        android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="9dp"
@@ -115,6 +120,20 @@
         app:layout_constraintBottom_toTopOf="@+id/btnEntrar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnRegistrar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="11dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/btnRegistrar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/regCodigoEmpresa"
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/btnEntrar"

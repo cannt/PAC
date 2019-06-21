@@ -1,6 +1,7 @@
 package com.japac.pac.Menu;
 
 import android.Manifest;
+import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -9,11 +10,13 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -21,6 +24,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,14 +32,17 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
@@ -73,10 +80,7 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
-import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
 
@@ -103,9 +107,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan;
 
-    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnVerRegistro;
+    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnRegistro;
 
-    private String roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes;
+    private String roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes;
 
     private ArrayAdapter<String> obraAdapter, jefeAdapter;
 
@@ -143,6 +147,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private GeoPoint geoPointLocalizayo;
 
+    private int smallest;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -151,110 +157,213 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoAdmin);
 
-        if (Jornada()) {
-            if (compruebapermisos() && isServicesOK()) {
-                btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
-                btnObras = (Button) findViewById(R.id.btnObras);
-                Cerrar = (Button) findViewById(R.id.btnCerrar);
-                btnEmpleados = (Button) findViewById(R.id.btnAdmEmpleados);
-                btnVerRegistro = (Button) findViewById(R.id.btnRegistroPDF);
+        if (compruebapermisos() && isServicesOK()) {
+            btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
+            btnObras = (Button) findViewById(R.id.btnObras);
+            Cerrar = (Button) findViewById(R.id.btnCerrar);
+            btnEmpleados = (Button) findViewById(R.id.btnAdmEmpleados);
+            btnRegistro = (Button) findViewById(R.id.pdfVer);
 
-                logo = (ImageView) findViewById(R.id.logoAdmin);
+            logo = (ImageView) findViewById(R.id.logoAdmin);
 
-                firebaseFirestore = FirebaseFirestore.getInstance();
+            firebaseFirestore = FirebaseFirestore.getInstance();
 
-                mAuth = FirebaseAuth.getInstance();
+            mAuth = FirebaseAuth.getInstance();
 
-                almacen = FirebaseStorage.getInstance();
-                almacenRef = almacen.getReference();
+            almacen = FirebaseStorage.getInstance();
+            almacenRef = almacen.getReference();
 
-                id = mAuth.getCurrentUser().getUid();
-                comp = "no";
-                mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
-                cargandoloSI();
-                primero();
+            id = mAuth.getCurrentUser().getUid();
+            comp = "no";
+            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            cargandoloSI();
+            primero();
 
 
-                logo.setOnClickListener(new View.OnClickListener() {
+            logo.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    pickFromGallery();
+                }
+            });
+
+            Cerrar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    FirebaseAuth.getInstance().signOut();
+                    Intent intent = new Intent(MenuAdmin.this, Login.class);
+                    startActivity(intent);
+                    finish();
+                    overridePendingTransition(0, 0);
+                }
+            });
+
+
+            btnRegistroJornada.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dQuien();
+                }
+            });
+
+            btnObras.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(MenuAdmin.this, MapaActivity.class);
+                    startActivity(intent);
+                }
+            });
+
+            btnEmpleados.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dAdministrarEmpleados();
+                }
+            });
+                /*btnRegistro.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        leerRegistro();
+                    }
+                });*/
+            overridePendingTransition(0, 0);
+        }
+    }
+
+    /*public void leerRegistro() {
+
+        final AlertDialog.Builder registroLeer = new AlertDialog.Builder(MenuAdmin.this)
+                .setTitle("¿De que empleado desea generar el documento?");
+        jefeSpinner.setOnItemSelectedListener(this);
+        registroLeer
+                .setView(mNombres)
+                .setPositiveButton("Generar", null)
+                .setNegativeButton("Cancelar", null);
+        final AlertDialog dialogoRegistroLeer = registroLeer.create();
+        dialogoRegistroLeer.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                Button positivoAc = (Button) dialogoRegistroLeer.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button negativoCa = (Button) dialogoRegistroLeer.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+                positivoAc.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        pickFromGallery();
+                        final String empleado = jefes;
+                        final String[] rolE = new String[1];
+                        firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.contains(snombre)) {
+
+                                    codigoEmpleadoChech = documentSnapshot.getString(snombre);
+                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
+                                            rolE[0] = "Empleado";
+                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
+                                            rolE[0] = "Administrador";
+                                        }
+                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
+                                        rolE[0] = "Empleado";
+                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
+                                        rolE[0] = "Administrador";
+                                    }
+                                }
+                            }
+                        });
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.exists()) {
+                                    String nif = documentSnapshot.getString("NIF");
+                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).collection("Registro").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull final Task<QuerySnapshot> task) {
+                                            if (task.isSuccessful()) {
+                                                final List<Integer> ano = new ArrayList<>();
+                                                for (final QueryDocumentSnapshot document : task.getResult()) {
+                                                    int an = Calendar.getInstance().get(Calendar.YEAR);
+                                                    ano.add(Integer.parseInt(document.getId()));
+                                                    int ids = Integer.parseInt(document.getId());
+                                                    if (ids < an) {
+
+
+
+                                                    }
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).collection("Registro").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                                        @Override
+                                                        public void onComplete(@NonNull Task<QuerySnapshot> task2) {
+                                                            if (task2.isSuccessful()) {
+                                                                List<String> meses = new ArrayList<>();
+                                                                for (QueryDocumentSnapshot document2 : task2.getResult()) {
+                                                                    meses.add(document2.getId());
+                                                                    elegirFechas(ano, meses);
+                                                                    dialogoRegistroLeer.dismiss();
+                                                                }
+                                                            }
+                                                        }
+                                                    });
+                                                    dialogoRegistroLeer.dismiss();
+                                                }
+                                                smallest = ano.get(0);
+                                                for(int x : ano ){
+                                                    if (x < smallest) {
+                                                        smallest = x;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }).addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(MenuAdmin.this, "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
+                                            dialogoRegistroLeer.dismiss();
+                                        }
+                                    });
+                                }
+                            }
+                        });
                     }
                 });
 
-                Cerrar.setOnClickListener(new View.OnClickListener() {
+                negativoCa.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        FirebaseAuth.getInstance().signOut();
-                        Intent intent = new Intent(MenuAdmin.this, Login.class);
-                        startActivity(intent);
-                        finish();
-                        overridePendingTransition(0, 0);
+                        dialogoRegistroLeer.dismiss();
                     }
                 });
-
-
-                btnRegistroJornada.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dQuien();
-                    }
-                });
-
-                btnObras.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(MenuAdmin.this, MapaActivity.class);
-                        startActivity(intent);
-                    }
-                });
-
-                btnEmpleados.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dAdministrarEmpleados();
-                    }
-                });
-
-                btnVerRegistro.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                    }
-                });
-                overridePendingTransition(0, 0);
             }
-        }else if(!Jornada()){
-            startActivity(new Intent(MenuAdmin.this, FueraDeHora.class));
-            finish();
+        });
+        dialogoRegistroLeer.setCanceledOnTouchOutside(false);
+        if (mNombres.getParent() != null) {
+            ((ViewGroup) mNombres.getParent()).removeView(mNombres);
+            firestoreNombres();
+            dialogoRegistroLeer.show();
+        } else {
+            dialogoRegistroLeer.show();
         }
-    }
 
-    public boolean Jornada() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        DateTime now = DateTime.now(zone);
-        Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
-        Calendar calendar = Calendar.getInstance();
-        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
-        DateFormatSymbols dfs = new DateFormatSymbols();
-        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
-            hora = false;
-        }
-        if (FueraDeHora.returnAcepta()) {
-            Intent intentSE = new Intent(MenuAdmin.this, FueraDeHora.class);
-            stopService(intentSE);
-            hora = true;
-        }
-        return hora;
-    }
+    }*/
+
+    /*private void elegirFechas(List<Integer> años, List<String> meses) {
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, android.app.AlertDialog.THEME_HOLO_DARK, new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
+
+            }
+        }, Calendar.getInstance().get(Calendar.YEAR),Calendar.getInstance().get(Calendar.MONTH), Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
+        ((ViewGroup) datePickerDialog.getDatePicker()).findViewById(Resources.getSystem().getIdentifier("day", "id", "android")).setVisibility(View.GONE);
+        datePickerDialog.getDatePicker().setMinDate(smallest);
+        datePickerDialog.getDatePicker().setMaxDate(Calendar.getInstance().get(Calendar.YEAR));
+        datePickerDialog.show();
+    }*/
 
     public void crearCanalDeNotificaciones() {
-            if (comp.equals("iniciada")) {
-                IoF = "Has iniciado una jornada en " + obcomprueba;
-            } else if (comp.equals("finalizada") || comp.equals("no")) {
-                IoF = "Has finalizado la jornada en " + obcomprueba;
-            }
+        if (comp.equals("iniciada")) {
+            IoF = "Has iniciado una jornada en " + obcomprueba;
+        } else if (comp.equals("finalizada") || comp.equals("no")) {
+            IoF = "Has finalizado la jornada en " + obcomprueba;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("obras", nombre, NotificationManager.IMPORTANCE_DEFAULT);
             notificationChannel.setDescription(IoF);
@@ -883,7 +992,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         DateFormat dmes = new SimpleDateFormat("MM");
         DateFormat ddia = new SimpleDateFormat("dd");
         fecha = dfecha.format(Calendar.getInstance().getTime());
-        año = daño.format(Calendar.getInstance().getTime());
+        ano1 = daño.format(Calendar.getInstance().getTime());
         mes = dmes.format(Calendar.getInstance().getTime());
         dia = ddia.format(Calendar.getInstance().getTime());
 
@@ -906,8 +1015,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         map.put("Entrada o Salida", entrada_salida);
         map.put("obra", obra);
         map.put("rol", roles);
-        map.put("fecha", fecha );
-        map.put("hora",hora);
+        map.put("fecha", fecha);
+        map.put("hora", hora);
         map.put("Mañana o tarde", mañaOtard);
         map.put("UID", id);
         if (otro) {
@@ -917,14 +1026,19 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             trayectoBo = false;
             map.put("Trayecto desde " + obcomp + " hasta " + obra, trayecto);
         }
-        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(año).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
-                    if (otro) {
-                        otro = false;
-                        dConfirma();
-                    }
+                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document(ano1).collection(mes).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            if (otro) {
+                                otro = false;
+                                dConfirma();
+                            }
+                        }
+                    });
                 }
             }
         });

@@ -134,7 +134,6 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoJefe);
 
-        if (Jornada()) {
             if (compruebapermisos() && isServicesOK()) {
 
                 logo = (ImageView) findViewById(R.id.logoJefeDeObra);
@@ -191,10 +190,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                 });
                 overridePendingTransition(0, 0);
             }
-        } else if (!Jornada()) {
-            startActivity(new Intent(MenuJefeDeObra.this, FueraDeHora.class));
-            finish();
-        }
+
     }
 
     public boolean Jornada() {
@@ -374,8 +370,13 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                         eresObras.setText("Eres jefe de obra de : " + oJeF);
                     }else{
                         registration.remove();
-                        startActivity(new Intent(MenuJefeDeObra.this, MenuEmpleado.class));
-                        finish();
+                        firebaseFirestore.collection("Jefes").document(id).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                startActivity(new Intent(MenuJefeDeObra.this, MenuEmpleado.class));
+                                finish();
+                            }
+                        });
                     }
                     mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
                     obraSpinner.setOnItemSelectedListener(MenuJefeDeObra.this);
@@ -601,9 +602,15 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
-                    if (otro) {
-                        dConfirma();
-                    }
+                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document(año).collection(mes).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            if (otro) {
+                                otro = false;
+                                dConfirma();
+                            }
+                        }
+                    });
                 }
             }
         });

@@ -129,6 +129,7 @@ public class Login extends AppCompatActivity {
 
     }
 
+
     public boolean Jornada() {
         DateTimeZone zone = DateTimeZone.forID("Europe/London");
         DateTime now = DateTime.now(zone);

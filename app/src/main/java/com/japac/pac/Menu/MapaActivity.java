@@ -171,7 +171,6 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_mapa);
 
 
-        if (Jornada()) {
             if (compruebapermisos() && isServicesOK()) {
                 mAuth = FirebaseAuth.getInstance();
                 id = mAuth.getCurrentUser().getUid();
@@ -205,29 +204,6 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
             }
-        }else if(!Jornada()){
-            startActivity(new Intent(MapaActivity.this, FueraDeHora.class));
-            finish();
-        }
-    }
-
-    public boolean Jornada() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        DateTime now = DateTime.now(zone);
-        Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
-        Calendar calendar = Calendar.getInstance();
-        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
-        DateFormatSymbols dfs = new DateFormatSymbols();
-        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
-            hora = false;
-        }
-        if (FueraDeHora.returnAcepta()) {
-            Intent intentSE = new Intent(MapaActivity.this, FueraDeHora.class);
-            stopService(intentSE);
-            hora = true;
-        }
-        return hora;
     }
 
     private void centrarCamara() {

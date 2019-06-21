@@ -6,6 +6,7 @@
     <string name="buscador">Introduzca dirección, ciudad o codigo postal</string>
     <string name="app_name">PAC</string>
     <string name="regNombre">Nombre</string>
+    <string name="reNif">NIF</string>
     <string name="logEmail">Email</string>
     <string name="logContraseña">Contraseña</string>
     <string name="btnEntrar">Entrar</string>
