@@ -10,6 +10,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -19,11 +21,13 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.japac.pac.Menu.MenuAdmin;
 import com.japac.pac.R;
 
 import java.util.ArrayList;
@@ -75,6 +79,7 @@ public class Registrar extends AppCompatActivity {
             contraseña = (EditText) findViewById(R.id.regContraseña);
             confContraseña = (EditText) findViewById(R.id.confContraseña);
             codigoEmpresa = (EditText) findViewById(R.id.regCodigoEmpresa);
+            nif = (EditText) findViewById(R.id.regNif);
 
 
             entrar.setOnClickListener(new View.OnClickListener() {
@@ -220,7 +225,7 @@ public class Registrar extends AppCompatActivity {
     public void codConfirma() {
         if (cod.equals(confirma) == true) {
             Toast.makeText(Registrar.this, "EXISTE EL EMPLEADO", Toast.LENGTH_SHORT).show();
-            registrarUsuario();
+            privacyPolicy();
 
         } else if (cod.equals(confirma) == false) {
             codigoEmpleadoCheck();
@@ -228,6 +233,53 @@ public class Registrar extends AppCompatActivity {
             Toast.makeText(Registrar.this, "EL CODIGO NO COINCIDE", Toast.LENGTH_SHORT).show();
 
         }
+    }
+
+    public void privacyPolicy(){
+        final AlertDialog.Builder pP = new AlertDialog.Builder(Registrar.this);
+        pP.setMessage("Politica de privacidad")
+                .setPositiveButton("Aceptar", null)
+                .setNegativeButton("Leer", null)
+                .setNeutralButton("Cancelar", null);
+        final AlertDialog dialogoQuien = pP.create();
+        dialogoQuien.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+                Button positivoYo = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button negativoOtro = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_NEGATIVE);
+                Button neutroC = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_NEUTRAL);
+                positivoYo.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        registrarUsuario();
+                        dialogoQuien.dismiss();
+
+                    }
+                });
+
+                negativoOtro.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+
+                    }
+                });
+
+                neutroC.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        finish();
+                        System.exit(0);
+                        dialogoQuien.dismiss();
+                    }
+                });
+            }
+        });
+        dialogoQuien.setCanceledOnTouchOutside(false);
+        dialogoQuien.show();
     }
 
     private void registrarUsuario() {
@@ -254,25 +306,30 @@ public class Registrar extends AppCompatActivity {
                     } else if (roles.equals("Empleado")) {
                         map.put("jefe", "no");
                     }
-
-                    firebaseFirestore.collection("Todas las ids").document(id).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    final Map<String, String> mapF = new HashMap<>();
+                    mapF.put("años", "");
+                    mapF.put("meses", "");
+                    mapF.put("dias", "");
+                    firebaseFirestore.collection("Todas las ids").document(id).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if (task.isSuccessful()) {
-                                firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(nombre.getText().toString()).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful()) {
+                        public void onSuccess(Void aVoid) {
+                            firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(snombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(snombre).collection("Registro").document("años,meses,dias").set(mapF).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
                                             InputMethodManager inputManager = (InputMethodManager)
                                                     getSystemService(Context.INPUT_METHOD_SERVICE);
                                             inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
                                                     InputMethodManager.HIDE_NOT_ALWAYS);
                                             cargandoloNO();
                                             startActivity(new Intent(Registrar.this, Firma.class));
+                                            finish();
                                         }
-                                    }
-                                });
-                            }
+                                    });
+                                }
+                            });
                         }
                     });
                 } else {

@@ -12,9 +12,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -41,6 +44,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.security.SecureRandom;
@@ -49,6 +54,7 @@ import java.text.DateFormatSymbols;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +88,8 @@ import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
 import com.squareup.picasso.Picasso;
 
+import org.w3c.dom.Document;
+
 import java.util.Calendar;
 
 public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
@@ -105,21 +113,23 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     StorageReference almacenRef;
 
+    private TextView pPt;
+
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan;
 
     private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnRegistro;
 
-    private String roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes;
+    private String empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes;
 
-    private ArrayAdapter<String> obraAdapter, jefeAdapter;
+    private ArrayAdapter<String> obraAdapter, jefeAdapter, anoAdapter;
 
-    private Spinner obraSpinner, jefeSpinner;
+    private Spinner obraSpinner, jefeSpinner, anoMesSpinner;
 
     private ImageView logo;
 
     private FirebaseAuth mAuth;
 
-    private View mSpinner, mLoginDialog, mNombres;
+    private View mSpinner, mLoginDialog, mNombres, mAnoMes;
 
     private List<String> obs, jfs;
 
@@ -147,8 +157,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private GeoPoint geoPointLocalizayo;
 
-    private int smallest;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -163,6 +171,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             Cerrar = (Button) findViewById(R.id.btnCerrar);
             btnEmpleados = (Button) findViewById(R.id.btnAdmEmpleados);
             btnRegistro = (Button) findViewById(R.id.pdfVer);
+            pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
             logo = (ImageView) findViewById(R.id.logoAdmin);
 
@@ -179,6 +188,15 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             cargandoloSI();
             primero();
 
+            pPt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+            });
 
             logo.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -220,21 +238,50 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     dAdministrarEmpleados();
                 }
             });
-                /*btnRegistro.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        leerRegistro();
-                    }
-                });*/
+            btnRegistro.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    leerRegistro();
+                }
+            });
             overridePendingTransition(0, 0);
         }
     }
 
-    /*public void leerRegistro() {
-
+    public void leerRegistro() {
+        jfs.add(nombre);
         final AlertDialog.Builder registroLeer = new AlertDialog.Builder(MenuAdmin.this)
                 .setTitle("¿De que empleado desea generar el documento?");
-        jefeSpinner.setOnItemSelectedListener(this);
+        jefeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                empleado = adapterView.getItemAtPosition(i).toString();
+                firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.contains(empleado)) {
+                            codigoEmpleadoChech = documentSnapshot.getString(empleado);
+                            if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                if (codigoEmpleadoChech.charAt(7) == 'E') {
+                                    rolE = "Empleado";
+                                } else if (codigoEmpleadoChech.charAt(7) == 'a') {
+                                    rolE = "Administrador";
+                                }
+                            } else if (codigoEmpleadoChech.charAt(4) == 'E') {
+                                rolE = "Empleado";
+                            } else if (codigoEmpleadoChech.charAt(4) == 'a') {
+                                rolE = "Administrador";
+                            }
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
         registroLeer
                 .setView(mNombres)
                 .setPositiveButton("Generar", null)
@@ -249,74 +296,25 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 positivoAc.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        final String empleado = jefes;
-                        final String[] rolE = new String[1];
-                        firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                if (documentSnapshot.contains(snombre)) {
 
-                                    codigoEmpleadoChech = documentSnapshot.getString(snombre);
-                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
-                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
-                                            rolE[0] = "Empleado";
-                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
-                                            rolE[0] = "Administrador";
-                                        }
-                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
-                                        rolE[0] = "Empleado";
-                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
-                                        rolE[0] = "Administrador";
-                                    }
-                                }
-                            }
-                        });
-                        firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(rolE).document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 if (documentSnapshot.exists()) {
-                                    String nif = documentSnapshot.getString("NIF");
-                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).collection("Registro").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                    final String nif = documentSnapshot.getString("NIF");
+                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE).document(empleado).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                         @Override
-                                        public void onComplete(@NonNull final Task<QuerySnapshot> task) {
-                                            if (task.isSuccessful()) {
-                                                final List<Integer> ano = new ArrayList<>();
-                                                for (final QueryDocumentSnapshot document : task.getResult()) {
-                                                    int an = Calendar.getInstance().get(Calendar.YEAR);
-                                                    ano.add(Integer.parseInt(document.getId()));
-                                                    int ids = Integer.parseInt(document.getId());
-                                                    if (ids < an) {
-
-
-
-                                                    }
-                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE[0]).document(empleado).collection("Registro").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                                        @Override
-                                                        public void onComplete(@NonNull Task<QuerySnapshot> task2) {
-                                                            if (task2.isSuccessful()) {
-                                                                List<String> meses = new ArrayList<>();
-                                                                for (QueryDocumentSnapshot document2 : task2.getResult()) {
-                                                                    meses.add(document2.getId());
-                                                                    elegirFechas(ano, meses);
-                                                                    dialogoRegistroLeer.dismiss();
-                                                                }
-                                                            }
-                                                        }
-                                                    });
-                                                    dialogoRegistroLeer.dismiss();
-                                                }
-                                                smallest = ano.get(0);
-                                                for(int x : ano ){
-                                                    if (x < smallest) {
-                                                        smallest = x;
-                                                    }
-                                                }
-                                            }
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            String ans = documentSnapshot.getString("años");
+                                            List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
+                                            elegirFechasAños(ansL, rolE, empleado, nif);
+                                            dialogoRegistroLeer.dismiss();
                                         }
                                     }).addOnFailureListener(new OnFailureListener() {
                                         @Override
                                         public void onFailure(@NonNull Exception e) {
                                             Toast.makeText(MenuAdmin.this, "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
+                                            jfs.remove(nombre);
                                             dialogoRegistroLeer.dismiss();
                                         }
                                     });
@@ -343,20 +341,135 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             dialogoRegistroLeer.show();
         }
 
-    }*/
+    }
 
-    /*private void elegirFechas(List<Integer> años, List<String> meses) {
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this, android.app.AlertDialog.THEME_HOLO_DARK, new DatePickerDialog.OnDateSetListener() {
+    private void elegirFechasAños(List<String> años, final String roles, final String empleado, final String nif) {
+        jfs.remove(nombre);
+        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                ano1 = adapterView.getItemAtPosition(i).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
 
             }
-        }, Calendar.getInstance().get(Calendar.YEAR),Calendar.getInstance().get(Calendar.MONTH), Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
-        ((ViewGroup) datePickerDialog.getDatePicker()).findViewById(Resources.getSystem().getIdentifier("day", "id", "android")).setVisibility(View.GONE);
-        datePickerDialog.getDatePicker().setMinDate(smallest);
-        datePickerDialog.getDatePicker().setMaxDate(Calendar.getInstance().get(Calendar.YEAR));
-        datePickerDialog.show();
-    }*/
+        });
+        anoAdapter = new ArrayAdapter<String>(MenuAdmin.this, android.R.layout.simple_spinner_item, años);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final AlertDialog.Builder añoEle = new AlertDialog.Builder(MenuAdmin.this)
+                .setTitle("Eliga un año");
+        añoEle
+                .setView(mAnoMes)
+                .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialogInterface, int i) {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(empleado).collection("Registro").document("AÑOS").collection(ano1).document("MESES").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                String ms = documentSnapshot.getString("meses");
+                                List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
+                                elegirFechasMeses(msL, roles, empleado, ano1, nif);
+                                dialogInterface.dismiss();
+
+                            }
+                        });
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        final AlertDialog dialogoAñoEle = añoEle.create();
+        dialogoAñoEle.setCanceledOnTouchOutside(false);
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mNombres);
+            firestoreNombres();
+            dialogoAñoEle.show();
+        } else {
+            dialogoAñoEle.show();
+        }
+    }
+
+    private void elegirFechasMeses(List<String> meses, final String roles, final String empleado, final String ano, String nif) {
+        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                mes1 = adapterView.getItemAtPosition(i).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+        anoAdapter = new ArrayAdapter<String>(MenuAdmin.this, android.R.layout.simple_spinner_item, meses);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final AlertDialog.Builder mesEle = new AlertDialog.Builder(MenuAdmin.this)
+                .setTitle("Eliga el mes");
+        jefeSpinner.setOnItemSelectedListener(this);
+        mesEle
+                .setView(mAnoMes)
+                .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialogInterface, int i) {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(empleado).collection("Registro").document("AÑOS").collection(ano).document("MESES").collection(mes1).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                String ds = documentSnapshot.getString("dias");
+                                List<String> dsL = Arrays.asList(ds.split("\\s*,\\s*"));
+                                PdfDocument pdfDocument = new PdfDocument();
+                                PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
+                                PdfDocument.Page myPage = pdfDocument.startPage(myPageInfo);
+
+                                Paint myPaint = new Paint();
+
+                                String myString = "hola";
+                                int x = 10, y = 25;
+                                myPage.getCanvas().drawText(myString, x, y, myPaint);
+                                pdfDocument.finishPage(myPage);
+
+                                String myFilePath = Environment.getExternalStorageDirectory().getPath() + "/pdf.pdf";
+                                File myFile = new File(myFilePath);
+                                Toast.makeText(MenuAdmin.this, myFilePath, Toast.LENGTH_LONG).show();
+
+                                try {
+                                    pdfDocument.writeTo(new FileOutputStream(myFile));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                pdfDocument.close();
+                                dialogInterface.dismiss();
+
+                            }
+                        });
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        final AlertDialog dialogoMesEle = mesEle.create();
+        dialogoMesEle.setCanceledOnTouchOutside(false);
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mNombres);
+            firestoreNombres();
+            dialogoMesEle.show();
+        } else {
+            dialogoMesEle.show();
+        }
+    }
 
     public void crearCanalDeNotificaciones() {
         if (comp.equals("iniciada")) {
@@ -1026,25 +1139,103 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             trayectoBo = false;
             map.put("Trayecto desde " + obcomp + " hasta " + obra, trayecto);
         }
-        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+        final Map<String, String> mapA = new HashMap<>();
+        final Map<String, String> mapM = new HashMap<>();
+        final Map<String, String> mapD = new HashMap<>();
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful()) {
-                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document(ano1).collection(mes).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            if (otro) {
-                                otro = false;
-                                dConfirma();
+            public void onSuccess(Void aVoid) {
+                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.contains("años")) {
+                            String a = documentSnapshot.getString("años");
+                            if (a.isEmpty()) {
+                                mapA.put("años", ano1);
+                            } else {
+                                if (!a.contains(ano1)) {
+                                    mapA.put("años", a + ", " + ano1);
+                                } else if (a.contains(ano1)) {
+                                    mapA.put("años", ano1);
+
+                                }
                             }
+                            firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                @Override
+                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                    if (documentSnapshot.contains("meses")) {
+                                        String m = documentSnapshot.getString("meses");
+                                        if (m.isEmpty()) {
+                                            mapM.put("meses", mes);
+                                        } else {
+                                            if (!m.contains(mes)) {
+                                                mapM.put("meses", m + ", " + mes);
+                                            } else if (m.contains(mes)) {
+                                                mapM.put("meses", mes);
+
+                                            }
+                                        }
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.contains("dias")) {
+                                                    String d = documentSnapshot.getString("dias");
+                                                    if (d.isEmpty()) {
+                                                        mapD.put("dias", dia);
+                                                    } else {
+                                                        if (!d.contains(dia)) {
+                                                            mapD.put("dias", d + ", " + dia);
+                                                        } else if (d.contains(dia)) {
+                                                            mapD.put("dias", dia);
+
+                                                        }
+                                                    }
+                                                } else {
+                                                    mapD.put("dias", dia);
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        mapM.put("meses", mes);
+                                        mapD.put("dias", dia);
+                                    }
+                                }
+                            });
+                        } else {
+                            mapA.put("años", ano1);
+                            mapM.put("meses", mes);
+                            mapD.put("dias", dia);
                         }
-                    });
-                }
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").set(mapA).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").set(mapM).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        if (otro) {
+                                                            otro = false;
+                                                            dConfirma();
+                                                        } else if (!otro) {
+                                                            primero();
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
-        if (!otro) {
-            primero();
-        }
         overridePendingTransition(0, 0);
     }
 

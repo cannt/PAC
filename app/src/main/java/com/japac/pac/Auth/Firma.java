@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -98,7 +100,10 @@ public class Firma extends AppCompatActivity {
                             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                                 cargandoloNO();
                                 startActivity(new Intent(Firma.this, Login.class));
-                                finishAfterTransition();
+                                finish();
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                    finishAfterTransition();
+                                }
                             }
                         });
 

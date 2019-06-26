@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -135,6 +136,8 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private EditText mBuscar;
 
+    private TextView pPt;
+
     private GoogleMap mMap;
 
     private GeoPoint geoPointLocalizaDirc, geoPointLocalizayo;
@@ -199,6 +202,17 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                         gps = (ImageView) findViewById(R.id.ic_gps);
                         volver = (ImageView) findViewById(R.id.ic_volver);
                         icCrear = (ImageView) findViewById(R.id.ic_crearObra);
+                        pPt = (TextView) findViewById(R.id.PrivacyPolicy);
+                        pPt.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                                Intent i = new Intent(Intent.ACTION_VIEW);
+                                i.setData(Uri.parse(url));
+                                startActivity(i);
+                            }
+                        });
+
 
                         iniciarMapa();
                     }

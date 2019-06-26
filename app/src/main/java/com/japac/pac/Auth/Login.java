@@ -9,11 +9,14 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -54,6 +57,8 @@ public class Login extends AppCompatActivity {
 
     private EditText email, contraseña;
 
+    private TextView pPt;
+
     private Button entrar, registrar;
 
     private FirebaseAuth mAuth;
@@ -81,9 +86,19 @@ public class Login extends AppCompatActivity {
 
                 email = (EditText) findViewById(R.id.logEmail);
                 contraseña = (EditText) findViewById(R.id.logContraseña);
+                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
                 usuario();
 
+                pPt.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                    }
+                });
 
                 registrar.setOnClickListener(new View.OnClickListener() {
                     @Override

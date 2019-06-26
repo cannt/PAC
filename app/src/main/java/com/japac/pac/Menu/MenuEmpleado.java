@@ -25,6 +25,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.DateFormat;
@@ -90,7 +91,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Button Iniciar, Finalizar, Cerrar;
 
-    private String empresa, IoF, fecha, año, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
+    private String empresa, IoF, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
 
     private ArrayAdapter<String> obraAdapter;
 
@@ -114,6 +115,8 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private boolean cerrar = false, finali = false, trayectoBo = false;
 
+    private TextView pPt;
+
     private ListenerRegistration registration;
 
     @Override
@@ -130,6 +133,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 Cerrar = (Button) findViewById(R.id.btnCerrar);
 
                 logo = (ImageView) findViewById(R.id.logoEmpleado);
+                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
 
                 firebaseFirestore = FirebaseFirestore.getInstance();
@@ -144,6 +148,17 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 id = mAuth.getCurrentUser().getUid();
                 comp = "";
                 primero();
+
+                pPt.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                    }
+                });
+
                 almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                     @Override
                     public void onSuccess(Uri uri) {
@@ -557,7 +572,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         DateFormat dmes = new SimpleDateFormat("MM");
         DateFormat ddia = new SimpleDateFormat("dd");
         fecha = dfecha.format(Calendar.getInstance().getTime());
-        año = daño.format(Calendar.getInstance().getTime());
+        ano1 = daño.format(Calendar.getInstance().getTime());
         mes = dmes.format(Calendar.getInstance().getTime());
         dia = ddia.format(Calendar.getInstance().getTime());
 
@@ -576,10 +591,91 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             trayectoBo = false;
             map.put("Trayecto desde " + obcomp + " hasta " + obra, trayecto);
         }
-        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(año).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+        final Map<String, String> mapA = new HashMap<>();
+        final Map<String, String> mapM = new HashMap<>();
+        final Map<String, String> mapD = new HashMap<>();
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
-                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document(año).collection(mes).document(dia).set(map);
+                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.contains("años")) {
+                            String a = documentSnapshot.getString("años");
+                            if (a.isEmpty()) {
+                                mapA.put("años", ano1);
+                            } else {
+                                if (!a.contains(ano1)) {
+                                    mapA.put("años", a + ", " + ano1);
+                                } else if (a.contains(ano1)) {
+                                    mapA.put("años", ano1);
+
+                                }
+                            }
+                            firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                @Override
+                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                    if (documentSnapshot.contains("meses")) {
+                                        String m = documentSnapshot.getString("meses");
+                                        if (m.isEmpty()) {
+                                            mapM.put("meses", mes);
+                                        } else {
+                                            if (!m.contains(mes)) {
+                                                mapM.put("meses", m + ", " + mes);
+                                            } else if (m.contains(mes)) {
+                                                mapM.put("meses", mes);
+
+                                            }
+                                        }
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.contains("dias")) {
+                                                    String d = documentSnapshot.getString("dias");
+                                                    if (d.isEmpty()) {
+                                                        mapD.put("dias", dia);
+                                                    } else {
+                                                        if (!d.contains(dia)) {
+                                                            mapD.put("dias", d + ", " + dia);
+                                                        } else if (d.contains(dia)) {
+                                                            mapD.put("dias", dia);
+
+                                                        }
+                                                    }
+                                                } else {
+                                                    mapD.put("dias", dia);
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        mapM.put("meses", mes);
+                                        mapD.put("dias", dia);
+                                    }
+                                }
+                            });
+                        } else {
+                            mapA.put("años", ano1);
+                            mapM.put("meses", mes);
+                            mapD.put("dias", dia);
+                        }
+                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").set(mapA).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").set(mapM).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(dia).set(map);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
         overridePendingTransition(0, 0);

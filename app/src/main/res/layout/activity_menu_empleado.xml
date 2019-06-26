@@ -60,7 +60,7 @@
         android:backgroundTint="#2196F3"
         app:layout_constraintBottom_toTopOf="@+id/btnFinalizarJornada"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" tools:targetApi="lollipop"/>
 
     <ImageView
         android:id="@+id/logoEmpleado"
@@ -74,5 +74,20 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/ic_logo"
         android:contentDescription="@string/logo" />
+
+
+    <TextView
+        android:id="@+id/PrivacyPolicy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:text="@string/politicaDePrivacidad"
+        android:textColorLink="@color/colorAccent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:focusable="true" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
