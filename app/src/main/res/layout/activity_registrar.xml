@@ -43,16 +43,26 @@
         android:layout_marginTop="7dp"
         android:ems="10"
         android:hint="@string/reNif"
-        android:inputType="textPersonName"
         app:layout_constraintStart_toStartOf="@+id/regNombre"
         app:layout_constraintTop_toBottomOf="@+id/regNombre"
+        tools:ignore="Autofill" />
+
+    <EditText
+        android:id="@+id/regNaf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:ems="10"
+        android:hint="@string/reNaf"
+        app:layout_constraintStart_toStartOf="@+id/regNif"
+        app:layout_constraintTop_toBottomOf="@+id/regNif"
         tools:ignore="Autofill" />
 
     <EditText
         android:id="@+id/regEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="56dp"
         android:ems="10"
         android:hint="@string/regEmail"
         android:inputType="textEmailAddress"
@@ -64,7 +74,7 @@
         android:id="@+id/confEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="8dp"
         android:ems="10"
         android:hint="@string/confEmail"
         android:inputType="textEmailAddress"

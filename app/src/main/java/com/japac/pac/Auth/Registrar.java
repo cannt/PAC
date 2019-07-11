@@ -45,9 +45,9 @@ public class Registrar extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
-    private String confirma, empresas, roles, cod, snombre, semail, sconfEmail, scontraseña, sconfContraseña,scodigoEmpresa, snif;
+    private String confirma, empresas, roles, cod, snombre, semail, sconfEmail, scontraseña, sconfContraseña,scodigoEmpresa, snif, snaf;
 
-    private EditText nombre, email, confEmail, contraseña, confContraseña, codigoEmpresa, codigoEmpleado, nif;
+    private EditText nombre, email, confEmail, contraseña, confContraseña, codigoEmpresa, codigoEmpleado, nif, naf;
 
     private Button entrar, registrar;
 
@@ -80,7 +80,7 @@ public class Registrar extends AppCompatActivity {
             confContraseña = (EditText) findViewById(R.id.confContraseña);
             codigoEmpresa = (EditText) findViewById(R.id.regCodigoEmpresa);
             nif = (EditText) findViewById(R.id.regNif);
-
+            naf = (EditText) findViewById(R.id.regNaf);
 
             entrar.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -100,8 +100,9 @@ public class Registrar extends AppCompatActivity {
                     sconfContraseña = confContraseña.getText().toString();
                     scodigoEmpresa = codigoEmpresa.getText().toString();
                     snif = nif.getText().toString();
+                    snaf = naf.getText().toString();
 
-                    if (snombre.isEmpty() || semail.isEmpty() || sconfEmail.isEmpty() || scontraseña.isEmpty() || sconfContraseña.isEmpty() || scodigoEmpresa.isEmpty() || snif.isEmpty()) {
+                    if (snombre.isEmpty() || semail.isEmpty() || sconfEmail.isEmpty() || scontraseña.isEmpty() || sconfContraseña.isEmpty() || scodigoEmpresa.isEmpty() || snif.isEmpty() || snaf.isEmpty()) {
                         if (snombre.isEmpty()) {
                             nombre.setError("Escriba su nombre");
                         }
@@ -126,6 +127,9 @@ public class Registrar extends AppCompatActivity {
                         }
                         if(snif.isEmpty()){
                             nif.setError("Escriba su NIF");
+                        }
+                        if(snaf.isEmpty()){
+                            naf.setError("Escriba su NAF");
                         }
                         cargandoloNO();
                     } else if (contraseña.length() >= 6) {
@@ -301,6 +305,7 @@ public class Registrar extends AppCompatActivity {
                     map.put("fuera de jornada", false);
                     map.put("notificacion", false);
                     map.put("NIF", snif);
+                    map.put("NAF", snaf);
                     if (roles.equals("Administrador")) {
                         map.put("jefe", "todo");
                     } else if (roles.equals("Empleado")) {

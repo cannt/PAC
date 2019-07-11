@@ -18,6 +18,7 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -29,6 +30,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -45,6 +47,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -53,6 +56,7 @@ import java.text.DateFormat;
 import java.text.DateFormatSymbols;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -63,12 +67,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Table;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -83,12 +89,22 @@ import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.maps.android.SphericalUtil;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.pdf.collection.PdfTargetDictionary;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
 import com.squareup.picasso.Picasso;
-
-import org.w3c.dom.Document;
 
 import java.util.Calendar;
 
@@ -119,7 +135,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnRegistro;
 
-    private String empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes;
+    private String idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu;
 
     private ArrayAdapter<String> obraAdapter, jefeAdapter, anoAdapter;
 
@@ -156,6 +172,12 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     private final int PICK_IMAGE_REQUEST = 71;
 
     private GeoPoint geoPointLocalizayo;
+
+    private Intent myFileIntent;
+
+    private int mes2;
+
+    private PdfPTable tabla9;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -297,30 +319,47 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     @Override
                     public void onClick(View v) {
 
-                        firebaseFirestore.collection("Empresas").document(empresa).collection(rolE).document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                if (documentSnapshot.exists()) {
-                                    final String nif = documentSnapshot.getString("NIF");
-                                    firebaseFirestore.collection("Empresas").document(empresa).collection(rolE).document(empleado).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                        @Override
-                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                            String ans = documentSnapshot.getString("años");
-                                            List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
-                                            elegirFechasAños(ansL, rolE, empleado, nif);
-                                            dialogoRegistroLeer.dismiss();
+                        firebaseFirestore
+                                .collection("Empresas")
+                                .document(empresa)
+                                .collection(rolE)
+                                .document(empleado)
+                                .get()
+                                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot1) {
+                                        if (documentSnapshot1.exists()) {
+                                            final String nif = documentSnapshot1.getString("NIF");
+                                            final String naf = documentSnapshot1.getString("NAF");
+                                            idreg = documentSnapshot1.getString("id");
+                                            firebaseFirestore
+                                                    .collection("Empresas")
+                                                    .document(empresa)
+                                                    .collection(rolE)
+                                                    .document(empleado)
+                                                    .collection("Registro")
+                                                    .document("AÑOS")
+                                                    .get()
+                                                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot2) {
+                                                            almacenRef.child(empresa + "/" + "Firmas/" + empleado + "/" + idreg  + ".jpg");
+                                                            String ans = documentSnapshot2.getString("años");
+                                                            List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
+                                                            elegirFechasAños(ansL, rolE, empleado, nif, naf);
+                                                            dialogoRegistroLeer.dismiss();
+                                                        }
+                                                    }).addOnFailureListener(new OnFailureListener() {
+                                                @Override
+                                                public void onFailure(@NonNull Exception e) {
+                                                    Toast.makeText(MenuAdmin.this, "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
+                                                    jfs.remove(nombre);
+                                                    dialogoRegistroLeer.dismiss();
+                                                }
+                                            });
                                         }
-                                    }).addOnFailureListener(new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {
-                                            Toast.makeText(MenuAdmin.this, "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
-                                            jfs.remove(nombre);
-                                            dialogoRegistroLeer.dismiss();
-                                        }
-                                    });
-                                }
-                            }
-                        });
+                                    }
+                                });
                     }
                 });
 
@@ -343,7 +382,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     }
 
-    private void elegirFechasAños(List<String> años, final String roles, final String empleado, final String nif) {
+    private void elegirFechasAños(List<String> años, final String roles1, final String empleado, final String nif, final String naf) {
         jfs.remove(nombre);
         mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
@@ -368,16 +407,26 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialogInterface, int i) {
-                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(empleado).collection("Registro").document("AÑOS").collection(ano1).document("MESES").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                String ms = documentSnapshot.getString("meses");
-                                List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
-                                elegirFechasMeses(msL, roles, empleado, ano1, nif);
-                                dialogInterface.dismiss();
+                        firebaseFirestore
+                                .collection("Empresas")
+                                .document(empresa)
+                                .collection(roles1)
+                                .document(empleado)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(ano1)
+                                .document("MESES")
+                                .get()
+                                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot3) {
+                                        String ms = documentSnapshot3.getString("meses");
+                                        List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
+                                        elegirFechasMeses(msL, roles, empleado, ano1, nif, naf);
+                                        dialogInterface.dismiss();
 
-                            }
-                        });
+                                    }
+                                });
                     }
                 })
                 .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
@@ -397,13 +446,39 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         }
     }
 
-    private void elegirFechasMeses(List<String> meses, final String roles, final String empleado, final String ano, String nif) {
+    private void elegirFechasMeses(List<String> meses, final String roles1, final String empleado, final String ano, final String nif, final String naf) {
         mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mes1 = adapterView.getItemAtPosition(i).toString();
+                mesnu = adapterView.getItemAtPosition(i).toString();
+                if (mes1.equals("01")) {
+                    mes1 = "Enero";
+                } else if (mes1.equals("02")) {
+                    mes1 = "Febrero";
+                } else if (mes1.equals("03")) {
+                    mes1 = "Marzo";
+                } else if (mes1.equals("04")) {
+                    mes1 = "Abril";
+                } else if (mes1.equals("05")) {
+                    mes1 = "Mayo";
+                } else if (mes1.equals("06")) {
+                    mes1 = "Junio";
+                } else if (mes1.equals("07")) {
+                    mes1 = "Julio";
+                } else if (mes1.equals("08")) {
+                    mes1 = "Agosto";
+                } else if (mes1.equals("09")) {
+                    mes1 = "Septiembre";
+                } else if (mes1.equals("10")) {
+                    mes1 = "Octubre";
+                } else if (mes1.equals("11")) {
+                    mes1 = "Nobiembre";
+                } else if (mes1.equals("12")) {
+                    mes1 = "Diciembre";
+                }
             }
 
             @Override
@@ -422,36 +497,212 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialogInterface, int i) {
-                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(empleado).collection("Registro").document("AÑOS").collection(ano).document("MESES").collection(mes1).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                String ds = documentSnapshot.getString("dias");
-                                List<String> dsL = Arrays.asList(ds.split("\\s*,\\s*"));
-                                PdfDocument pdfDocument = new PdfDocument();
-                                PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
-                                PdfDocument.Page myPage = pdfDocument.startPage(myPageInfo);
+                        firebaseFirestore
+                                .collection("Empresas")
+                                .document(empresa)
+                                .collection(roles1)
+                                .document(empleado)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(ano)
+                                .document("MESES")
+                                .collection(mesnu)
+                                .document("DIAS")
+                                .get()
+                                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                        if (documentSnapshot.exists()) {
+                                            String ds = documentSnapshot.getString("dias");
+                                            final List<String> dsL = Arrays.asList(ds.split("\\s*,\\s*"));
+                                            final Document document1 = new Document();
+                                            document1.setPageSize(PageSize.A4.rotate());
+                                            document1.setMargins(0, 0, 0, 0);
+                                            String myFilePath = getFilesDir().getAbsolutePath() + "/" + empleado + "_" + mes1 + "_" + ano + ".pdf";
+                                            File myFile = new File(myFilePath);
+                                            try {
+                                                PdfWriter.getInstance(document1, new FileOutputStream(myFile));
+                                                float[] widths = {0.10f, 0.4f, 0.4f, 0.10f, 0.10f, 0.20f};
+                                                document1.open();
+                                                final PdfPTable tabla1 = new PdfPTable(1);
+                                                final PdfPTable tabla2 = new PdfPTable(2);
+                                                final PdfPTable tabla3 = new PdfPTable(1);
+                                                final PdfPTable tabla4 = new PdfPTable(widths);
+                                                PdfPTable tabla5 = new PdfPTable(1);
+                                                PdfPTable tabla6 = new PdfPTable(4);
+                                                PdfPTable tabla7 = new PdfPTable(1);
+                                                PdfPTable tabla8 = new PdfPTable(4);
+                                                tabla9 = new PdfPTable(12);
+                                                PdfPCell celda1 = new PdfPCell(new Paragraph("REGISTRO DIARIO DE JORNADA EN TRABAJADORES A TIEMPO COMPLETO"));
+                                                PdfPCell celda2 = new PdfPCell(new Paragraph("EMPRESA"));
+                                                PdfPCell celda3 = new PdfPCell(new Paragraph("TRABAJADOR"));
+                                                PdfPCell celda4 = new PdfPCell(new Paragraph("Nombre o Razón social: " + empresa));
+                                                PdfPCell celda5 = new PdfPCell(new Paragraph("Nombre: " + empleado));
+                                                PdfPCell celda6 = new PdfPCell(new Paragraph("CIF: " + cif));
+                                                PdfPCell celda7 = new PdfPCell(new Paragraph("NIF: " + nif));
+                                                PdfPCell celda8 = new PdfPCell(new Paragraph(""));
+                                                PdfPCell celda9 = new PdfPCell(new Paragraph("NAF: " + naf));
+                                                PdfPCell celda10 = new PdfPCell(new Paragraph("Generada el " + dia + " del " + mes + " de " + ano1 + " a las " + hora));
+                                                PdfPCell celda11 = new PdfPCell(new Paragraph(mes1 + " de " + ano1));
+                                                celda11.setFixedHeight(20f);
+                                                PdfPCell celda12 = new PdfPCell(new Paragraph("Hora de entrada"));
+                                                celda12.setPadding(0);
+                                                PdfPCell celda13 = new PdfPCell(new Paragraph("Mañana"));
+                                                celda13.setPadding(0);
+                                                PdfPCell celda14 = new PdfPCell(new Paragraph("Firma del trabajador"));
+                                                celda14.setPadding(0);
+                                                PdfPCell celda15 = new PdfPCell(new Paragraph("Tarde"));
+                                                celda15.setPadding(0);
+                                                PdfPCell celda16 = new PdfPCell(new Paragraph("Hora de salida"));
+                                                celda16.setPadding(0);
+                                                PdfPCell celda17 = new PdfPCell(new Paragraph("Total Horas Jornada"));
+                                                PdfPCell celda18 = new PdfPCell(new Paragraph("Horas Ordinarias"));
+                                                PdfPCell celda19 = new PdfPCell(new Paragraph("Horas complementarias"));
+                                                PdfPCell celda20 = new PdfPCell(tabla6);
+                                                PdfPCell celda21 = new PdfPCell(tabla8);
+                                                PdfPCell celda22 = new PdfPCell(tabla7);
+                                                PdfPCell celda23 = new PdfPCell(tabla5);
+                                                celda1.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda2.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda3.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda4.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda5.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda6.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda7.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda8.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda9.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda10.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda11.setHorizontalAlignment(Element.ALIGN_LEFT);
+                                                celda12.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda13.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda14.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda15.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda16.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda17.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda18.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                celda19.setHorizontalAlignment(Element.ALIGN_CENTER);
+                                                tabla1.addCell(celda1);
+                                                tabla1.setWidthPercentage(100f);
+                                                tabla2.addCell(celda2);
+                                                tabla2.addCell(celda3);
+                                                tabla2.addCell(celda4);
+                                                tabla2.addCell(celda5);
+                                                tabla2.addCell(celda6);
+                                                tabla2.addCell(celda7);
+                                                tabla2.addCell(celda8);
+                                                tabla2.addCell(celda9);
+                                                tabla2.setWidthPercentage(100f);
+                                                tabla3.addCell(celda10);
+                                                tabla3.setWidthPercentage(100f);
+                                                tabla4.addCell(celda11);
+                                                tabla5.addCell(celda12);
+                                                tabla6.addCell(celda13);
+                                                tabla6.addCell(celda14);
+                                                tabla6.addCell(celda15);
+                                                tabla6.addCell(celda14);
+                                                tabla6.setWidthPercentage(100f);
+                                                tabla5.addCell(celda20);
+                                                tabla5.setWidthPercentage(100f);
+                                                tabla4.addCell(celda23);
+                                                tabla7.addCell(celda16);
+                                                tabla8.addCell(celda13);
+                                                tabla8.addCell(celda14);
+                                                tabla8.addCell(celda15);
+                                                tabla8.addCell(celda14);
+                                                tabla8.setWidthPercentage(100f);
+                                                tabla7.addCell(celda21);
+                                                tabla7.setWidthPercentage(100f);
+                                                tabla4.addCell(celda22);
+                                                tabla4.addCell(celda17);
+                                                tabla4.addCell(celda18);
+                                                tabla4.addCell(celda19);
+                                                tabla4.setWidthPercentage(100f);
+                                                for (int i = 0; i < dsL.size(); i++) {
+                                                    final String di = dsL.get(i);
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles1).document(empleado).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            final String reg = documentSnapshot.getString(di + mesnu + ano1);
+                                                            Log.d("diaCERO", " " + di);
+                                                            Log.d("regcompleto", " " + reg);
+                                                            final List<String> regDi = Arrays.asList(reg.split("\\s*,\\s*"));
+                                                            String inic = regDi.get(0);
+                                                            Log.d("inicioCom", " " + inic);
+                                                            String inicA = inic.replace("E", "");
+                                                            if (inicA.charAt(0) == 'M') {
+                                                                inicA = inicA.replace("M", "");
+                                                            } else if (inicA.charAt(0) == 'T') {
+                                                                inicA = inicA.replace("T", "");
+                                                            }
+                                                            String fina = regDi.get(regDi.size() - 1);
+                                                            Log.d("finalCom", " " + fina);
+                                                            String finaB = fina.replace("S", "");
+                                                            if (finaB.charAt(0) == 'M') {
+                                                                finaB = finaB.replace("M", "");
+                                                            } else if (finaB.charAt(0) == 'T') {
+                                                                finaB = finaB.replace("T", "");
+                                                            }
+                                                            Log.d("inicio", " " + inicA);
+                                                            Log.d("final", " " + finaB);
+                                                            PdfPCell celda24 = new PdfPCell(new Paragraph(di));
+                                                            tabla9.addCell(celda24);
+                                                            PdfPCell celda25 = new PdfPCell(new Paragraph(inicA));
+                                                            PdfPCell celda26 = new PdfPCell(new Paragraph(finaB));
+                                                            if (inic.charAt(1) == 'M') {
+                                                                tabla9.addCell(celda25);
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                tabla9.addCell(celda8);
+                                                document1.add(tabla1);
+                                                document1.add(tabla2);
+                                                document1.add(tabla3);
+                                                document1.add(tabla4);
+                                                document1.add(tabla9);
+                                                document1.close();
+                                            } catch (DocumentException ex) {
 
-                                Paint myPaint = new Paint();
+                                            } catch (java.io.IOException ex) {
 
-                                String myString = "hola";
-                                int x = 10, y = 25;
-                                myPage.getCanvas().drawText(myString, x, y, myPaint);
-                                pdfDocument.finishPage(myPage);
+                                            }
 
-                                String myFilePath = Environment.getExternalStorageDirectory().getPath() + "/pdf.pdf";
-                                File myFile = new File(myFilePath);
-                                Toast.makeText(MenuAdmin.this, myFilePath, Toast.LENGTH_LONG).show();
+                                            Toast.makeText(MenuAdmin.this, myFilePath, Toast.LENGTH_LONG).show();
+                                            StorageReference pdfRef = almacen.getReference();
+                                            Uri file = Uri.fromFile(myFile);
+                                            StorageReference riversRef = pdfRef.child(empresa + "/Registros/" + empleado + "/" + ano + "/" + mes1 + "/" + file.getLastPathSegment());
 
-                                try {
-                                    pdfDocument.writeTo(new FileOutputStream(myFile));
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                pdfDocument.close();
-                                dialogInterface.dismiss();
+                                            String filename = empleado + "_" + mes1 + "_" + ano + ".pdf";
+                                            File filelocation = new File(getFilesDir().getAbsolutePath(), filename);
+                                            Uri path = Uri.fromFile(filelocation);
 
-                            }
-                        });
+                                            UploadTask uploadTask = riversRef.putFile(path);
+
+                                            uploadTask.addOnFailureListener(new OnFailureListener() {
+                                                @Override
+                                                public void onFailure(@NonNull Exception exception) {
+                                                    Toast.makeText(MenuAdmin.this, "FALLO SUBIENDO", Toast.LENGTH_LONG).show();
+                                                    Toast.makeText(MenuAdmin.this, exception.toString(), Toast.LENGTH_LONG).show();
+                                                }
+                                            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                                                @Override
+                                                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                                    Toast.makeText(MenuAdmin.this, "SUBIDO", Toast.LENGTH_LONG).show();
+                                                }
+                                            });
+                                            dialogInterface.dismiss();
+
+                                        }
+                                    }
+                                });
                     }
                 })
                 .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
@@ -665,6 +916,65 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     empresa = documentSnapshot.getString("empresa");
                     nombre = documentSnapshot.getString("nombre");
                     roles = documentSnapshot.getString("rol");
+                    email = documentSnapshot.getString("email");
+                    cif = documentSnapshot.getString("cif");
+                    if (cif == null) {
+                        final AlertDialog.Builder InCif = new AlertDialog.Builder(MenuAdmin.this);
+                        View mCrearDialogo = getLayoutInflater().inflate(R.layout.activity_menu_crear_obra, null);
+                        final EditText scif = mCrearDialogo.findViewById(R.id.insObra);
+                        scif.setHint("CIF de " + empresa);
+                        InCif
+                                .setView(mCrearDialogo)
+                                .setTitle("Introduca el cif de su empresa")
+                                .setPositiveButton("Confirmar", null);
+                        final AlertDialog dialogoInCif = InCif.create();
+                        dialogoInCif.setOnShowListener(new DialogInterface.OnShowListener() {
+                            @Override
+                            public void onShow(DialogInterface dialog) {
+                                Button positvoCif = (Button) dialogoInCif.getButton(AlertDialog.BUTTON_POSITIVE);
+                                positvoCif.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        String cif1 = scif.getText().toString();
+                                        if (cif1.length() > 9 || cif1.length() < 9) {
+                                            scif.setError("El cif debe tener 9 caracteres");
+                                        } else if (cif1.charAt(0) == 'A' ||
+                                                cif1.charAt(0) == 'B' ||
+                                                cif1.charAt(0) == 'C' ||
+                                                cif1.charAt(0) == 'D' ||
+                                                cif1.charAt(0) == 'E' ||
+                                                cif1.charAt(0) == 'F' ||
+                                                cif1.charAt(0) == 'G' ||
+                                                cif1.charAt(0) == 'H' ||
+                                                cif1.charAt(0) == 'J' ||
+                                                cif1.charAt(0) == 'N' ||
+                                                cif1.charAt(0) == 'P' ||
+                                                cif1.charAt(0) == 'Q' ||
+                                                cif1.charAt(0) == 'R' ||
+                                                cif1.charAt(0) == 'S' ||
+                                                cif1.charAt(0) == 'U' ||
+                                                cif1.charAt(0) == 'V' ||
+                                                cif1.charAt(0) == 'W') {
+                                            firebaseFirestore.collection("Todas las ids").document(id).update("cif", cif1);
+                                            dialogoInCif.dismiss();
+                                        } else {
+                                            scif.setError("El cif no es correcto");
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        dialogoInCif.setCanceledOnTouchOutside(false);
+                        if (mLoginDialog.getParent() != null) {
+                            ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
+                            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+                            dialogoInCif.show();
+
+                        } else {
+
+                            dialogoInCif.show();
+                        }
+                    }
                     if (!otro) {
                         nombreAm = documentSnapshot.getString("nombre");
                         emailAn = documentSnapshot.getString("email");
@@ -1097,7 +1407,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void enviajornada() {
-        if (entrada_salida.equals("salida")) {
+        if (entrada_salida.equals("Salida")) {
             crearCanalDeNotificaciones();
         }
         DateFormat dfecha = new SimpleDateFormat("dd/MM/yyyy");
@@ -1215,7 +1525,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                         firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(hora).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         if (otro) {
