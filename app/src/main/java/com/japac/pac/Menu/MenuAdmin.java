@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StrictMode;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -51,11 +52,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
+import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.SimpleDateFormat;
+import java.time.Period;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,18 +88,22 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.maps.android.SphericalUtil;
+import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
@@ -105,6 +113,9 @@ import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
 import com.squareup.picasso.Picasso;
+
+import org.joda.time.DateTime;
+import org.joda.time.Hours;
 
 import java.util.Calendar;
 
@@ -135,7 +146,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnRegistro;
 
-    private String idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu;
+    private String myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu;
 
     private ArrayAdapter<String> obraAdapter, jefeAdapter, anoAdapter;
 
@@ -177,7 +188,19 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private int mes2;
 
-    private PdfPTable tabla9;
+    private List<String> reini, refini, re3, redias, dsL;
+
+    private PdfPTable tabla9, tabla10, tabla11;
+
+    private PdfPCell cellFirma;
+
+    private float[] widths = {0.10f, 0.4f, 0.4f, 0.10f, 0.10f, 0.20f};
+
+    private File myFile;
+
+    private Document document1;
+
+    private Image ima;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -278,25 +301,29 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 empleado = adapterView.getItemAtPosition(i).toString();
-                firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                    @Override
-                    public void onSuccess(DocumentSnapshot documentSnapshot) {
-                        if (documentSnapshot.contains(empleado)) {
-                            codigoEmpleadoChech = documentSnapshot.getString(empleado);
-                            if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
-                                if (codigoEmpleadoChech.charAt(7) == 'E') {
-                                    rolE = "Empleado";
-                                } else if (codigoEmpleadoChech.charAt(7) == 'a') {
-                                    rolE = "Administrador";
+                firebaseFirestore
+                        .collection("Codigos")
+                        .document(codigoEmpresa)
+                        .get()
+                        .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.contains(empleado)) {
+                                    codigoEmpleadoChech = documentSnapshot.getString(empleado);
+                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
+                                            rolE = "Empleado";
+                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
+                                            rolE = "Administrador";
+                                        }
+                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
+                                        rolE = "Empleado";
+                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
+                                        rolE = "Administrador";
+                                    }
                                 }
-                            } else if (codigoEmpleadoChech.charAt(4) == 'E') {
-                                rolE = "Empleado";
-                            } else if (codigoEmpleadoChech.charAt(4) == 'a') {
-                                rolE = "Administrador";
                             }
-                        }
-                    }
-                });
+                        });
             }
 
             @Override
@@ -343,7 +370,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                     .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                         @Override
                                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
-                                                            almacenRef.child(empresa + "/" + "Firmas/" + empleado + "/" + idreg  + ".jpg");
                                                             String ans = documentSnapshot2.getString("años");
                                                             List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
                                                             elegirFechasAños(ansL, rolE, empleado, nif, naf);
@@ -366,6 +392,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 negativoCa.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        jfs.remove(nombre);
                         dialogoRegistroLeer.dismiss();
                     }
                 });
@@ -446,7 +473,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         }
     }
 
-    private void elegirFechasMeses(List<String> meses, final String roles1, final String empleado, final String ano, final String nif, final String naf) {
+    private void elegirFechasMeses(List<String> meses, final String roles1, final String empleado, final String ano3, final String nif, final String naf) {
         mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -504,7 +531,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                 .document(empleado)
                                 .collection("Registro")
                                 .document("AÑOS")
-                                .collection(ano)
+                                .collection(ano3)
                                 .document("MESES")
                                 .collection(mesnu)
                                 .document("DIAS")
@@ -513,191 +540,137 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
-                                            String ds = documentSnapshot.getString("dias");
-                                            final List<String> dsL = Arrays.asList(ds.split("\\s*,\\s*"));
-                                            final Document document1 = new Document();
-                                            document1.setPageSize(PageSize.A4.rotate());
-                                            document1.setMargins(0, 0, 0, 0);
-                                            String myFilePath = getFilesDir().getAbsolutePath() + "/" + empleado + "_" + mes1 + "_" + ano + ".pdf";
-                                            File myFile = new File(myFilePath);
                                             try {
-                                                PdfWriter.getInstance(document1, new FileOutputStream(myFile));
-                                                float[] widths = {0.10f, 0.4f, 0.4f, 0.10f, 0.10f, 0.20f};
-                                                document1.open();
-                                                final PdfPTable tabla1 = new PdfPTable(1);
-                                                final PdfPTable tabla2 = new PdfPTable(2);
-                                                final PdfPTable tabla3 = new PdfPTable(1);
-                                                final PdfPTable tabla4 = new PdfPTable(widths);
-                                                PdfPTable tabla5 = new PdfPTable(1);
-                                                PdfPTable tabla6 = new PdfPTable(4);
-                                                PdfPTable tabla7 = new PdfPTable(1);
-                                                PdfPTable tabla8 = new PdfPTable(4);
-                                                tabla9 = new PdfPTable(12);
-                                                PdfPCell celda1 = new PdfPCell(new Paragraph("REGISTRO DIARIO DE JORNADA EN TRABAJADORES A TIEMPO COMPLETO"));
-                                                PdfPCell celda2 = new PdfPCell(new Paragraph("EMPRESA"));
-                                                PdfPCell celda3 = new PdfPCell(new Paragraph("TRABAJADOR"));
-                                                PdfPCell celda4 = new PdfPCell(new Paragraph("Nombre o Razón social: " + empresa));
-                                                PdfPCell celda5 = new PdfPCell(new Paragraph("Nombre: " + empleado));
-                                                PdfPCell celda6 = new PdfPCell(new Paragraph("CIF: " + cif));
-                                                PdfPCell celda7 = new PdfPCell(new Paragraph("NIF: " + nif));
-                                                PdfPCell celda8 = new PdfPCell(new Paragraph(""));
-                                                PdfPCell celda9 = new PdfPCell(new Paragraph("NAF: " + naf));
-                                                PdfPCell celda10 = new PdfPCell(new Paragraph("Generada el " + dia + " del " + mes + " de " + ano1 + " a las " + hora));
-                                                PdfPCell celda11 = new PdfPCell(new Paragraph(mes1 + " de " + ano1));
-                                                celda11.setFixedHeight(20f);
-                                                PdfPCell celda12 = new PdfPCell(new Paragraph("Hora de entrada"));
-                                                celda12.setPadding(0);
-                                                PdfPCell celda13 = new PdfPCell(new Paragraph("Mañana"));
-                                                celda13.setPadding(0);
-                                                PdfPCell celda14 = new PdfPCell(new Paragraph("Firma del trabajador"));
-                                                celda14.setPadding(0);
-                                                PdfPCell celda15 = new PdfPCell(new Paragraph("Tarde"));
-                                                celda15.setPadding(0);
-                                                PdfPCell celda16 = new PdfPCell(new Paragraph("Hora de salida"));
-                                                celda16.setPadding(0);
-                                                PdfPCell celda17 = new PdfPCell(new Paragraph("Total Horas Jornada"));
-                                                PdfPCell celda18 = new PdfPCell(new Paragraph("Horas Ordinarias"));
-                                                PdfPCell celda19 = new PdfPCell(new Paragraph("Horas complementarias"));
-                                                PdfPCell celda20 = new PdfPCell(tabla6);
-                                                PdfPCell celda21 = new PdfPCell(tabla8);
-                                                PdfPCell celda22 = new PdfPCell(tabla7);
-                                                PdfPCell celda23 = new PdfPCell(tabla5);
-                                                celda1.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda2.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda3.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda4.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda5.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda6.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda7.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda8.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda9.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda10.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda11.setHorizontalAlignment(Element.ALIGN_LEFT);
-                                                celda12.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda13.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda14.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda15.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda16.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda17.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda18.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                celda19.setHorizontalAlignment(Element.ALIGN_CENTER);
-                                                tabla1.addCell(celda1);
-                                                tabla1.setWidthPercentage(100f);
-                                                tabla2.addCell(celda2);
-                                                tabla2.addCell(celda3);
-                                                tabla2.addCell(celda4);
-                                                tabla2.addCell(celda5);
-                                                tabla2.addCell(celda6);
-                                                tabla2.addCell(celda7);
-                                                tabla2.addCell(celda8);
-                                                tabla2.addCell(celda9);
-                                                tabla2.setWidthPercentage(100f);
-                                                tabla3.addCell(celda10);
-                                                tabla3.setWidthPercentage(100f);
-                                                tabla4.addCell(celda11);
-                                                tabla5.addCell(celda12);
-                                                tabla6.addCell(celda13);
-                                                tabla6.addCell(celda14);
-                                                tabla6.addCell(celda15);
-                                                tabla6.addCell(celda14);
-                                                tabla6.setWidthPercentage(100f);
-                                                tabla5.addCell(celda20);
-                                                tabla5.setWidthPercentage(100f);
-                                                tabla4.addCell(celda23);
-                                                tabla7.addCell(celda16);
-                                                tabla8.addCell(celda13);
-                                                tabla8.addCell(celda14);
-                                                tabla8.addCell(celda15);
-                                                tabla8.addCell(celda14);
-                                                tabla8.setWidthPercentage(100f);
-                                                tabla7.addCell(celda21);
-                                                tabla7.setWidthPercentage(100f);
-                                                tabla4.addCell(celda22);
-                                                tabla4.addCell(celda17);
-                                                tabla4.addCell(celda18);
-                                                tabla4.addCell(celda19);
-                                                tabla4.setWidthPercentage(100f);
-                                                for (int i = 0; i < dsL.size(); i++) {
-                                                    final String di = dsL.get(i);
-                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles1).document(empleado).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                                        @Override
-                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                            final String reg = documentSnapshot.getString(di + mesnu + ano1);
-                                                            Log.d("diaCERO", " " + di);
-                                                            Log.d("regcompleto", " " + reg);
-                                                            final List<String> regDi = Arrays.asList(reg.split("\\s*,\\s*"));
-                                                            String inic = regDi.get(0);
-                                                            Log.d("inicioCom", " " + inic);
-                                                            String inicA = inic.replace("E", "");
-                                                            if (inicA.charAt(0) == 'M') {
-                                                                inicA = inicA.replace("M", "");
-                                                            } else if (inicA.charAt(0) == 'T') {
-                                                                inicA = inicA.replace("T", "");
-                                                            }
-                                                            String fina = regDi.get(regDi.size() - 1);
-                                                            Log.d("finalCom", " " + fina);
-                                                            String finaB = fina.replace("S", "");
-                                                            if (finaB.charAt(0) == 'M') {
-                                                                finaB = finaB.replace("M", "");
-                                                            } else if (finaB.charAt(0) == 'T') {
-                                                                finaB = finaB.replace("T", "");
-                                                            }
-                                                            Log.d("inicio", " " + inicA);
-                                                            Log.d("final", " " + finaB);
-                                                            PdfPCell celda24 = new PdfPCell(new Paragraph(di));
-                                                            tabla9.addCell(celda24);
-                                                            PdfPCell celda25 = new PdfPCell(new Paragraph(inicA));
-                                                            PdfPCell celda26 = new PdfPCell(new Paragraph(finaB));
-                                                            if (inic.charAt(1) == 'M') {
-                                                                tabla9.addCell(celda25);
-                                                            }
+                                                final File localFile = File.createTempFile("firm", "jpg");
+                                                StorageReference dr = almacen.getReference(empresa + "/Firmas/" + empleado + "/" + idreg + ".jpg");
+                                                dr.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                                    @Override
+                                                    public void onSuccess(Uri uri) {
+                                                        try {
+                                                            Image image = Image.getInstance(String.valueOf(uri));
+                                                            cellFirma = new PdfPCell();
+                                                            cellFirma.addElement(image);
+                                                            Log.d("FIRMA", String.valueOf(String.valueOf(uri)));
+                                                        } catch (BadElementException e) {
+                                                            e.printStackTrace();
+                                                        } catch (IOException e) {
+                                                            e.printStackTrace();
                                                         }
-                                                    });
-                                                }
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                tabla9.addCell(celda8);
-                                                document1.add(tabla1);
-                                                document1.add(tabla2);
-                                                document1.add(tabla3);
-                                                document1.add(tabla4);
-                                                document1.add(tabla9);
-                                                document1.close();
-                                            } catch (DocumentException ex) {
-
-                                            } catch (java.io.IOException ex) {
-
+                                                    }
+                                                });
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
                                             }
 
-                                            Toast.makeText(MenuAdmin.this, myFilePath, Toast.LENGTH_LONG).show();
-                                            StorageReference pdfRef = almacen.getReference();
-                                            Uri file = Uri.fromFile(myFile);
-                                            StorageReference riversRef = pdfRef.child(empresa + "/Registros/" + empleado + "/" + ano + "/" + mes1 + "/" + file.getLastPathSegment());
 
-                                            String filename = empleado + "_" + mes1 + "_" + ano + ".pdf";
-                                            File filelocation = new File(getFilesDir().getAbsolutePath(), filename);
-                                            Uri path = Uri.fromFile(filelocation);
+                                            firebaseFirestore
+                                                    .collection("Empresas")
+                                                    .document(empresa)
+                                                    .collection(roles1)
+                                                    .document(empleado)
+                                                    .collection("Registro")
+                                                    .document("AÑOS")
+                                                    .get()
+                                                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            reini = new ArrayList<>();
+                                                            refini = new ArrayList<>();
+                                                            redias = new ArrayList<>();
+                                                            re3 = new ArrayList<>();
+                                                            tabla9 = new PdfPTable(widths);
+                                                            tabla10 = new PdfPTable(4);
+                                                            tabla11 = new PdfPTable(4);
+                                                            tabla10.setWidthPercentage(100f);
+                                                            tabla11.setWidthPercentage(100f);
+                                                            tabla9.setWidthPercentage(100f);
+                                                            boolean st;
+                                                            boolean en = false;
+                                                            boolean nul = false;
+                                                            for (int i = 0; i <= 31; i++) {
+                                                                Log.d("i", Integer.toString(i));
+                                                                if (i == 0) {
+                                                                    st = true;
+                                                                    documento(ano1, nif, naf, st, en, nul);
+                                                                } else {
+                                                                    st = false;
+                                                                }
 
-                                            UploadTask uploadTask = riversRef.putFile(path);
+                                                                DecimalFormat twodigits = new DecimalFormat("00");
+                                                                String de = twodigits.format(i);
+                                                                String regis = documentSnapshot.getString(de + mesnu + ano1);
+                                                                if (regis != null && !regis.isEmpty()) {
 
-                                            uploadTask.addOnFailureListener(new OnFailureListener() {
-                                                @Override
-                                                public void onFailure(@NonNull Exception exception) {
-                                                    Toast.makeText(MenuAdmin.this, "FALLO SUBIENDO", Toast.LENGTH_LONG).show();
-                                                    Toast.makeText(MenuAdmin.this, exception.toString(), Toast.LENGTH_LONG).show();
-                                                }
-                                            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                                                @Override
-                                                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                                                    Toast.makeText(MenuAdmin.this, "SUBIDO", Toast.LENGTH_LONG).show();
-                                                }
-                                            });
+                                                                    if (i == 31) {
+                                                                        en = true;
+                                                                    } else {
+                                                                        en = false;
+                                                                    }
+                                                                    redias.add(de);
+                                                                    Log.d("radias", de);
+                                                                    List<String> re2 = Arrays.asList(regis.split("\\s*,\\s*"));
+                                                                    String first1 = re2.get(0);
+                                                                    String ini = first1.substring(first1.length() - 5);
+                                                                    if (first1.charAt(1) == 'M') {
+                                                                        reini.add(ini);
+                                                                        Log.d("reini", ini);
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                        reini.add("X");
+                                                                        Log.d("reini", "X");
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                    } else if (first1.charAt(1) == 'T') {
+                                                                        reini.add("X");
+                                                                        Log.d("reini", "X");
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                        reini.add(ini);
+                                                                        Log.d("reini", ini);
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini"," " +  "FIRMA");
+                                                                    }
+                                                                    String last1 = re2.get(re2.size() - 1);
+                                                                    String fini = last1.substring(last1.length() - 5);
+                                                                    if (last1.charAt(1) == 'M') {
+                                                                        refini.add(fini);
+                                                                        Log.d("refini", fini);
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                        refini.add("X");
+                                                                        Log.d("refini", "X");
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                    } else if (last1.charAt(1) == 'T') {
+                                                                        refini.add("X");
+                                                                        Log.d("refini", "X");
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                        refini.add(fini);
+                                                                        Log.d("refini", fini);
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                    }
+                                                                    re3.add("horas ordinarias");
+                                                                    Log.d("re3", "horas ordinarias");
+                                                                    re3.add("horas complementarias");
+                                                                    Log.d("re3", "horas complementarias");
+                                                                    re3.add("total horas jornada");
+                                                                    Log.d("re3", "total horas jornada");
+
+                                                                    tablas(ano1, nif, naf, st, en, nul);
+                                                                }else if(regis == null || regis.isEmpty()){
+                                                                    if (i == 31) {
+                                                                        en = true;
+                                                                        nul = true;
+                                                                        documento(ano1, nif, naf, st, en, nul);
+                                                                    }
+                                                                }
+
+                                                            }
+
+                                                        }
+                                                    });
                                             dialogInterface.dismiss();
 
                                         }
@@ -720,6 +693,239 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         } else {
             dialogoMesEle.show();
         }
+    }
+
+    private void tablas(String ao1, String nfi1, String nfa1, boolean start1, boolean end1, boolean nul2) {
+        for (int s = 0; s < 1; s++) {
+            tabla9.addCell(redias.get(s));
+            Log.d("tabla9", redias.get(s));
+            for (int r = 0; r < reini.size(); r++) {
+                String rt = reini.get(r);
+                if(rt.equals("FIRMA")){
+                    tabla10.addCell(cellFirma);
+                }else{
+                    tabla10.addCell(reini.get(r));
+                    Log.d("tabla10", reini.get(r));
+                }
+                rt = refini.get(r);
+                if(rt.equals("FIRMA")){
+                    tabla11.addCell(cellFirma);
+                }else{
+                    tabla11.addCell(refini.get(r));
+                    Log.d("tabla11", refini.get(r));
+                }
+            }
+            PdfPCell celdai = new PdfPCell(tabla10);
+            PdfPCell celdaf = new PdfPCell(tabla11);
+            tabla9.addCell(celdai);
+            Log.d("tabla9", "TABLA 10");
+            tabla9.addCell(celdaf);
+            Log.d("tabla9", "TABLA 11");
+            for (int t = 0; t < re3.size(); t++) {
+                tabla9.addCell(re3.get(t));
+                Log.d("tabla9", re3.get(t));
+            }
+            redias.clear();
+            reini.clear();
+            refini.clear();
+            re3.clear();
+            documento(ao1, nfi1, nfa1, start1, end1, nul2);
+        }
+    }
+
+
+    private void documento(String ao, String nfi, String nfa, boolean start, boolean end, boolean nul1) {
+        DateFormat daño = new SimpleDateFormat("yyyy");
+        DateFormat dmes = new SimpleDateFormat("MM");
+        DateFormat ddia = new SimpleDateFormat("dd");
+        DateFormat dhora = new SimpleDateFormat("HH:mm:ss");
+        ano1 = daño.format(Calendar.getInstance().getTime());
+        mes = dmes.format(Calendar.getInstance().getTime());
+        dia = ddia.format(Calendar.getInstance().getTime());
+        hora = dhora.format(Calendar.getInstance().getTime());
+
+        if (start) {
+            document1 = new Document();
+            document1.setPageSize(PageSize.A4.rotate());
+            document1.setMargins(0, 0, 0, 0);
+            myFilePath = getFilesDir().getAbsolutePath() + "/" + empleado + "_" + mes1 + "_" + ao + ".pdf";
+            myFile = new File(myFilePath);
+        }
+        try {
+            if (start) {
+                PdfWriter.getInstance(document1, new FileOutputStream(myFile));
+                document1.open();
+                final PdfPTable tabla1 = new PdfPTable(1);
+                final PdfPTable tabla2 = new PdfPTable(2);
+                final PdfPTable tabla3 = new PdfPTable(1);
+                final PdfPTable tabla4 = new PdfPTable(widths);
+                PdfPTable tabla5 = new PdfPTable(1);
+                PdfPTable tabla6 = new PdfPTable(4);
+                PdfPTable tabla7 = new PdfPTable(1);
+                PdfPTable tabla8 = new PdfPTable(4);
+                PdfPCell celda1 = new PdfPCell(new Paragraph("REGISTRO DIARIO DE JORNADA EN TRABAJADORES A TIEMPO COMPLETO"));
+                PdfPCell celda2 = new PdfPCell(new Paragraph("EMPRESA"));
+                PdfPCell celda3 = new PdfPCell(new Paragraph("TRABAJADOR"));
+                PdfPCell celda4 = new PdfPCell(new Paragraph("Nombre o Razón social: " + empresa));
+                PdfPCell celda5 = new PdfPCell(new Paragraph("Nombre: " + empleado));
+                PdfPCell celda6 = new PdfPCell(new Paragraph("CIF: " + cif));
+                PdfPCell celda7 = new PdfPCell(new Paragraph("NIF: " + nfi));
+                PdfPCell celda8 = new PdfPCell(new Paragraph(""));
+                PdfPCell celda9 = new PdfPCell(new Paragraph("NAF: " + nfa));
+                PdfPCell celda10 = new PdfPCell(new Paragraph("Generada el " + dia + " del " + mes + " de " + ano1 + " a las " + hora));
+                PdfPCell celda11 = new PdfPCell(new Paragraph(mes1 + " de " + ano1));
+                celda11.setFixedHeight(20f);
+                PdfPCell celda12 = new PdfPCell(new Paragraph("Hora de entrada"));
+                celda12.setPadding(0);
+                PdfPCell celda13 = new PdfPCell(new Paragraph("Mañana"));
+                celda13.setPadding(0);
+                PdfPCell celda14 = new PdfPCell(new Paragraph("Firma del trabajador"));
+                celda14.setPadding(0);
+                PdfPCell celda15 = new PdfPCell(new Paragraph("Tarde"));
+                celda15.setPadding(0);
+                PdfPCell celda16 = new PdfPCell(new Paragraph("Hora de salida"));
+                celda16.setPadding(0);
+                PdfPCell celda17 = new PdfPCell(new Paragraph("Total Horas Jornada"));
+                PdfPCell celda18 = new PdfPCell(new Paragraph("Horas Ordinarias"));
+                PdfPCell celda19 = new PdfPCell(new Paragraph("Horas complementarias"));
+                PdfPCell celda20 = new PdfPCell(tabla6);
+                PdfPCell celda21 = new PdfPCell(tabla8);
+                PdfPCell celda22 = new PdfPCell(tabla7);
+                PdfPCell celda23 = new PdfPCell(tabla5);
+                celda1.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda2.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda3.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda4.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda5.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda6.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda7.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda8.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda9.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda10.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda11.setHorizontalAlignment(Element.ALIGN_LEFT);
+                celda12.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda13.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda14.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda15.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda16.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda17.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda18.setHorizontalAlignment(Element.ALIGN_CENTER);
+                celda19.setHorizontalAlignment(Element.ALIGN_CENTER);
+                tabla1.addCell(celda1);
+                Log.d("tabla1", "REGISTRO DIARIO DE JORNADA EN TRABAJADORES A TIEMPO COMPLETO");
+                tabla1.setWidthPercentage(100f);
+                tabla2.addCell(celda2);
+                Log.d("tabla2", "EMPRESA");
+                tabla2.addCell(celda3);
+                Log.d("tabla2", "TRABAJADOR");
+                tabla2.addCell(celda4);
+                Log.d("tabla2", "Nombre o Razón social: " + empresa);
+                tabla2.addCell(celda5);
+                Log.d("tabla2", "Nombre: " + empleado);
+                tabla2.addCell(celda6);
+                Log.d("tabla2", "CIF: " + cif);
+                tabla2.addCell(celda7);
+                Log.d("tabla2", "NIF: " + nfi);
+                tabla2.addCell(celda8);
+                Log.d("tabla2", " ");
+                tabla2.addCell(celda9);
+                Log.d("tabla2", "NAF: " + nfa);
+                tabla2.setWidthPercentage(100f);
+                tabla3.addCell(celda10);
+                Log.d("tabla3", "Generada el " + dia + " del " + mes + " de " + ano1 + " a las " + hora);
+                tabla3.setWidthPercentage(100f);
+                tabla4.addCell(celda11);
+                Log.d("tabla4", mes1 + " de " + ano1);
+                tabla5.addCell(celda12);
+                Log.d("tabla5", "Hora de entrada");
+                tabla6.addCell(celda13);
+                Log.d("tabla6", "Mañana");
+                tabla6.addCell(celda14);
+                Log.d("tabla6", "Firma del trabajador");
+                tabla6.addCell(celda15);
+                Log.d("tabla6", "Tarde");
+                tabla6.addCell(celda14);
+                Log.d("tabla6", "Firma del trabajador");
+                tabla6.setWidthPercentage(100f);
+                tabla5.addCell(celda20);
+                Log.d("tabla5", "TABLA 6");
+                tabla5.setWidthPercentage(100f);
+                tabla4.addCell(celda23);
+                Log.d("tabla4", "TABLA 5");
+                tabla7.addCell(celda16);
+                Log.d("tabla7", "Hora de salida");
+                tabla8.addCell(celda13);
+                Log.d("tabla8", "Mañana");
+                tabla8.addCell(celda14);
+                Log.d("tabla8", "Firma del trabajador");
+                tabla8.addCell(celda15);
+                Log.d("tabla8", "Tarde");
+                tabla8.addCell(celda14);
+                Log.d("tabla8", "Firma del trabajador");
+                tabla8.setWidthPercentage(100f);
+                tabla7.addCell(celda21);
+                Log.d("tabla7", "TABLA 8");
+                tabla7.setWidthPercentage(100f);
+                tabla4.addCell(celda22);
+                Log.d("tabla4", "TABLA 7");
+                tabla4.addCell(celda18);
+                Log.d("tabla4", "Horas Ordinarias");
+                tabla4.addCell(celda19);
+                Log.d("tabla4", "Horas complementarias");
+                tabla4.addCell(celda17);
+                Log.d("tabla4", "Total Horas Jornada");
+                tabla4.setWidthPercentage(100f);
+                document1.add(tabla1);
+                Log.d("document1", "tabla1");
+                document1.add(tabla2);
+                Log.d("document1", "tabla2");
+                document1.add(tabla3);
+                Log.d("document1", "tabla3");
+                document1.add(tabla4);
+                Log.d("document1", "tabla4");
+            } else if (!start && !nul1) {
+                document1.add(tabla9);
+                Log.d("document1", "tabla9");
+                tabla10.flushContent();
+                tabla11.flushContent();
+                tabla9.flushContent();
+            }
+            if (end) {
+                document1.close();
+                subida(myFilePath, myFile, ao);
+            }
+        } catch (DocumentException ex) {
+
+        } catch (IOException ex) {
+
+        }
+    }
+
+    private void subida(String fP, final File fi, String ao1) {
+        Toast.makeText(MenuAdmin.this, fP, Toast.LENGTH_LONG).show();
+        StorageReference pdfRef = almacen.getReference();
+        Uri file = Uri.fromFile(fi);
+        StorageReference riversRef = pdfRef.child(empresa + "/Registros/" + empleado + "/" + ao1 + "/" + mes1 + "/" + file.getLastPathSegment());
+
+        String filename = empleado + "_" + mes1 + "_" + ao1 + ".pdf";
+        File filelocation = new File(getFilesDir().getAbsolutePath(), filename);
+        Uri path = Uri.fromFile(filelocation);
+
+        UploadTask uploadTask = riversRef.putFile(path);
+
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                Toast.makeText(MenuAdmin.this, "FALLO SUBIENDO", Toast.LENGTH_LONG).show();
+                Toast.makeText(MenuAdmin.this, exception.toString(), Toast.LENGTH_LONG).show();
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                Toast.makeText(MenuAdmin.this, "SUBIDO", Toast.LENGTH_LONG).show();
+                fi.delete();
+            }
+        });
     }
 
     public void crearCanalDeNotificaciones() {
