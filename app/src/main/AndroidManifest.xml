@@ -22,9 +22,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:debuggable="true">
-        <activity android:name=".PDF.VerPDF"></activity>
+        android:theme="@style/AppTheme">
+        <activity android:name=".Auth.FirmaConfirma"></activity>
         <activity android:name=".Servicios.FueraDeHora" />
 
         <meta-data
@@ -33,9 +32,15 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
-        <meta-data android:name="firebase_analytics_collection_deactivated" android:value="true" />
-        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
-        <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_ssaid_collection_enabled"
+            android:value="false" />
 
         <uses-library
             android:name="org.apache.http.legacy"

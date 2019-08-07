@@ -8,43 +8,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:768915503839:android:c28e6de7ab81735f",
-        "android_client_info": {
-          "package_name": "com.example.pac"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "768915503839-ck0kag94mr97a15t0drm6ojffio32qnv.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.pac",
-            "certificate_hash": "06af5120a9eee2b86c3886db203495dd81982893"
-          }
-        },
-        {
-          "client_id": "768915503839-uvsrlbirdthe3adt8e0g39phnn89ufqo.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAPx1J-Q38IvnFYKca6S4rQZZOhztAlZB4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "768915503839-uvsrlbirdthe3adt8e0g39phnn89ufqo.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:768915503839:android:e03e468b9d52c35c",
         "android_client_info": {
           "package_name": "com.japac.pac"
@@ -52,11 +15,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "768915503839-17bjqk2lruperlbeilk7n84c4e4055q2.apps.googleusercontent.com",
+          "client_id": "768915503839-fv2qmjm3fg0gil95p2dvqj16tghcshdl.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.japac.pac",
-            "certificate_hash": "06af5120a9eee2b86c3886db203495dd81982893"
+            "certificate_hash": "78e8668f67d0f037bee50bc59cc5f06bce07cd61"
           }
         },
         {

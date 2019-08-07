@@ -153,7 +153,7 @@ public class ServicioLocalizacion extends Service {
                                                         latitudDetectada = geoPointLocalizayo.getLatitude();
                                                         longitudDetectada = geoPointLocalizayo.getLongitude();
                                                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
-                                                        if (Double.compare(distan, 25.0) > 0) {
+                                                        if (Double.compare(distan, 50.0) > 0) {
                                                             crearCanalDeNotificaciones();
                                                         }
                                                     }

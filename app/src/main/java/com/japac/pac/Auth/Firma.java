@@ -62,14 +62,14 @@ public class Firma extends AppCompatActivity {
         super.onCreate(null);
         setContentView(R.layout.activity_firma);
         cargando = new ProgressBar(this);
-        cargando = (ProgressBar) findViewById(R.id.cargandoFirma);
+        cargando = (ProgressBar) findViewById(R.id.cargandoFirmaConfi);
 
         firebaseFirestore = firebaseFirestore.getInstance();
 
-        btnborrar = (Button) findViewById(R.id.btnBorrar);
-        btnfirmar = (Button) findViewById(R.id.btnFirmar);
+        btnborrar = (Button) findViewById(R.id.btnBorrarCon);
+        btnfirmar = (Button) findViewById(R.id.btnFirmarCon);
 
-        firma = (SignaturePad) findViewById(R.id.firma);
+        firma = (SignaturePad) findViewById(R.id.firmaCon);
         firma.setOnSignedListener(new SignaturePad.OnSignedListener() {
             @Override
             public void onStartSigning() {

@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Build;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -19,6 +20,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,9 +63,11 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.maps.android.SphericalUtil;
+import com.japac.pac.Auth.FirmaConfirma;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
@@ -96,7 +100,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     private Button btnRegistroJornada, Cerrar;
 
-    private String JefeDeObra, IoF, empresa, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, codigoEmpleado, id, comp, obcomp, obcomprueba, emailAn, nombreAm, trayecto, JEFES1;
+    private String mañaOtard, JefeDeObra, IoF, empresa, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, codigoEmpleado, id, comp, obcomp, obcomprueba, emailAn, nombreAm, trayecto, JEFES1;
 
     private ArrayAdapter<String> obraAdapter, obraJefeAdapter;
 
@@ -134,94 +138,75 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoJefe);
 
-            if (compruebapermisos() && isServicesOK()) {
+        if (compruebapermisos() && isServicesOK()) {
 
-                logo = (ImageView) findViewById(R.id.logoJefeDeObra);
-                btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
-                Cerrar = (Button) findViewById(R.id.btnCerrar);
+            logo = (ImageView) findViewById(R.id.logoJefeDeObra);
+            btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
+            Cerrar = (Button) findViewById(R.id.btnCerrar);
 
-                firebaseFirestore = FirebaseFirestore.getInstance();
+            firebaseFirestore = FirebaseFirestore.getInstance();
 
-                mAuth = FirebaseAuth.getInstance();
+            mAuth = FirebaseAuth.getInstance();
 
-                almacen = FirebaseStorage.getInstance();
-                almacenRef = almacen.getReference();
+            almacen = FirebaseStorage.getInstance();
+            almacenRef = almacen.getReference();
 
-                id = mAuth.getCurrentUser().getUid();
-                comp = "no";
+            id = mAuth.getCurrentUser().getUid();
+            comp = "no";
 
-                Bien = (TextView) findViewById(R.id.BienvenidoX);
-                eresObras = (TextView) findViewById(R.id.eresDe);
-                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
+            Bien = (TextView) findViewById(R.id.BienvenidoX);
+            eresObras = (TextView) findViewById(R.id.eresDe);
+            pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
-                primero();
+            primero();
 
-                pPt.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                    }
-                });
-
-                registration = firebaseFirestore.collection("Jefes").document(id).addSnapshotListener(new EventListener<DocumentSnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
-                        String je = documentSnapshot.get("jefe").toString();
-                        if(!je.equals(JEFES1)){
-                            primero();
-                        }
-
-                    }
-                });
-
-                Cerrar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        FirebaseAuth.getInstance().signOut();
-
-                        Intent intent = new Intent(MenuJefeDeObra.this, Login.class);
-                        startActivity(intent);
-                        finish();
-                        overridePendingTransition(0, 0);
-                    }
-                });
-                if (comp.isEmpty() == true) {
-                    firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", "no");
+            pPt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
                 }
+            });
 
-
-                btnRegistroJornada.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dQuien();
+            registration = firebaseFirestore.collection("Jefes").document(id).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                @Override
+                public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+                    String je = documentSnapshot.get("jefe").toString();
+                    if (!je.equals(JEFES1)) {
+                        primero();
                     }
-                });
-                overridePendingTransition(0, 0);
+
+                }
+            });
+
+            Cerrar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    registration.remove();
+                    FirebaseAuth.getInstance().signOut();
+
+                    Intent intent = new Intent(MenuJefeDeObra.this, Login.class);
+                    startActivity(intent);
+                    finish();
+                    overridePendingTransition(0, 0);
+                }
+            });
+            if (comp.isEmpty() == true) {
+                firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", "no");
             }
 
-    }
 
-    public boolean Jornada() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        DateTime now = DateTime.now(zone);
-        Integer hour = now.getHourOfDay();
-        Boolean hora = ((hour >= 7) && (hour < 17));
-        Calendar calendar = Calendar.getInstance();
-        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
-        DateFormatSymbols dfs = new DateFormatSymbols();
-        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
-            hora = false;
+            btnRegistroJornada.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dQuien();
+                }
+            });
+            overridePendingTransition(0, 0);
         }
-        if (FueraDeHora.returnAcepta()) {
-            Intent intentSE = new Intent(MenuJefeDeObra.this, FueraDeHora.class);
-            stopService(intentSE);
-            hora = true;
-        }
-        return hora;
+
     }
 
     public void crearCanalDeNotificaciones() {
@@ -293,7 +278,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                     if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
                         obcomprueba = documentSnapshot.getString("obra");
                         if (comp.equals("iniciada")) {
-                            crearCanalDeNotificaciones();
+                            /*crearCanalDeNotificaciones();*/
                         }
                     }
                     if (!otro) {
@@ -315,7 +300,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                         cerrar = false;
                     }
                     Bien.setText("Bienvenido de nuevo " + nombreAm);
-                        firestore();
+                    firestore();
                     almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
                         public void onSuccess(Uri uri) {
@@ -342,6 +327,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         overridePendingTransition(0, 0);
 
     }
+
     private void firestore() {
 
         geoFirestoreRef = firebaseFirestore.collection("Empresas").document(empresa).collection("Obras");
@@ -356,7 +342,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                         String JFob = document.getString("jefe");
                         obs.add(obran);
                         if (nombreAm.equals(JFob)) {
-                            if(!oJeF.contains(obran)){
+                            if (!oJeF.contains(obran)) {
                                 oJeF.add(obran);
                             }
                         }
@@ -378,9 +364,9 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                             }
                         }
                     });
-                    if(!oJeF.isEmpty()){
+                    if (!oJeF.isEmpty()) {
                         eresObras.setText("Eres jefe de obra de : " + oJeF);
-                    }else{
+                    } else {
                         registration.remove();
                         firebaseFirestore.collection("Jefes").document(id).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
@@ -595,6 +581,18 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         DateFormat dhora = new SimpleDateFormat("HH:mm:ss");
         hora = dhora.format(Calendar.getInstance().getTime());
 
+        Calendar c = Calendar.getInstance();
+        int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
+        if (timeOfDay >= 0 && timeOfDay < 12) {
+            mañaOtard = "Mañana";
+        } else if (timeOfDay >= 12 && timeOfDay < 16) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 16 && timeOfDay < 21) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 21 && timeOfDay < 24) {
+            mañaOtard = "Noche";
+        }
+
         final Map<String, Object> map = new HashMap<>();
         map.put("nombre", nombre);
         map.put("Entrada o Salida", entrada_salida);
@@ -602,6 +600,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         map.put("rol", roles);
         map.put("fecha", fecha);
         map.put("hora", hora);
+        map.put("Mañana o tarde", mañaOtard);
         map.put("UID", id);
         if (otro) {
             map.put("iniciado por", nombreAm);
@@ -613,6 +612,30 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         final Map<String, String> mapA = new HashMap<>();
         final Map<String, String> mapM = new HashMap<>();
         final Map<String, String> mapD = new HashMap<>();
+        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                String es = null;
+                String mt = null;
+                if (entrada_salida.equals("Entrada")) {
+                    es = "E";
+                } else if (entrada_salida.equals("Salida")) {
+                    es = "S";
+                }
+                if (mañaOtard.equals("Mañana")) {
+                    mt = "M";
+                } else if (mañaOtard.equals("Tarde") || mañaOtard.equals("Noche")) {
+                    mt = "T";
+                }
+                String exis = documentSnapshot.getString(dia + mes + ano1);
+                if (exis != null) {
+                    exis = exis + es + mt + hora + ",";
+                } else if (exis == null) {
+                    exis = es + mt + hora + ",";
+                }
+                mapA.put(dia + mes + ano1, exis);
+            }
+        });
         firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
@@ -686,13 +709,30 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                         firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(dia).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(hora).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         if (otro) {
                                                             otro = false;
+
+                                                            DateFormat dfecha1 = new SimpleDateFormat("dd MM yyyy");
+                                                            fecha = dfecha1.format(Calendar.getInstance().getTime());
+
+                                                            DateFormat dhora1 = new SimpleDateFormat("HH:mm:ss");
+                                                            hora = dhora1.format(Calendar.getInstance().getTime());
+
+                                                            final Map<String, Object> mapf1 = new HashMap<>();
+                                                            mapf1.put("Desde", nombreAm);
+                                                            mapf1.put("fechaR", fecha);
+                                                            mapf1.put("horaR", hora);
+                                                            mapf1.put("obraR", obra);
+                                                            mapf1.put("saR", entrada_salida);
+
+                                                            firebaseFirestore.collection("Todas las ids").document(id).set(mapf1, SetOptions.merge());
                                                             dConfirma();
-                                                        }else if (!otro) {
+                                                            Intent intent = new Intent(MenuJefeDeObra.this, FirmaConfirma.class);
+                                                            startActivity(intent);
+                                                        } else if (!otro) {
                                                             primero();
                                                         }
                                                     }
@@ -838,10 +878,10 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                 positivoAccede.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
                         final String emailNu = semail.getText().toString();
                         final String contraseñaNu = scontraseña.getText().toString();
                         if (!emailNu.isEmpty() && !contraseñaNu.isEmpty()) {
+                            registration.remove();
                             mAuth.signOut();
                             mAuth.signInWithEmailAndPassword(emailNu, contraseñaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                                 @Override
@@ -863,7 +903,6 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                                     }
                                                     otro = true;
                                                     dialogoLogin.dismiss();
-
                                                     dRegistrar();
                                                 } else {
 
@@ -919,7 +958,6 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
     }
 
     private void dConfirma() {
-        mAuth.signOut();
         final AlertDialog.Builder Confirma = new AlertDialog.Builder(MenuJefeDeObra.this);
         final EditText semail = mLoginDialog.findViewById(R.id.emailDialogo);
         semail.setEnabled(false);
@@ -939,14 +977,13 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                     public void onClick(View v) {
                         String contraseñaAn = scontraseña.getText().toString();
                         if (!contraseñaAn.isEmpty()) {
-
+                            mAuth.signOut();
                             mAuth.signInWithEmailAndPassword(emailAn, contraseñaAn).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                                 @Override
                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                     id = mAuth.getCurrentUser().getUid();
                                     otro = false;
                                     dialogoConfirma.dismiss();
-
                                     primero();
                                 }
 
@@ -1035,4 +1072,3 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
 
     }
 }
-

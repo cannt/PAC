@@ -91,7 +91,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Button Iniciar, Finalizar, Cerrar;
 
-    private String empresa, IoF, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
+    private String mañaOtard, empresa, IoF, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto;
 
     private ArrayAdapter<String> obraAdapter;
 
@@ -169,12 +169,11 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 Cerrar.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
+                        registration.remove();
                         FirebaseAuth.getInstance().signOut();
                         Intent intent = new Intent(MenuEmpleado.this, Login.class);
                         startActivity(intent);
                         finish();
-                        overridePendingTransition(0, 0);
                     }
                 });
 
@@ -579,6 +578,18 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         DateFormat dhora = new SimpleDateFormat("HH:mm:ss");
         hora = dhora.format(Calendar.getInstance().getTime());
 
+        Calendar c = Calendar.getInstance();
+        int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
+        if (timeOfDay >= 0 && timeOfDay < 12) {
+            mañaOtard = "Mañana";
+        } else if (timeOfDay >= 12 && timeOfDay < 16) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 16 && timeOfDay < 21) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 21 && timeOfDay < 24) {
+            mañaOtard = "Noche";
+        }
+
         final Map<String, Object> map = new HashMap<>();
         map.put("nombre", nombre);
         map.put("Entrada o Salida", entrada_salida);
@@ -586,6 +597,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         map.put("rol", roles);
         map.put("fecha", fecha);
         map.put("hora", hora);
+        map.put("Mañana o tarde", mañaOtard);
         map.put("UID", id);
         if (trayectoBo) {
             trayectoBo = false;
@@ -594,6 +606,31 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         final Map<String, String> mapA = new HashMap<>();
         final Map<String, String> mapM = new HashMap<>();
         final Map<String, String> mapD = new HashMap<>();
+        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                String es = null;
+                String mt = null;
+                if(entrada_salida.equals("Entrada")){
+                    es = "E";
+                }else if(entrada_salida.equals("Salida")){
+                    es = "S";
+                }
+                if(mañaOtard.equals("Mañana")){
+                    mt = "M";
+                }else if(mañaOtard.equals("Tarde") || mañaOtard.equals("Noche")){
+                    mt = "T";
+                }
+                String exis = documentSnapshot.getString(dia + mes + ano1);
+                if(exis != null){
+                    exis = exis + es + mt + hora + ",";
+                }else if(exis == null){
+                    exis = es + mt + hora + ",";
+                }
+                mapA.put(dia + mes + ano1, exis);
+            }
+        });
+
         firebaseFirestore.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora).document(nombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
@@ -667,7 +704,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                         firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(dia).set(map);
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(hora).set(map);
                                             }
                                         });
                                     }

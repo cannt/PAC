@@ -8,7 +8,7 @@
     android:windowSoftInputMode="adjustPan">
 
     <ProgressBar
-        android:id="@+id/cargandoFirma"
+        android:id="@+id/cargandoFirmaConfi"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -20,7 +20,7 @@
         android:indeterminate="true"/>
 
     <com.github.gcacace.signaturepad.views.SignaturePad
-        android:id="@+id/firma"
+        android:id="@+id/firmaCon"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:penColor="@android:color/black"
@@ -29,7 +29,7 @@
         />
 
     <Button
-        android:id="@+id/btnFirmar"
+        android:id="@+id/btnFirmarCon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -39,11 +39,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.499"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/firma"
+        app:layout_constraintTop_toTopOf="@+id/firmaCon"
         app:layout_constraintVertical_bias="1.0" />
 
     <Button
-        android:id="@+id/btnBorrar"
+        android:id="@+id/btnBorrarCon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"

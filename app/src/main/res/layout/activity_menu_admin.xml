@@ -11,29 +11,31 @@
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
         android:indeterminate="true"
         android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@+id/btnObras" />
 
     <Button
         android:id="@+id/btnRegistrarJornadas"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="268dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="15dp"
+        android:layout_marginBottom="12dp"
         android:text="@string/btnRegistrarJornadas"
-        app:layout_constraintEnd_toEndOf="@+id/btnAdmEmpleados"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintBottom_toTopOf="@+id/btnObras"
+        app:layout_constraintEnd_toEndOf="@+id/logoAdmin"
+        app:layout_constraintTop_toBottomOf="@+id/logoAdmin" />
 
     <Button
         android:id="@+id/btnObras"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginBottom="13dp"
         android:text="@string/btnObras"
+        app:layout_constraintBottom_toTopOf="@+id/btnAdmEmpleados"
         app:layout_constraintStart_toStartOf="@+id/btnRegistrarJornadas"
         app:layout_constraintTop_toBottomOf="@+id/btnRegistrarJornadas" />
 
@@ -46,56 +48,67 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/logoAdmin" />
+        app:layout_constraintTop_toBottomOf="@+id/pdfVer" />
 
     <Button
         android:id="@+id/btnAdmEmpleados"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="11dp"
         android:text="@string/btnEmpleados"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/btnVacaciones"
+        app:layout_constraintStart_toStartOf="@+id/btnVacaciones"
         app:layout_constraintTop_toBottomOf="@+id/btnObras" />
 
     <ImageView
         android:id="@+id/logoAdmin"
         android:layout_width="200dp"
         android:layout_height="0dp"
-        android:layout_marginTop="60dp"
-        android:layout_marginBottom="407dp"
-        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
+        android:layout_marginBottom="8dp"
+        android:contentDescription="@string/logo"
+        app:layout_constraintBottom_toTopOf="@+id/btnRegistrarJornadas"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_logo"
-        android:contentDescription="@string/logo" />
+        app:layout_constraintTop_toBottomOf="@+id/PrivacyPolicy"
+        app:srcCompat="@drawable/ic_logo" />
 
     <Button
         android:id="@+id/pdfVer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="112dp"
         android:text="@string/btnRegistroPdf"
         app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnAdmEmpleados"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintTop_toBottomOf="@+id/btnVacaciones" />
 
 
     <TextView
         android:id="@+id/PrivacyPolicy"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="25dp"
         android:clickable="true"
+        android:focusable="true"
         android:text="@string/politicaDePrivacidad"
         android:textColorLink="@color/colorAccent"
+        app:layout_constraintBottom_toTopOf="@+id/logoAdmin"
+        app:layout_constraintStart_toStartOf="@+id/logoAdmin"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnVacaciones"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="11dp"
+        android:text="@string/btnVaca"
+        app:layout_constraintBottom_toTopOf="@+id/pdfVer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:focusable="true" />
+        app:layout_constraintTop_toBottomOf="@+id/btnAdmEmpleados" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
