@@ -1,10 +1,13 @@
 package com.japac.pac.Auth;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -12,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,6 +25,15 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -78,66 +91,101 @@ public class Login extends AppCompatActivity {
         cargando = (ProgressBar) findViewById(R.id.cargandoLogin);
         if (Jornada()) {
             if (compruebapermisos() && isServicesOK()) {
-                mAuth = FirebaseAuth.getInstance();
-                firebaseFirestore = firebaseFirestore.getInstance();
+                GoogleApiClient googleApiClient = new GoogleApiClient.Builder(this)
+                        .addApi(LocationServices.API).build();
+                googleApiClient.connect();
 
-                entrar = (Button) findViewById(R.id.btnEntrar);
-                registrar = (Button) findViewById(R.id.btnRegistrar);
+                LocationRequest locationRequest = LocationRequest.create();
+                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                locationRequest.setInterval(10000);
+                locationRequest.setFastestInterval(10000 / 2);
 
-                email = (EditText) findViewById(R.id.logEmail);
-                contraseña = (EditText) findViewById(R.id.logContraseña);
-                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
+                LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest);
+                builder.setAlwaysShow(true);
 
-                usuario();
-
-                pPt.setOnClickListener(new View.OnClickListener() {
+                PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(googleApiClient, builder.build());
+                result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
                     @Override
-                    public void onClick(View view) {
-                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                    }
-                });
+                    public void onResult(LocationSettingsResult result) {
+                        final Status status = result.getStatus();
+                        switch (status.getStatusCode()) {
+                            case LocationSettingsStatusCodes.SUCCESS:
 
-                registrar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        registro();
-                    }
-                });
+                                mAuth = FirebaseAuth.getInstance();
+                                firebaseFirestore = firebaseFirestore.getInstance();
 
-                entrar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        cargandoloSI();
-                        semail = email.getText().toString();
-                        scontraseña = contraseña.getText().toString();
+                                entrar = (Button) findViewById(R.id.btnEntrar);
+                                registrar = (Button) findViewById(R.id.btnRegistrar);
 
-                        if (!semail.isEmpty() && !scontraseña.isEmpty()) {
+                                email = (EditText) findViewById(R.id.logEmail);
+                                contraseña = (EditText) findViewById(R.id.logContraseña);
+                                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
-                            loginUsuario();
+                                usuario();
 
-                        } else if (semail.isEmpty()) {
-                            email.setError("Introduzca su email");
-                            cargandoloNO();
-                            if (scontraseña.isEmpty()) {
-                                contraseña.setError("Introduzca su contraseña");
-                                cargandoloNO();
-                            }
+                                pPt.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                                        Intent i = new Intent(Intent.ACTION_VIEW);
+                                        i.setData(Uri.parse(url));
+                                        startActivity(i);
+                                    }
+                                });
 
-                        } else if (scontraseña.isEmpty()) {
-                            contraseña.setError("Introduzca su contraseña");
-                            cargandoloNO();
-                            if (semail.isEmpty()) {
-                                email.setError("Introduzca su email");
-                                cargandoloNO();
-                            }
+                                registrar.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        registro();
+                                    }
+                                });
+
+                                entrar.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        cargandoloSI();
+                                        semail = email.getText().toString();
+                                        scontraseña = contraseña.getText().toString();
+
+                                        if (!semail.isEmpty() && !scontraseña.isEmpty()) {
+
+                                            loginUsuario();
+
+                                        } else if (semail.isEmpty()) {
+                                            email.setError("Introduzca su email");
+                                            cargandoloNO();
+                                            if (scontraseña.isEmpty()) {
+                                                contraseña.setError("Introduzca su contraseña");
+                                                cargandoloNO();
+                                            }
+
+                                        } else if (scontraseña.isEmpty()) {
+                                            contraseña.setError("Introduzca su contraseña");
+                                            cargandoloNO();
+                                            if (semail.isEmpty()) {
+                                                email.setError("Introduzca su email");
+                                                cargandoloNO();
+                                            }
+                                        }
+                                    }
+                                });
+                                break;
+                            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+
+                                try {
+                                    status.startResolutionForResult(Login.this, 0x1);
+                                } catch (IntentSender.SendIntentException e) {
+
+                                }
+                                break;
+                            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+
+                                break;
                         }
                     }
                 });
             }
-        }else if(!Jornada()){
+        } else if (!Jornada()) {
             startActivity(new Intent(Login.this, FueraDeHora.class));
             finish();
         }
@@ -153,10 +201,10 @@ public class Login extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         int weekday = calendar.get(Calendar.DAY_OF_WEEK);
         DateFormatSymbols dfs = new DateFormatSymbols();
-        if(dfs.getWeekdays()[weekday].equals("Saturday")|| dfs.getWeekdays()[weekday].equals( "Sunday")){
+        if (dfs.getWeekdays()[weekday].equals("Saturday") || dfs.getWeekdays()[weekday].equals("Sunday")) {
             hora = false;
         }
-        if(FueraDeHora.returnAcepta()){
+        if (FueraDeHora.returnAcepta()) {
             Intent intentSE = new Intent(Login.this, FueraDeHora.class);
             stopService(intentSE);
             hora = true;
@@ -219,7 +267,7 @@ public class Login extends AppCompatActivity {
                     sroles = documentSnapshot.getString("rol");
                     if (sroles.equals("Administrador")) {
                         cargandoloNO();
-                        startActivity(new Intent(Login.this, MenuAdmin.class));
+                        startActivity(new Intent( Login.this, MenuAdmin.class));
                         finish();
                     } else if (sroles.equals("Empleado")) {
                         codigoEmpleado = documentSnapshot.getString("codigo empleado");
@@ -233,7 +281,7 @@ public class Login extends AppCompatActivity {
                             finish();
                         }
                     }
-                    if(FueraDeHora.returnAcepta()){
+                    if (FueraDeHora.returnAcepta()) {
                         firebaseFirestore.collection("Empresas").document(documentSnapshot.getString("empresa")).collection(documentSnapshot.getString("rol")).document(documentSnapshot.getString("nombre")).update("fuera de jornada", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
@@ -241,7 +289,7 @@ public class Login extends AppCompatActivity {
                                 FueraDeHora.acepta = false;
                             }
                         });
-                    }else if(!FueraDeHora.returnAcepta()){
+                    } else if (!FueraDeHora.returnAcepta()) {
                         firebaseFirestore.collection("Empresas").document(documentSnapshot.getString("empresa")).collection(documentSnapshot.getString("rol")).document(documentSnapshot.getString("nombre")).update("fuera de jornada", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
@@ -280,10 +328,27 @@ public class Login extends AppCompatActivity {
 
     }
 
-    public void usuario(){
+    public void usuario() {
         if (mAuth.getCurrentUser() != null) {
             cargandoloSI();
             menuRoles();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case 0x1:
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        recreate();
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        finish();
+                        System.exit(0);
+                        break;
+                }
+                break;
         }
     }
 

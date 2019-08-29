@@ -82,12 +82,12 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:clickable="true"
+        android:focusable="true"
         android:text="@string/politicaDePrivacidad"
         android:textColorLink="@color/colorAccent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:focusable="true" />
+        app:layout_constraintTop_toTopOf="parent" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -11,13 +11,17 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Build;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -34,6 +38,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -45,6 +50,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.common.base.Stopwatch;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -69,6 +75,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -87,7 +94,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     FirebaseStorage almacen;
     StorageReference almacenRef;
 
-    private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan;
+    private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
     private Button Iniciar, Finalizar, Cerrar;
 
@@ -119,6 +126,11 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private ListenerRegistration registration;
 
+    CountDownTimer timer;
+    long millisInFuture = 30000; //30 seconds
+    long countDownInterval = 1000; //1 second
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -126,83 +138,83 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoEmpleado);
 
-            if (compruebapermisos() && isServicesOK()) {
+        if (compruebapermisos() && isServicesOK()) {
 
-                Iniciar = (Button) findViewById(R.id.btnIniciarJornada);
-                Finalizar = (Button) findViewById(R.id.btnFinalizarJornada);
-                Cerrar = (Button) findViewById(R.id.btnCerrar);
+            Iniciar = (Button) findViewById(R.id.btnIniciarJornada);
+            Finalizar = (Button) findViewById(R.id.btnFinalizarJornada);
+            Cerrar = (Button) findViewById(R.id.btnCerrar);
 
-                logo = (ImageView) findViewById(R.id.logoEmpleado);
-                pPt = (TextView) findViewById(R.id.PrivacyPolicy);
-
-
-                firebaseFirestore = FirebaseFirestore.getInstance();
+            logo = (ImageView) findViewById(R.id.logoEmpleado);
+            pPt = (TextView) findViewById(R.id.PrivacyPolicy);
 
 
-                mAuth = FirebaseAuth.getInstance();
-
-                almacen = FirebaseStorage.getInstance();
-                almacenRef = almacen.getReference();
+            firebaseFirestore = FirebaseFirestore.getInstance();
 
 
-                id = mAuth.getCurrentUser().getUid();
-                comp = "";
-                primero();
+            mAuth = FirebaseAuth.getInstance();
 
-                pPt.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
+            almacen = FirebaseStorage.getInstance();
+            almacenRef = almacen.getReference();
+
+
+            id = mAuth.getCurrentUser().getUid();
+            comp = "";
+            primero();
+
+            pPt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+            });
+
+            almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                @Override
+                public void onSuccess(Uri uri) {
+
+                    Picasso.get().load(uri).into(logo);
+                }
+            });
+            Cerrar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    registration.remove();
+                    FirebaseAuth.getInstance().signOut();
+                    Intent intent = new Intent(MenuEmpleado.this, Login.class);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+
+
+            Iniciar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (comp.equals("iniciada")) {
+                        Toast.makeText(MenuEmpleado.this, "Ya existe una jornada iniciada, finalizala primero", Toast.LENGTH_SHORT).show();
+                    } else if (comp.equals("finalizada") || comp.equals("no")) {
+                        entrada_salida = "Entrada";
+                        leerGeo();
                     }
-                });
+                }
+            });
 
-                almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                    @Override
-                    public void onSuccess(Uri uri) {
-
-                        Picasso.get().load(uri).into(logo);
+            Finalizar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (comp.contentEquals("finalizada") || comp.contentEquals("no")) {
+                        Toast.makeText(MenuEmpleado.this, "Debes iniciar primero una jornada", Toast.LENGTH_SHORT).show();
+                    } else if (comp.contentEquals("iniciada")) {
+                        entrada_salida = "Salida";
+                        leerGeo();
                     }
-                });
-                Cerrar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        registration.remove();
-                        FirebaseAuth.getInstance().signOut();
-                        Intent intent = new Intent(MenuEmpleado.this, Login.class);
-                        startActivity(intent);
-                        finish();
-                    }
-                });
-
-
-                Iniciar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (comp.equals("iniciada")) {
-                            Toast.makeText(MenuEmpleado.this, "Ya existe una jornada iniciada, finalizala primero", Toast.LENGTH_SHORT).show();
-                        } else if (comp.equals("finalizada") || comp.equals("no")) {
-                            entrada_salida = "Entrada";
-                            leerGeo();
-                        }
-                    }
-                });
-
-                Finalizar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (comp.contentEquals("finalizada") || comp.contentEquals("no")) {
-                            Toast.makeText(MenuEmpleado.this, "Debes iniciar primero una jornada", Toast.LENGTH_SHORT).show();
-                        } else if (comp.contentEquals("iniciada")) {
-                            entrada_salida = "Salida";
-                            leerGeo();
-                        }
-                    }
-                });
-                overridePendingTransition(0, 0);
-            }
+                }
+            });
+            overridePendingTransition(0, 0);
+        }
     }
 
     public void crearCanalDeNotificaciones() {
@@ -355,7 +367,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                         public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
                             for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                                 if (doc.get("jefe") != null) {
-                                    if(doc.get("jefe").equals(nombre)){
+                                    if (doc.get("jefe").equals(nombre)) {
                                         salirAjefe();
                                         break;
                                     }
@@ -390,7 +402,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
-    private void salirAjefe(){
+    private void salirAjefe() {
         startActivity(new Intent(MenuEmpleado.this, Login.class));
         finish();
         registration.remove();
@@ -444,47 +456,58 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
+                cargandoloSI();
+                dis = 50.0;
                 GeoPoint geopointGuardado = documentSnapshot.getGeoPoint("geoPoint");
                 latitudGuardada = geopointGuardado.getLatitude();
                 longitudGuardada = geopointGuardado.getLongitude();
-                latitudDetectada = geoPointLocalizayo.getLatitude();
-                longitudDetectada = geoPointLocalizayo.getLongitude();
-                distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
-                if (Double.compare(distan, 50.0) <= 0) {
-                    if (entrada_salida.equals("Entrada")) {
-                        comp = "iniciada";
-                        firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                timer = new CountDownTimer(60000, 5000) {
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+                        Log.d("MenuEmpleado", "1 TICK" + " DISTANCIA = " + dis);
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (Double.compare(distan, dis) <= 0) {
+                            if (entrada_salida.equals("Entrada")) {
+                                comp = "iniciada";
+                                firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                     public void onSuccess(Void aVoid) {
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
-                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                trayecto = documentSnapshot.getString("marca temporal");
-                                                                if (trayecto != null) {
-                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
-                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
-                                                                    DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-                                                                    String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
-                                                                    if (fechaAhora.equals(fechaGuardada)) {
-                                                                        trayectoBo = true;
-                                                                        DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
-                                                                        String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
-                                                                        trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                            public void onSuccess(Void aVoid) {
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        trayecto = documentSnapshot.getString("marca temporal");
+                                                                        if (trayecto != null) {
+                                                                            String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                    " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                    " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                            DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                            String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                            if (fechaAhora.equals(fechaGuardada)) {
+                                                                                trayectoBo = true;
+                                                                                DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                            }
+                                                                        }
+                                                                        spinnerPosition = obraAdapter.getPosition(obra);
+                                                                        obraSpinner.setSelection(spinnerPosition);
+                                                                        Log.d("MenuEmpleado", "ENVIANDO");
+                                                                        distan2 = 1.2;
+                                                                        enviajornada();
+                                                                        cancel();
                                                                     }
-                                                                }
-                                                                spinnerPosition = obraAdapter.getPosition(obra);
-                                                                obraSpinner.setSelection(spinnerPosition);
-                                                                enviajornada();
+                                                                });
                                                             }
                                                         });
                                                     }
@@ -493,14 +516,84 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                         });
                                     }
                                 });
+                            } else if (entrada_salida.equals("Salida")) {
+                                distan2 = 1.2;
+                                Log.d("MenuEmpleado", "COMPROBANDO");
+                                compruebaObra();
+                                cancel();
                             }
-                        });
-                    } else if (entrada_salida.equals("Salida")) {
-                        compruebaObra();
+                        } else if (Double.compare(distan, 50.0) > 0) {
+                            Toast.makeText(MenuEmpleado.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
+                            Log.d("MenuEmpleado", "NO ESTA CERCA");
+                            dis = dis + 50.0;
+                        }
+                        Log.d("MenuEmpleado", "1");
                     }
-                } else if (Double.compare(distan, 50.0) > 0) {
-                    Toast.makeText(MenuEmpleado.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
-                }
+                    @Override
+                    public void onFinish() {
+                        Log.d("MenuEmpleado", "FINAL");
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (distan2 == 1.2) {
+                            distan2 = 1.0;
+                            Log.d("MenuEmpleado", "SE CANCELA PORQUE HA IDO BIEN");
+                            cancel();
+                        } else if (distan2 == 1.0) {
+                            distan2 = 1.1;
+                            if (distan == null || latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
+                                if (entrada_salida.equals("Entrada")) {
+                                    comp = "iniciada";
+                                    firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                @Override
+                                                                public void onSuccess(Void aVoid) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                        @Override
+                                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                            trayecto = documentSnapshot.getString("marca temporal");
+                                                                            if (trayecto != null) {
+                                                                                String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                        " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                        " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                if (fechaAhora.equals(fechaGuardada)) {
+                                                                                    trayectoBo = true;
+                                                                                    DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                    String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                    trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                }
+                                                                            }
+                                                                            spinnerPosition = obraAdapter.getPosition(obra);
+                                                                            obraSpinner.setSelection(spinnerPosition);
+                                                                            enviajornada();
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                } else if (entrada_salida.equals("Salida")) {
+                                    compruebaObra();
+                                }
+                            }
+                        }
+                        cargandoloNO();
+                    }
+                }.start();
             }
         });
     }
@@ -566,6 +659,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             Cerrar.setEnabled(true);
 
         }
+
         DateFormat dfecha = new SimpleDateFormat("dd/MM/yyyy");
         DateFormat daño = new SimpleDateFormat("yyyy");
         DateFormat dmes = new SimpleDateFormat("MM");
@@ -603,6 +697,14 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             trayectoBo = false;
             map.put("Trayecto desde " + obcomp + " hasta " + obra, trayecto);
         }
+        if (distan2 == 1.1) {
+            distan2 = 1.0;
+            map.put("Ubicacion detectada correctamente", false);
+            map.put("Distancia desde la obra " + obra, dis + " >" );
+        } else if (distan2 == 1.0 || distan2 == 1.2) {
+            map.put("Ubicacion detectada correctamente", true);
+            map.put("Distancia desde la obra " + obra, dis);
+        }
         final Map<String, String> mapA = new HashMap<>();
         final Map<String, String> mapM = new HashMap<>();
         final Map<String, String> mapD = new HashMap<>();
@@ -611,20 +713,20 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 String es = null;
                 String mt = null;
-                if(entrada_salida.equals("Entrada")){
+                if (entrada_salida.equals("Entrada")) {
                     es = "E";
-                }else if(entrada_salida.equals("Salida")){
+                } else if (entrada_salida.equals("Salida")) {
                     es = "S";
                 }
-                if(mañaOtard.equals("Mañana")){
+                if (mañaOtard.equals("Mañana")) {
                     mt = "M";
-                }else if(mañaOtard.equals("Tarde") || mañaOtard.equals("Noche")){
+                } else if (mañaOtard.equals("Tarde") || mañaOtard.equals("Noche")) {
                     mt = "T";
                 }
                 String exis = documentSnapshot.getString(dia + mes + ano1);
-                if(exis != null){
+                if (exis != null) {
                     exis = exis + es + mt + hora + ",";
-                }else if(exis == null){
+                } else if (exis == null) {
                     exis = es + mt + hora + ",";
                 }
                 mapA.put(dia + mes + ano1, exis);
