@@ -122,7 +122,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private boolean cerrar = false, finali = false, trayectoBo = false;
 
-    private TextView pPt;
+    private TextView pPt, aprox;
 
     private ListenerRegistration registration;
 
@@ -146,7 +146,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
             logo = (ImageView) findViewById(R.id.logoEmpleado);
             pPt = (TextView) findViewById(R.id.PrivacyPolicy);
-
+            aprox = (TextView) findViewById(R.id.aprox);
 
             firebaseFirestore = FirebaseFirestore.getInstance();
 
@@ -465,6 +465,10 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                     @Override
                     public void onTick(long millisUntilFinished) {
                         Log.d("MenuEmpleado", "1 TICK" + " DISTANCIA = " + dis);
+                        if(dis >= 100.0){
+                            aprox.setText("Tiempo aproximado de espera " + TimeUnit.MICROSECONDS.toSeconds(millisUntilFinished) + 1 + "~");
+                            aprox.setVisibility(View.VISIBLE);
+                        }
                         latitudDetectada = geoPointLocalizayo.getLatitude();
                         longitudDetectada = geoPointLocalizayo.getLongitude();
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
@@ -855,10 +859,12 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         Iniciar.setEnabled(false);
         Finalizar.setEnabled(false);
         Cerrar.setEnabled(false);
+        obraSpinner.setEnabled(false);
     }
 
     private void cargandoloNO() {
         cargando.setVisibility(View.INVISIBLE);
+        obraSpinner.setEnabled(true);
         if (cerrar) {
             Iniciar.setEnabled(false);
             Cerrar.setEnabled(false);

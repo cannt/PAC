@@ -6,40 +6,29 @@
     android:layout_height="match_parent"
     tools:context=".Menu.MenuEmpleado">
 
-    <ProgressBar
-        android:id="@+id/cargandoEmpleado"
-        style="?android:attr/progressBarStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:visibility="invisible"
-        android:indeterminate="true"/>
-
     <Button
         android:id="@+id/btnIniciarJornada"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="4dp"
-        android:layout_marginTop="7dp"
+        android:layout_marginBottom="9dp"
         android:text="@string/btnIniciarJornada"
         android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/btnFinalizarJornada"
         app:layout_constraintStart_toStartOf="@+id/spinnerObra"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerObra" />
+        app:layout_constraintTop_toBottomOf="@+id/cargandoEmpleado" />
 
     <Button
         android:id="@+id/btnFinalizarJornada"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="275dp"
+        android:layout_marginBottom="83dp"
         android:text="@string/btnFinalizarJornada"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/aprox"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnIniciarJornada" />
 
     <Button
         android:id="@+id/btnCerrar"
@@ -49,45 +38,72 @@
         android:text="@string/btnCerrar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/aprox" />
 
-
-    <Spinner
-        android:id="@+id/spinnerObra"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="64dp"
-        android:backgroundTint="#2196F3"
-        app:layout_constraintBottom_toTopOf="@+id/btnFinalizarJornada"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" tools:targetApi="lollipop"/>
 
     <ImageView
         android:id="@+id/logoEmpleado"
         android:layout_width="200dp"
         android:layout_height="0dp"
-        android:layout_marginTop="60dp"
-        android:layout_marginBottom="407dp"
-        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
+        android:layout_marginBottom="82dp"
+        android:contentDescription="@string/logo"
+        app:layout_constraintBottom_toTopOf="@+id/cargandoEmpleado"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_logo"
-        android:contentDescription="@string/logo" />
+        app:layout_constraintTop_toBottomOf="@+id/PrivacyPolicy"
+        app:srcCompat="@drawable/ic_logo" />
+
+
+    <ProgressBar
+        android:id="@+id/cargandoEmpleado"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/btnIniciarJornada"
+        app:layout_constraintEnd_toEndOf="@+id/spinnerObra"
+        app:layout_constraintStart_toStartOf="@+id/spinnerObra"
+        app:layout_constraintTop_toBottomOf="@+id/logoEmpleado" />
+
+    <Spinner
+        android:id="@+id/spinnerObra"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="7dp"
+        android:backgroundTint="#2196F3"
+        app:layout_constraintBottom_toTopOf="@+id/btnIniciarJornada"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:targetApi="lollipop" />
 
 
     <TextView
         android:id="@+id/PrivacyPolicy"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="25dp"
         android:clickable="true"
+        android:focusable="true"
         android:text="@string/politicaDePrivacidad"
         android:textColorLink="@color/colorAccent"
+        app:layout_constraintBottom_toTopOf="@+id/logoEmpleado"
+        app:layout_constraintStart_toStartOf="@+id/logoEmpleado"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/aprox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="109dp"
+        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:focusable="true" />
+        app:layout_constraintTop_toBottomOf="@+id/btnFinalizarJornada"
+        tools:visibility="invisible" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
