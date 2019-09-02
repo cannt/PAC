@@ -32,6 +32,6 @@
     <string name="btnBorrar">Borrar Firma</string>
     <string name="btnRegistroPdf">Ver Registro</string>
     <string name="politicaDePrivacidad">Politica de privacidad</string>
-    <string name="btnVaca">Administrar vacaciiones</string>
+    <string name="btnVaca">Administrar vacaciones</string>
 </resources>
 

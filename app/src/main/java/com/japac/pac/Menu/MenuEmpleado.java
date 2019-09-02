@@ -859,12 +859,17 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         Iniciar.setEnabled(false);
         Finalizar.setEnabled(false);
         Cerrar.setEnabled(false);
-        obraSpinner.setEnabled(false);
+        if(obraSpinner!= null){
+            obraSpinner.setEnabled(false);
+        }
+
     }
 
     private void cargandoloNO() {
         cargando.setVisibility(View.INVISIBLE);
-        obraSpinner.setEnabled(true);
+        if(obraSpinner!= null){
+            obraSpinner.setEnabled(true);
+        }
         if (cerrar) {
             Iniciar.setEnabled(false);
             Cerrar.setEnabled(false);
