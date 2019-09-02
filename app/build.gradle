@@ -6,8 +6,8 @@ android {
         applicationId "com.japac.pac"
         minSdkVersion 19
         targetSdkVersion 29
-        versionCode 15
-        versionName "15"
+        versionCode 16
+        versionName "16"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         android.defaultConfig.vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
