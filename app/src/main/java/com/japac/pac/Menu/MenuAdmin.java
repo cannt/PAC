@@ -19,6 +19,7 @@ import android.graphics.pdf.PdfDocument;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.ContactsContract;
@@ -146,9 +147,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     StorageReference almacenRef;
 
-    private TextView pPt;
+    private TextView pPt, aprox;
 
-    private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan;
+    private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
     private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnRegistro, btnVacaciones;
 
@@ -208,6 +209,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Image img;
 
+    private CountDownTimer timer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -224,6 +227,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             btnRegistro = (Button) findViewById(R.id.pdfVer);
             btnVacaciones = (Button) findViewById(R.id.btnVacaciones);
             pPt = (TextView) findViewById(R.id.PrivacyPolicy);
+            aprox = (TextView) findViewById(R.id.aproxad);
 
             logo = (ImageView) findViewById(R.id.logoAdmin);
 
@@ -1538,47 +1542,58 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
+                cargandoloSI();
+                dis = 50.0;
                 GeoPoint geopointGuardado = documentSnapshot.getGeoPoint("geoPoint");
                 latitudGuardada = geopointGuardado.getLatitude();
                 longitudGuardada = geopointGuardado.getLongitude();
-                latitudDetectada = geoPointLocalizayo.getLatitude();
-                longitudDetectada = geoPointLocalizayo.getLongitude();
-                distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
-                if (Double.compare(distan, 50.0) <= 0) {
-                    if (entrada_salida.equals("Entrada")) {
-                        comp = "iniciada";
-                        firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                timer = new CountDownTimer(60000, 5000) {
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+                        if (dis >= 100.0) {
+                            aprox.setText("Tiempo aproximado de espera 1~ minutos");
+                            aprox.setVisibility(View.VISIBLE);
+                        }
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (Double.compare(distan, dis) <= 0) {
+                            if (entrada_salida.equals("Entrada")) {
+                                comp = "iniciada";
+                                firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                     public void onSuccess(Void aVoid) {
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
-                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                trayecto = documentSnapshot.getString("marca temporal");
-                                                                if (trayecto != null) {
-                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
-                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
-                                                                    DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-                                                                    String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
-                                                                    if (fechaAhora.equals(fechaGuardada)) {
-                                                                        trayectoBo = true;
-                                                                        DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
-                                                                        String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
-                                                                        trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                            public void onSuccess(Void aVoid) {
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        trayecto = documentSnapshot.getString("marca temporal");
+                                                                        if (trayecto != null) {
+                                                                            String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                    " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                    " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                            DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                            String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                            if (fechaAhora.equals(fechaGuardada)) {
+                                                                                trayectoBo = true;
+                                                                                DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                            }
+                                                                        }
+                                                                        spinnerPosition = obraAdapter.getPosition(obra);
+                                                                        obraSpinner.setSelection(spinnerPosition);
+                                                                        enviajornada();
                                                                     }
-                                                                }
-                                                                spinnerPosition = obraAdapter.getPosition(obra);
-                                                                obraSpinner.setSelection(spinnerPosition);
-                                                                enviajornada();
+                                                                });
                                                             }
                                                         });
                                                     }
@@ -1587,15 +1602,83 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                         });
                                     }
                                 });
+                            } else if (entrada_salida.equals("Salida")) {
+                                compruebaObra();
                             }
-                        });
-                    } else if (entrada_salida.equals("Salida")) {
-                        compruebaObra();
+                        } else if (Double.compare(distan, dis) > 0) {
+                            Toast.makeText(MenuAdmin.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
+                            dRegistrar();
+                        }
                     }
-                } else if (Double.compare(distan, 50.0) > 0) {
-                    Toast.makeText(MenuAdmin.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
-                    dRegistrar();
-                }
+
+                    @Override
+                    public void onFinish() {
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (distan2 == 1.2) {
+                            distan2 = 1.0;
+                            Log.d("MenuEmpleado", "SE CANCELA PORQUE HA IDO BIEN");
+                            cancel();
+                            aprox.setVisibility(View.INVISIBLE);
+                        } else if (distan2 == 1.0) {
+                            distan2 = 1.1;
+                            if (distan == null || latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
+                                if (entrada_salida.equals("Entrada")) {
+                                    comp = "iniciada";
+                                    firebaseFirestore.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                @Override
+                                                                public void onSuccess(Void aVoid) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                        @Override
+                                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                            trayecto = documentSnapshot.getString("marca temporal");
+                                                                            if (trayecto != null) {
+                                                                                String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                        " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                        " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                if (fechaAhora.equals(fechaGuardada)) {
+                                                                                    trayectoBo = true;
+                                                                                    DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                    String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                    trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                }
+                                                                            }
+                                                                            spinnerPosition = obraAdapter.getPosition(obra);
+                                                                            obraSpinner.setSelection(spinnerPosition);
+                                                                            aprox.setVisibility(View.INVISIBLE);
+                                                                            enviajornada();
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                } else if (entrada_salida.equals("Salida")) {
+                                    aprox.setVisibility(View.INVISIBLE);
+                                    compruebaObra();
+                                }
+                            }
+                        }
+                        cargandoloNO();
+                    }
+                }.start();
+
             }
         });
     }

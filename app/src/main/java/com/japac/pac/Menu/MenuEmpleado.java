@@ -33,12 +33,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.DateFormat;
-import java.text.DateFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -50,7 +48,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.common.base.Stopwatch;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -68,11 +65,7 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.R;
-import com.japac.pac.Servicios.FueraDeHora;
 import com.squareup.picasso.Picasso;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
@@ -127,8 +120,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     private ListenerRegistration registration;
 
     CountDownTimer timer;
-    long millisInFuture = 30000; //30 seconds
-    long countDownInterval = 1000; //1 second
 
 
     @Override
@@ -466,7 +457,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                     public void onTick(long millisUntilFinished) {
                         Log.d("MenuEmpleado", "1 TICK" + " DISTANCIA = " + dis);
                         if(dis >= 100.0){
-                            aprox.setText("Tiempo aproximado de espera " + TimeUnit.MICROSECONDS.toSeconds(millisUntilFinished) + 1 + "~");
+                            aprox.setText("Tiempo aproximado de espera 1~ minutos");
                             aprox.setVisibility(View.VISIBLE);
                         }
                         latitudDetectada = geoPointLocalizayo.getLatitude();
@@ -510,6 +501,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                                         distan2 = 1.2;
                                                                         enviajornada();
                                                                         cancel();
+                                                                        aprox.setVisibility(View.INVISIBLE);
                                                                     }
                                                                 });
                                                             }
@@ -525,9 +517,10 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                 Log.d("MenuEmpleado", "COMPROBANDO");
                                 compruebaObra();
                                 cancel();
+                                aprox.setVisibility(View.INVISIBLE);
                             }
                         } else if (Double.compare(distan, 50.0) > 0) {
-                            Toast.makeText(MenuEmpleado.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MenuEmpleado.this, "Solucionando problemas de localizacion", Toast.LENGTH_SHORT).show();
                             Log.d("MenuEmpleado", "NO ESTA CERCA");
                             dis = dis + 50.0;
                         }
@@ -543,6 +536,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             distan2 = 1.0;
                             Log.d("MenuEmpleado", "SE CANCELA PORQUE HA IDO BIEN");
                             cancel();
+                            aprox.setVisibility(View.INVISIBLE);
                         } else if (distan2 == 1.0) {
                             distan2 = 1.1;
                             if (distan == null || latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
