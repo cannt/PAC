@@ -15,7 +15,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:visibility="invisible"
-        android:indeterminate="true"/>
+        android:indeterminate="true"
+        android:elevation="10dp" tools:targetApi="lollipop"/>
 
     <com.github.gcacace.signaturepad.views.SignaturePad
         android:id="@+id/firmaCon"

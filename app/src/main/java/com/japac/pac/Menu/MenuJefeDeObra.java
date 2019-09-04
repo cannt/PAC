@@ -528,7 +528,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                 compruebaObra();
                             }
                         } else if (Double.compare(distan, 50.0) > 0) {
-                            Toast.makeText(MenuJefeDeObra.this, "Solucionando problemas de localizacion", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MenuJefeDeObra.this, "Solucionando problemas de localizacion", Toast.LENGTH_LONG).show();
                             dis = dis + 50.0;
                         }
                     }
@@ -750,7 +750,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                 if (!a.contains(ano1)) {
                                     mapA.put("años", a + ", " + ano1);
                                 } else if (a.contains(ano1)) {
-                                    mapA.put("años", ano1);
+                                    mapA.put("años", a);
 
                                 }
                             }
@@ -765,7 +765,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                             if (!m.contains(mes)) {
                                                 mapM.put("meses", m + ", " + mes);
                                             } else if (m.contains(mes)) {
-                                                mapM.put("meses", mes);
+                                                mapM.put("meses", m);
 
                                             }
                                         }
@@ -780,7 +780,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                                                         if (!d.contains(dia)) {
                                                             mapD.put("dias", d + ", " + dia);
                                                         } else if (d.contains(dia)) {
-                                                            mapD.put("dias", dia);
+                                                            mapD.put("dias", d);
 
                                                         }
                                                     }
@@ -1136,9 +1136,9 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
     }
 
     private void cargandoloSI() {
-        cargando.setVisibility(View.VISIBLE);
         btnRegistroJornada.setEnabled(false);
         Cerrar.setEnabled(false);
+        cargando.setVisibility(View.VISIBLE);
     }
 
     private void cargandoloNO() {

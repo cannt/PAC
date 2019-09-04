@@ -520,7 +520,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                 aprox.setVisibility(View.INVISIBLE);
                             }
                         } else if (Double.compare(distan, 50.0) > 0) {
-                            Toast.makeText(MenuEmpleado.this, "Solucionando problemas de localizacion", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MenuEmpleado.this, "Solucionando problemas de localizacion", Toast.LENGTH_LONG).show();
                             Log.d("MenuEmpleado", "NO ESTA CERCA");
                             dis = dis + 50.0;
                         }
@@ -745,7 +745,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                 if (!a.contains(ano1)) {
                                     mapA.put("años", a + ", " + ano1);
                                 } else if (a.contains(ano1)) {
-                                    mapA.put("años", ano1);
+                                    mapA.put("años", a);
 
                                 }
                             }
@@ -760,7 +760,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                             if (!m.contains(mes)) {
                                                 mapM.put("meses", m + ", " + mes);
                                             } else if (m.contains(mes)) {
-                                                mapM.put("meses", mes);
+                                                mapM.put("meses", m);
 
                                             }
                                         }
@@ -775,8 +775,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                         if (!d.contains(dia)) {
                                                             mapD.put("dias", d + ", " + dia);
                                                         } else if (d.contains(dia)) {
-                                                            mapD.put("dias", dia);
-
+                                                            mapD.put("dias", d);
                                                         }
                                                     }
                                                 } else {
@@ -849,18 +848,17 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void cargandoloSI() {
-        cargando.setVisibility(View.VISIBLE);
         Iniciar.setEnabled(false);
         Finalizar.setEnabled(false);
         Cerrar.setEnabled(false);
         if(obraSpinner!= null){
             obraSpinner.setEnabled(false);
         }
+        cargando.setVisibility(View.VISIBLE);
 
     }
 
     private void cargandoloNO() {
-        cargando.setVisibility(View.INVISIBLE);
         if(obraSpinner!= null){
             obraSpinner.setEnabled(true);
         }
@@ -879,6 +877,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 Finalizar.setEnabled(true);
             }
         }
+        cargando.setVisibility(View.INVISIBLE);
     }
 
     @Override

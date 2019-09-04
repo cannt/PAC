@@ -139,7 +139,7 @@ public class ServicioLocalizacion extends Service {
                         locationRef.set(mLocalizarUsuario).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                if (comprobar.equals("iniciada") && obra != null) {
+                                /*if (comprobar.equals("iniciada") && obra != null) {
                                     mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                         @Override
                                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -153,7 +153,7 @@ public class ServicioLocalizacion extends Service {
                                                         latitudDetectada = geoPointLocalizayo.getLatitude();
                                                         longitudDetectada = geoPointLocalizayo.getLongitude();
                                                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
-                                                        if (Double.compare(distan, 50.0) > 0) {
+                                                        if (Double.compare(distan, 100.0) > 0) {
                                                             crearCanalDeNotificaciones();
                                                         }
                                                     }
@@ -161,7 +161,7 @@ public class ServicioLocalizacion extends Service {
                                             }
                                         }
                                     });
-                                }
+                                }*/
                             }
                         });
                     }

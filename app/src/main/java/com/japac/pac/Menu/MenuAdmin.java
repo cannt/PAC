@@ -542,6 +542,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialogInterface, int i) {
+                        cargandoloSI();
                         firebaseFirestore
                                 .collection("Empresas")
                                 .document(empresa)
@@ -941,12 +942,15 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             public void onFailure(@NonNull Exception exception) {
                 Toast.makeText(MenuAdmin.this, "FALLO SUBIENDO", Toast.LENGTH_LONG).show();
                 Toast.makeText(MenuAdmin.this, exception.toString(), Toast.LENGTH_LONG).show();
+                fi.delete();
+                cargandoloNO();
             }
         }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Toast.makeText(MenuAdmin.this, "SUBIDO", Toast.LENGTH_LONG).show();
                 fi.delete();
+                cargandoloNO();
             }
         });
     }
@@ -1606,8 +1610,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                 compruebaObra();
                             }
                         } else if (Double.compare(distan, dis) > 0) {
-                            Toast.makeText(MenuAdmin.this, "No te encuentras dentro de la obra seleccionada", Toast.LENGTH_SHORT).show();
-                            dRegistrar();
+                            Toast.makeText(MenuAdmin.this, "Solucionando problemas de localizacion", Toast.LENGTH_LONG).show();
                         }
                     }
 
@@ -1817,7 +1820,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                 if (!a.contains(ano1)) {
                                     mapA.put("años", a + ", " + ano1);
                                 } else if (a.contains(ano1)) {
-                                    mapA.put("años", ano1);
+                                    mapA.put("años", a);
 
                                 }
                             }
@@ -1832,7 +1835,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                             if (!m.contains(mes)) {
                                                 mapM.put("meses", m + ", " + mes);
                                             } else if (m.contains(mes)) {
-                                                mapM.put("meses", mes);
+                                                mapM.put("meses", m);
 
                                             }
                                         }
@@ -1847,7 +1850,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                         if (!d.contains(dia)) {
                                                             mapD.put("dias", d + ", " + dia);
                                                         } else if (d.contains(dia)) {
-                                                            mapD.put("dias", dia);
+                                                            mapD.put("dias", d);
 
                                                         }
                                                     }
@@ -2098,6 +2101,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                         if (sa.equals(ultimo1)) {
                                             codigo = letras1 + letras2 + letras3;
                                             firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(snombre, codigo);
+                                            dCompartir(codigo, snombre);
                                             firestoreNombres();
                                         }
                                     }
@@ -2129,6 +2133,15 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             sb.append(patron.charAt(aleatorio.nextInt(patron.length())));
         return sb.toString();
 
+    }
+
+    private void dCompartir(String cod, String nom){
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, "El codigo de empresa de " + empresa + " es: " + codigoEmpresa + "\nY el codigo del empleado " + nom + " es: " + cod);
+        sendIntent.setType("text/plain");
+        Intent shareIntent = Intent.createChooser(sendIntent, "Compartir codigo");
+        startActivity(shareIntent);
     }
 
     private void dEliminarEmpleado() {
@@ -2333,11 +2346,11 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void cargandoloSI() {
-        cargando.setVisibility(View.VISIBLE);
         btnRegistroJornada.setEnabled(false);
         btnObras.setEnabled(false);
         Cerrar.setEnabled(false);
         btnEmpleados.setEnabled(false);
+        cargando.setVisibility(View.VISIBLE);
     }
 
     private void cargandoloNO() {

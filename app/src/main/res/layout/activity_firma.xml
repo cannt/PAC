@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:saveEnabled="false"
@@ -17,16 +18,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:visibility="invisible"
-        android:indeterminate="true"/>
+        android:indeterminate="true"
+        android:elevation="10dp" tools:targetApi="lollipop" />
 
     <com.github.gcacace.signaturepad.views.SignaturePad
         android:id="@+id/firmaCon"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:penColor="@android:color/black"
-        app:penMinWidth="2dp"
         app:penMaxWidth="4dp"
-        />
+        app:penMinWidth="2dp"
+        tools:layout_editor_absoluteX="25dp"
+        tools:layout_editor_absoluteY="94dp" />
 
     <Button
         android:id="@+id/btnFirmarCon"
@@ -37,7 +40,7 @@
         android:text="@string/btnFirmar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/firmaCon"
         app:layout_constraintVertical_bias="1.0" />
@@ -46,9 +49,11 @@
         android:id="@+id/btnBorrarCon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:text="@string/btnBorrar"
+        app:layout_constraintBottom_toBottomOf="@+id/firmaCon"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.023" />
 </androidx.constraintlayout.widget.ConstraintLayout>
