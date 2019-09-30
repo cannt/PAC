@@ -318,6 +318,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         jefeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                cargandoloSI();
                 empleado = adapterView.getItemAtPosition(i).toString();
                 firebaseFirestore
                         .collection("Codigos")
@@ -340,18 +341,24 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                         rolE = "Administrador";
                                     }
                                 }
+                                cargandoloNO();
                             }
-                        });
+                        }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(MenuAdmin.this, "No se a podido encontrar al empleado seleccionado", Toast.LENGTH_LONG).show();
+                        cargandoloNO();
+                    }
+                });
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
-
             }
         });
         registroLeer
                 .setView(mNombres)
-                .setPositiveButton("Generar", null)
+                .setPositiveButton("Siguiente", null)
                 .setNegativeButton("Cancelar", null);
         final AlertDialog dialogoRegistroLeer = registroLeer.create();
         dialogoRegistroLeer.setOnShowListener(new DialogInterface.OnShowListener() {
@@ -363,7 +370,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 positivoAc.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
                         firebaseFirestore
                                 .collection("Empresas")
                                 .document(empresa)
@@ -374,6 +380,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot1) {
                                         if (documentSnapshot1.exists()) {
+                                            cargandoloSI();
                                             final String nif = documentSnapshot1.getString("NIF");
                                             final String naf = documentSnapshot1.getString("NAF");
                                             idreg = documentSnapshot1.getString("id");
@@ -390,12 +397,14 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
                                                             String ans = documentSnapshot2.getString("años");
                                                             List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
+                                                            cargandoloNO();
                                                             elegirFechasAños(ansL, rolE, empleado, nif, naf);
                                                             dialogoRegistroLeer.dismiss();
                                                         }
                                                     }).addOnFailureListener(new OnFailureListener() {
                                                 @Override
                                                 public void onFailure(@NonNull Exception e) {
+                                                    cargandoloNO();
                                                     Toast.makeText(MenuAdmin.this, "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
                                                     jfs.remove(nombre);
                                                     dialogoRegistroLeer.dismiss();
@@ -452,6 +461,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialogInterface, int i) {
+                        cargandoloSI();
                         firebaseFirestore
                                 .collection("Empresas")
                                 .document(empresa)
@@ -467,6 +477,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     public void onSuccess(DocumentSnapshot documentSnapshot3) {
                                         String ms = documentSnapshot3.getString("meses");
                                         List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
+                                        cargandoloNO();
                                         elegirFechasMeses(msL, roles, empleado, ano1, nif, naf);
                                         dialogInterface.dismiss();
 
@@ -559,144 +570,115 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
-
-                                            almacenFirmas = FirebaseStorage.getInstance().getReference();
-                                            almacenRef = almacenFirmas.child(empresa + "/" + "Firmas" + "/" + empleado + "/" + idreg + ".jpg");
-                                            almacenRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                                @Override
-                                                public void onSuccess(Uri uri) {
-                                                    String url = uri.toString();
-                                                    DownloadManager downloadManager = (DownloadManager) MenuAdmin.this.getSystemService(Context.DOWNLOAD_SERVICE);
-                                                    Uri uri1 = Uri.parse(url);
-                                                    DownloadManager.Request request = new DownloadManager.Request(uri1);
-
-                                                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                                                    request.setDestinationInExternalFilesDir(MenuAdmin.this, DIRECTORY_DOWNLOADS, idreg + ".jpeg");
-
-                                                    downloadManager.enqueue(request);
-                                                    IMG1 = DIRECTORY_DOWNLOADS + idreg + ".jpeg";
-                                                    try {
-                                                        img = Image.getInstance(IMG1);
-                                                        cellFirma = new PdfPCell(img, true);
-
-                                                    } catch (BadElementException e) {
-                                                        e.printStackTrace();
-                                                    } catch (IOException e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                    firebaseFirestore
-                                                            .collection("Empresas")
-                                                            .document(empresa)
-                                                            .collection(roles1)
-                                                            .document(empleado)
-                                                            .collection("Registro")
-                                                            .document("AÑOS")
-                                                            .get()
-                                                            .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                                                @Override
-                                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                    reini = new ArrayList<>();
-                                                                    refini = new ArrayList<>();
-                                                                    redias = new ArrayList<>();
-                                                                    re3 = new ArrayList<>();
-                                                                    tabla9 = new PdfPTable(widths);
-                                                                    tabla10 = new PdfPTable(4);
-                                                                    tabla11 = new PdfPTable(4);
-                                                                    tabla10.setWidthPercentage(100f);
-                                                                    tabla11.setWidthPercentage(100f);
-                                                                    tabla9.setWidthPercentage(100f);
-                                                                    boolean st;
-                                                                    boolean en = false;
-                                                                    boolean nul = false;
-                                                                    for (int i = 0; i <= 31; i++) {
-                                                                        Log.d("i", Integer.toString(i));
-                                                                        if (i == 0) {
-                                                                            st = true;
-                                                                            documento(ano1, nif, naf, st, en, nul);
-                                                                        } else {
-                                                                            st = false;
-                                                                        }
-
-                                                                        DecimalFormat twodigits = new DecimalFormat("00");
-                                                                        String de = twodigits.format(i);
-                                                                        String regis = documentSnapshot.getString(de + mesnu + ano1);
-                                                                        if (regis != null && !regis.isEmpty()) {
-
-                                                                            if (i == 31) {
-                                                                                en = true;
-                                                                            } else {
-                                                                                en = false;
-                                                                            }
-                                                                            redias.add(de);
-                                                                            Log.d("radias", de);
-                                                                            List<String> re2 = Arrays.asList(regis.split("\\s*,\\s*"));
-                                                                            String first1 = re2.get(0);
-                                                                            String ini = first1.substring(first1.length() - 5);
-                                                                            if (first1.charAt(1) == 'M') {
-                                                                                reini.add(ini);
-                                                                                Log.d("reini", ini);
-                                                                                reini.add("FIRMA");
-                                                                                Log.d("reini", "FIRMA");
-                                                                                reini.add("X");
-                                                                                Log.d("reini", "X");
-                                                                                reini.add("FIRMA");
-                                                                                Log.d("reini", "FIRMA");
-                                                                            } else if (first1.charAt(1) == 'T') {
-                                                                                reini.add("X");
-                                                                                Log.d("reini", "X");
-                                                                                reini.add("FIRMA");
-                                                                                Log.d("reini", "FIRMA");
-                                                                                reini.add(ini);
-                                                                                Log.d("reini", ini);
-                                                                                reini.add("FIRMA");
-                                                                                Log.d("reini", " " + "FIRMA");
-                                                                            }
-                                                                            String last1 = re2.get(re2.size() - 1);
-                                                                            String fini = last1.substring(last1.length() - 5);
-                                                                            if (last1.charAt(1) == 'M') {
-                                                                                refini.add(fini);
-                                                                                Log.d("refini", fini);
-                                                                                refini.add("FIRMA");
-                                                                                Log.d("refini", "FIRMA");
-                                                                                refini.add("X");
-                                                                                Log.d("refini", "X");
-                                                                                refini.add("FIRMA");
-                                                                                Log.d("refini", "FIRMA");
-                                                                            } else if (last1.charAt(1) == 'T') {
-                                                                                refini.add("X");
-                                                                                Log.d("refini", "X");
-                                                                                refini.add("FIRMA");
-                                                                                Log.d("refini", "FIRMA");
-                                                                                refini.add(fini);
-                                                                                Log.d("refini", fini);
-                                                                                refini.add("FIRMA");
-                                                                                Log.d("refini", "FIRMA");
-                                                                            }
-                                                                            re3.add("horas ordinarias");
-                                                                            Log.d("re3", "horas ordinarias");
-                                                                            re3.add("horas complementarias");
-                                                                            Log.d("re3", "horas complementarias");
-                                                                            re3.add("total horas jornada");
-                                                                            Log.d("re3", "total horas jornada");
-
-                                                                            tablas(ano1, nif, naf, st, en, nul);
-                                                                        } else if (regis == null || regis.isEmpty()) {
-                                                                            if (i == 31) {
-                                                                                en = true;
-                                                                                nul = true;
-                                                                                documento(ano1, nif, naf, st, en, nul);
-                                                                            }
-                                                                        }
-
-                                                                    }
-
+                                            cargandoloSI();
+                                            firebaseFirestore
+                                                    .collection("Empresas")
+                                                    .document(empresa)
+                                                    .collection(roles1)
+                                                    .document(empleado)
+                                                    .collection("Registro")
+                                                    .document("AÑOS")
+                                                    .get()
+                                                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            reini = new ArrayList<>();
+                                                            refini = new ArrayList<>();
+                                                            redias = new ArrayList<>();
+                                                            re3 = new ArrayList<>();
+                                                            tabla9 = new PdfPTable(widths);
+                                                            tabla10 = new PdfPTable(4);
+                                                            tabla11 = new PdfPTable(4);
+                                                            tabla10.setWidthPercentage(100f);
+                                                            tabla11.setWidthPercentage(100f);
+                                                            tabla9.setWidthPercentage(100f);
+                                                            boolean st;
+                                                            boolean en = false;
+                                                            boolean nul = false;
+                                                            for (int i = 0; i <= 31; i++) {
+                                                                Log.d("i", Integer.toString(i));
+                                                                if (i == 0) {
+                                                                    st = true;
+                                                                    documento(ano1, nif, naf, st, en, nul);
+                                                                } else {
+                                                                    st = false;
                                                                 }
-                                                            });
-                                                    Log.d("url", url);
-                                                }
-                                            });
-                                            dialogInterface.dismiss();
+                                                                DecimalFormat twodigits = new DecimalFormat("00");
+                                                                String de = twodigits.format(i);
+                                                                String regis = documentSnapshot.getString(de + mesnu + ano1);
+                                                                if (regis != null && !regis.isEmpty()) {
+                                                                    if (i == 31) {
+                                                                        en = true;
+                                                                    } else {
+                                                                        en = false;
+                                                                    }
+                                                                    redias.add(de);
+                                                                    Log.d("radias", de);
+                                                                    List<String> re2 = Arrays.asList(regis.split("\\s*,\\s*"));
+                                                                    String first1 = re2.get(0);
+                                                                    String ini = first1.substring(first1.length() - 5);
+                                                                    if (first1.charAt(1) == 'M') {
+                                                                        reini.add(ini);
+                                                                        Log.d("reini", ini);
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                        reini.add("X");
+                                                                        Log.d("reini", "X");
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                    } else if (first1.charAt(1) == 'T') {
+                                                                        reini.add("X");
+                                                                        Log.d("reini", "X");
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", "FIRMA");
+                                                                        reini.add(ini);
+                                                                        Log.d("reini", ini);
+                                                                        reini.add("FIRMA");
+                                                                        Log.d("reini", " " + "FIRMA");
+                                                                    }
+                                                                    String last1 = re2.get(re2.size() - 1);
+                                                                    String fini = last1.substring(last1.length() - 5);
+                                                                    if (last1.charAt(1) == 'M') {
+                                                                        refini.add(fini);
+                                                                        Log.d("refini", fini);
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                        refini.add("X");
+                                                                        Log.d("refini", "X");
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                    } else if (last1.charAt(1) == 'T') {
+                                                                        refini.add("X");
+                                                                        Log.d("refini", "X");
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                        refini.add(fini);
+                                                                        Log.d("refini", fini);
+                                                                        refini.add("FIRMA");
+                                                                        Log.d("refini", "FIRMA");
+                                                                    }
+                                                                    re3.add("horas ordinarias");
+                                                                    Log.d("re3", "horas ordinarias");
+                                                                    re3.add("horas complementarias");
+                                                                    Log.d("re3", "horas complementarias");
+                                                                    re3.add("total horas jornada");
+                                                                    Log.d("re3", "total horas jornada");
+                                                                    cargandoloNO();
+                                                                    tablas(ano1, nif, naf, st, en, nul);
+                                                                } else if (regis == null || regis.isEmpty()) {
+                                                                    if (i == 31) {
+                                                                        en = true;
+                                                                        nul = true;
+                                                                        cargandoloNO();
+                                                                        documento(ano1, nif, naf, st, en, nul);
+                                                                    }
+                                                                }
 
+                                                            }
+
+                                                        }
+                                                    });
+                                            dialogInterface.dismiss();
                                         }
                                     }
                                 });
@@ -720,7 +702,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void tablas(String ao1, String nfi1, String nfa1, boolean start1, boolean end1, boolean nul2) {
-
+        cargandoloSI();
         for (int s = 0; s < 1; s++) {
             tabla9.addCell(redias.get(s));
             Log.d("tabla9", redias.get(s));
@@ -754,11 +736,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             reini.clear();
             refini.clear();
             re3.clear();
+            cargandoloNO();
             documento(ao1, nfi1, nfa1, start1, end1, nul2);
         }
     }
 
     private void documento(String ao, String nfi, String nfa, boolean start, boolean end, boolean nul1) {
+        cargandoloSI();
         DateFormat daño = new SimpleDateFormat("yyyy");
         DateFormat dmes = new SimpleDateFormat("MM");
         DateFormat ddia = new SimpleDateFormat("dd");
@@ -919,10 +903,11 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 subida(myFilePath, myFile, ao);
             }
         } catch (DocumentException ex) {
-
+            cargandoloNO();
         } catch (IOException ex) {
-
+            cargandoloNO();
         }
+        cargandoloNO();
     }
 
     private void subida(String fP, final File fi, String ao1) {
@@ -2135,7 +2120,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     }
 
-    private void dCompartir(String cod, String nom){
+    private void dCompartir(String cod, String nom) {
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
         sendIntent.putExtra(Intent.EXTRA_TEXT, "El codigo de empresa de " + empresa + " es: " + codigoEmpresa + "\nY el codigo del empleado " + nom + " es: " + cod);
@@ -2167,6 +2152,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         if (jefes.equals(nombreAm)) {
                             Toast.makeText(MenuAdmin.this, nombreAm + " es esta cuenta, solo puede ser eliminada por otro Administrador", Toast.LENGTH_LONG).show();
                         } else if (!jefes.equals(nombreAm)) {
+                            cargandoloSI();
                             firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -2258,7 +2244,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                                             }
                                                                         }
                                                                     }
+                                                                    cargandoloNO();
                                                                     firestoreNombres();
+
                                                                 }
                                                             });
                                                         }

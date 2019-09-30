@@ -33,5 +33,7 @@
     <string name="btnRegistroPdf">Ver Registro</string>
     <string name="politicaDePrivacidad">Politica de privacidad</string>
     <string name="btnVaca">Administrar vacaciones</string>
+    <string name="justificar">Justificar</string>
+    <string name="otroEmpleado">Soy otro empleado</string>
 </resources>
 

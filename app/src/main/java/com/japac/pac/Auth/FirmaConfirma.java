@@ -116,6 +116,7 @@ public class FirmaConfirma extends AppCompatActivity {
                                         maps.put("Firmando", false);
                                         firebaseFirestore.collection("Todas las ids").document(id).set(maps, SetOptions.merge());
                                         cargandoloNO();
+                                        setResult(2);
                                         finish();
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                                             finishAfterTransition();

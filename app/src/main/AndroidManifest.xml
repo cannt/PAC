@@ -4,18 +4,6 @@
     package="com.japac.pac"
     android:theme="@style/noAnimTheme">
 
-    <uses-feature
-        android:glEsVersion="0x00020000"
-        android:required="true" />
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -26,6 +14,23 @@
         <activity android:name=".Auth.FirmaConfirma"></activity>
         <activity android:name=".Servicios.FueraDeHora" />
 
+        <activity android:name=".Menu.MenuJefeDeObra" />
+        <activity android:name=".Auth.Firma" />
+        <activity android:name=".Menu.MenuAdmin" />
+        <activity
+            android:name=".Menu.MenuEmpleado"
+            android:screenOrientation="portrait" />
+        <activity android:name=".Auth.Registrar" />
+
+        <activity android:name=".Menu.MapaActivity" />
+
+        <activity android:name=".Auth.Login">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
@@ -41,28 +46,25 @@
         <meta-data
             android:name="google_analytics_ssaid_collection_enabled"
             android:value="false" />
+        <service
+            android:name=".Servicios.ServicioLocalizacion"
+            android:stopWithTask="true" />
 
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
-
-        <activity android:name=".Menu.MenuJefeDeObra" />
-        <activity android:name=".Auth.Firma" />
-        <activity android:name=".Menu.MenuAdmin" />
-        <activity android:name=".Menu.MenuEmpleado" />
-        <activity android:name=".Auth.Registrar" />
-        <activity android:name=".Menu.MapaActivity" />
-        <activity android:name=".Auth.Login">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <service
-            android:name=".Servicios.ServicioLocalizacion"
-            android:stopWithTask="true" />
     </application>
+
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

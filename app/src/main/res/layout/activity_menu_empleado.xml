@@ -15,11 +15,12 @@
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.521"
         android:elevation="10dp" tools:targetApi="lollipop"/>
+
 
     <Button
         android:id="@+id/btnIniciarJornada"
@@ -27,12 +28,12 @@
         android:layout_height="wrap_content"
         android:text="@string/btnIniciarJornada"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.478" />
-
+        app:layout_constraintTop_toBottomOf="@+id/spinnerObra"
+        app:layout_constraintVertical_bias="0.030" />
 
     <Button
         android:id="@+id/btnFinalizarJornada"
@@ -40,12 +41,12 @@
         android:layout_height="wrap_content"
         android:text="@string/btnFinalizarJornada"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.569" />
+        app:layout_constraintTop_toBottomOf="@+id/btnIniciarJornada"
+        app:layout_constraintVertical_bias="0.030" />
 
     <Button
         android:id="@+id/btnCerrar"
@@ -54,9 +55,10 @@
         android:text="@string/btnCerrar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.976" />
+        app:layout_constraintTop_toBottomOf="@+id/aprox"
+        app:layout_constraintVertical_bias="0.900" />
 
     <ImageView
         android:id="@+id/logoEmpleado"
@@ -65,23 +67,23 @@
         android:contentDescription="@string/logo"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.139"
+        app:layout_constraintVertical_bias="0.158"
         app:srcCompat="@drawable/ic_logo" />
 
     <Spinner
         android:id="@+id/spinnerObra"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
+        android:layout_width="200dp"
+        android:layout_height="31dp"
         android:backgroundTint="#2196F3"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.414"
+        app:layout_constraintTop_toBottomOf="@+id/logoEmpleado"
+        app:layout_constraintVertical_bias="0.150"
         tools:targetApi="lollipop" />
 
     <TextView
@@ -95,10 +97,10 @@
         android:textColorLink="@color/colorAccent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.015" />
+        app:layout_constraintVertical_bias="0.020" />
 
     <TextView
         android:id="@+id/aprox"
@@ -106,11 +108,23 @@
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.500"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.73"
+        app:layout_constraintVertical_bias="0.75"
         tools:visibility="invisible" />
+
+    <Button
+        android:id="@+id/btnOtro"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/otroEmpleado"
+        app:layout_constraintBottom_toTopOf="@+id/btnCerrar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.500"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnFinalizarJornada"
+        app:layout_constraintVertical_bias="0.030" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
