@@ -30,10 +30,11 @@
     <string name="btnObras">Administrar obras</string>
     <string name="btnFirmar">Registrar Firma</string>
     <string name="btnBorrar">Borrar Firma</string>
-    <string name="btnRegistroPdf">Ver Registro</string>
+    <string name="btnPdfGenerar">Generar PDF</string>
     <string name="politicaDePrivacidad">Politica de privacidad</string>
-    <string name="btnVaca">Administrar vacaciones</string>
+    <string name="btnVerRegistr">Ver Registro</string>
     <string name="justificar">Justificar</string>
     <string name="otroEmpleado">Soy otro empleado</string>
+    <string name="btnModoCentralita">Modo Centralita</string>
 </resources>
 

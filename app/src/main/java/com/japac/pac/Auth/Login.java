@@ -66,7 +66,9 @@ public class Login extends AppCompatActivity {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO};
 
     private EditText email, contraseña;
 
@@ -267,7 +269,7 @@ public class Login extends AppCompatActivity {
                     sroles = documentSnapshot.getString("rol");
                     if (sroles.equals("Administrador")) {
                         cargandoloNO();
-                        startActivity(new Intent( Login.this, MenuAdmin.class));
+                        startActivity(new Intent(Login.this, MenuAdmin.class));
                         finish();
                     } else if (sroles.equals("Empleado")) {
                         codigoEmpleado = documentSnapshot.getString("codigo empleado");
