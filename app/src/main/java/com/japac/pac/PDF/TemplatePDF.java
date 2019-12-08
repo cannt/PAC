@@ -3,10 +3,10 @@ package com.japac.pac.PDF;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -212,8 +212,13 @@ public class TemplatePDF {
         try {
             File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
             Bitmap b = BitmapFactory.decodeFile(rutaFirma);
-            Bitmap out = Bitmap.createScaledBitmap(b, 320, 480, false);
-
+            b = removeMargins2(b, Color.WHITE);
+            int wi = 150;
+            if(Math.round(pdfWriter.getVerticalPosition(true) - document.bottomMargin()) < 150){
+                wi = Math.round(pdfWriter.getVerticalPosition(true) - document.bottomMargin());
+            }
+            int le = wi;
+            Bitmap out = Bitmap.createScaledBitmap(b, wi, le, false);
             File file = new File(dir, "firma2.jpg");
             FileOutputStream fOut;
             try {
@@ -239,6 +244,94 @@ public class TemplatePDF {
         }
     }
 
+    private static Bitmap removeMargins2(Bitmap bmp, int color) {
+
+        long dtMili = System.currentTimeMillis();
+        int MTop = 0, MBot = 0, MLeft = 0, MRight = 0;
+        boolean found1 = false, found2 = false;
+
+        int[] bmpIn = new int[bmp.getWidth() * bmp.getHeight()];
+        int[][] bmpInt = new int[bmp.getWidth()][bmp.getHeight()];
+
+        bmp.getPixels(bmpIn, 0, bmp.getWidth(), 0, 0, bmp.getWidth(),
+                bmp.getHeight());
+
+        for (int ii = 0, contX = 0, contY = 0; ii < bmpIn.length; ii++) {
+            bmpInt[contX][contY] = bmpIn[ii];
+            contX++;
+            if (contX >= bmp.getWidth()) {
+                contX = 0;
+                contY++;
+                if (contY >= bmp.getHeight()) {
+                    break;
+                }
+            }
+        }
+
+        for (int hP = 0; hP < bmpInt[0].length && !found2; hP++) {
+            // looking for MTop
+            for (int wP = 0; wP < bmpInt.length && !found2; wP++) {
+                if (bmpInt[wP][hP] != color) {
+                    Log.e("MTop 2", "Pixel found @" + hP);
+                    MTop = hP;
+                    found2 = true;
+                    break;
+                }
+            }
+        }
+        found2 = false;
+
+        for (int hP = bmpInt[0].length - 1; hP >= 0 && !found2; hP--) {
+            // looking for MBot
+            for (int wP = 0; wP < bmpInt.length && !found2; wP++) {
+                if (bmpInt[wP][hP] != color) {
+                    Log.e("MBot 2", "Pixel found @" + hP);
+                    MBot = bmp.getHeight() - hP;
+                    found2 = true;
+                    break;
+                }
+            }
+        }
+        found2 = false;
+
+        for (int wP = 0; wP < bmpInt.length && !found2; wP++) {
+            // looking for MLeft
+            for (int hP = 0; hP < bmpInt[0].length && !found2; hP++) {
+                if (bmpInt[wP][hP] != color) {
+                    Log.e("MLeft 2", "Pixel found @" + wP);
+                    MLeft = wP;
+                    found2 = true;
+                    break;
+                }
+            }
+        }
+        found2 = false;
+
+        for (int wP = bmpInt.length - 1; wP >= 0 && !found2; wP--) {
+            // looking for MRight
+            for (int hP = 0; hP < bmpInt[0].length && !found2; hP++) {
+                if (bmpInt[wP][hP] != color) {
+                    Log.e("MRight 2", "Pixel found @" + wP);
+                    MRight = bmp.getWidth() - wP;
+                    found2 = true;
+                    break;
+                }
+            }
+
+        }
+        found2 = false;
+
+        int sizeY = bmp.getHeight() - MBot - MTop, sizeX = bmp.getWidth()
+                - MRight - MLeft;
+
+        Bitmap bmp2 = Bitmap.createBitmap(bmp, MLeft, MTop, sizeX, sizeY);
+        dtMili = (System.currentTimeMillis() - dtMili);
+        Log.e("Margin   2",
+                "Time needed " + dtMili + "mSec\nh:" + bmp.getWidth() + "w:"
+                        + bmp.getHeight() + "\narray x:" + bmpInt.length + "y:"
+                        + bmpInt[0].length);
+        return bmp2;
+    }
 
     public void subida(FirebaseStorage almacen, String ao1, String empresa, String empleado, String mesnu) {
         final StorageReference pdfRef = almacen.getReference();

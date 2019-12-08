@@ -2242,6 +2242,33 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         emailShare = false;
     }
 
+    public static void deleteCache(Context context) {
+        try {
+            File dir = context.getCacheDir();
+            deleteDir(dir);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+            return dir.delete();
+        } else if (dir != null && dir.isFile()) {
+            return dir.delete();
+        } else {
+            return false;
+        }
+    }
+
     public static MenuAdmin getInstance() {
         return instance;
     }
@@ -2265,18 +2292,23 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         emailIntent.putExtra(Intent.EXTRA_STREAM, pathShare);
                         emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Registro de jornada del mes " + SHAREmes + " del año " + SHAREano + " del empleado " + SHAREempleado);
                         startActivity(Intent.createChooser(emailIntent, "Envia email..."));
+                        recreate();
                         break;
                     case "Descargar":
                         File folder2 = new File(Environment.getExternalStorageDirectory().toString(), "Registros de " + empresa);
                         if (!folder2.exists()) {
                             folder2.mkdirs();
                         }
-                       File fileShare2 = new File(folder2, "Registro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+                        File fileShare2 = new File(folder2, "Registro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+                        if (fileShare2.exists()) {
+                            fileShare2.delete();
+                        }
                         fileShare.renameTo(fileShare2);
                         Uri url = Uri.fromFile(fileShare2);
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(url);
                         startActivity(intent);
+                        recreate();
                         break;
                     case "Imprimir":
                         emailShare = true;
@@ -2286,6 +2318,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         String jobName = MenuAdmin.this.getString(R.string.app_name) + "Registro PDF";
 
                         printManager.print(jobName, new MyPrintDocumentAdapter(MenuAdmin.this, fileShare.getPath()), new PrintAttributes.Builder().build());
+                        recreate();
                         break;
                 }
             }
@@ -2299,34 +2332,34 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     protected void onPause() {
         super.onPause();
-        if(!emailShare){
+        if (!emailShare) {
             deleteRecursive(folder);
         }
     }
 
     protected void onStop() {
         super.onStop();
-        if(!emailShare){
+        if (!emailShare) {
             deleteRecursive(folder);
         }
     }
 
-    protected void onResume(){
+    protected void onResume() {
         super.onResume();
-        if(emailShare){
+        if (emailShare) {
             emailShare = false;
             deleteRecursive(folder);
         }
     }
 
     void deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory != null ){
-            if (fileOrDirectory.isDirectory()){
-                for (File child : fileOrDirectory.listFiles()){
+        if (fileOrDirectory != null) {
+            if (fileOrDirectory.isDirectory()) {
+                for (File child : fileOrDirectory.listFiles()) {
                     deleteRecursive(child);
                 }
             }
-            if(fileOrDirectory != null){
+            if (fileOrDirectory != null) {
                 fileOrDirectory.delete();
             }
         }
