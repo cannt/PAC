@@ -68,8 +68,7 @@ public class Login extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.INSTALL_SHORTCUT};
+            Manifest.permission.RECORD_AUDIO};
 
     private EditText email, contraseña;
 
