@@ -36,5 +36,9 @@
     <string name="justificar">Justificar</string>
     <string name="otroEmpleado">Soy otro empleado</string>
     <string name="btnModoCentralita">Modo Centralita</string>
+    <string name="action_compartir">Compartir</string>
+    <string name="action_email">Email</string>
+    <string name="action_descargar">Descargar</string>
+    <string name="action_imprimir">Imprimir</string>
 </resources>
 

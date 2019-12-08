@@ -2,11 +2,11 @@ package com.japac.pac.Menu;
 
 import android.Manifest;
 import android.app.Dialog;
-import android.app.DownloadManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -15,7 +15,10 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.CountDownTimer;
-import android.os.Handler;
+import android.os.Environment;
+import android.os.StrictMode;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -43,7 +46,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
@@ -53,12 +55,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -82,32 +80,25 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.maps.android.SphericalUtil;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
 import com.itextpdf.text.Image;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
 import com.japac.pac.Auth.FirmaConfirma;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
+import com.japac.pac.PDF.MyPrintDocumentAdapter;
 import com.japac.pac.PDF.TemplatePDF;
+import com.japac.pac.PDF.fragmentoCompartir;
 import com.japac.pac.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.Calendar;
 
-import static android.os.Environment.DIRECTORY_DOWNLOADS;
-
-public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSelectedListener, fragmentoCompartir.ItemClickListener {
 
     public static final int Permisos = 8991;
 
@@ -134,7 +125,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnGenerar, btnVerRegistro, btnModoCentralita;
 
-    private String IMG1, idEm, myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2, letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu;
+    private String IMG1, idEm, myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2,
+            letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu,
+            SHAREempleado, SHAREano, SHAREmes;
 
     private ArrayAdapter<String> obraAdapter, jefeAdapter, anoAdapter;
 
@@ -158,7 +151,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     static SecureRandom aleatorio = new SecureRandom();
 
-    private boolean otro = false, cerrar = false, trayectoBo = false, cuenta = false, termina = false, next = true, end = false;
+    private boolean otro = false, cerrar = false, trayectoBo = false, cuenta = false, termina = false, next = true, end = false, emailShare;
 
     private ProgressBar cargando;
 
@@ -178,30 +171,29 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private List<String> reini, refini, re3, redias, dsL;
 
-    private PdfPTable tabla9, tabla10, tabla11;
-
-    private PdfPCell cellFirma;
-
     private float[] widths = {0.10f, 0.4f, 0.4f, 0.10f, 0.10f, 0.20f};
 
-    private File myFile;
-
+    private File folder, localFile, fileShare;
 
     private Image img;
 
-    private CountDownTimer timer, timerPDF, tim ;
+    private CountDownTimer timer, timerPDF, tim;
 
     private Calendar c1;
 
     private Date d1;
 
+    private static MenuAdmin instance;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu_admin);
-
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoAdmin);
+        instance = this;
 
         if (compruebapermisos() && isServicesOK()) {
             btnRegistroJornada = (Button) findViewById(R.id.btnRegistrarJornadas);
@@ -409,7 +401,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             e.printStackTrace();
         }
 
-        Log.d("hora : minuto : segundo", d1.toString());
 
         if (!termina) {
 
@@ -436,7 +427,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             if (task.isSuccessful()) {
                                 name = new ArrayList<String>();
                                 name.add(task.getResult().toString());
-                                Log.d("lista", name.toString());
+
                             }
                         }
                     });
@@ -531,7 +522,23 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                                 @Override
                                                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                     idEm = documentSnapshot.getString("id");
-                                                                    elegirFechasAños(ansL, rolE, empleado, nif, naf, idEm);
+                                                                    try {
+
+                                                                        localFile = File.createTempFile("firma", "jpg");
+                                                                        almacenRef.child(empresa + "/Firmas/" + empleado + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                                                            @Override
+                                                                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                                                                elegirFechasAños(ansL, rolE, empleado, nif, naf, idEm);
+                                                                            }
+                                                                        }).addOnFailureListener(new OnFailureListener() {
+                                                                            @Override
+                                                                            public void onFailure(@NonNull Exception exception) {
+                                                                                // Handle any errors
+                                                                            }
+                                                                        });
+                                                                    } catch (IOException e) {
+                                                                        e.printStackTrace();
+                                                                    }
                                                                     cargandoloNO();
 
                                                                     dialogoRegistroLeer.dismiss();
@@ -691,11 +698,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialogInterface, int i) {
-                        Log.d("empresa", empresa);
-                        Log.d("rol", roles1);
-                        Log.d("empleado", empleado);
-                        Log.d("año", ano3);
-                        Log.d("mes", mesnu);
 
                         firebaseFirestore
                                 .collection("Empresas")
@@ -713,11 +715,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshotd) {
                                         if (documentSnapshotd.exists()) {
-                                            cargandoloSI();
                                             String dia = documentSnapshotd.getString("dias");
                                             List<String> diL = Arrays.asList(dia.split("\\s*,\\s*"));
                                             creacionPdf(diL, empleado, roles1, mesnu, ano3, empresa, id1, nif, naf);
-                                            cargandoloNO();
                                             dialogInterface.dismiss();
                                         }
                                     }
@@ -742,6 +742,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void creacionPdf(final List<String> diasList, String empl, final String rolT, String me, final String anoT, String empr, final String idT, String NIF, String NAF) {
+        cargandoloSI();
         final TemplatePDF templatePDF = new TemplatePDF(getApplicationContext());
         templatePDF.openDocument(empl, me, anoT);
         templatePDF.addMetaData(empr, empl, me, anoT);
@@ -750,31 +751,18 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         timerPDF = new CountDownTimer(999999999, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                if(next){
-                    if (i[0] == diasList.size()) {
-                        tim = new CountDownTimer(999999999, 1000) {
-                            @Override
-                            public void onTick(long millisUntilFinished) {
-                                if(end){
-                                    tim.cancel();
-                                }else{
-                                    templatePDF.tablaEnd(idT);
-                                    end=true;
-                                }
-                            }
 
-                            @Override
-                            public void onFinish() {
-                                i[0] = 0;
-                                templatePDF.closeDocument();
-                                Log.d("finish", "terminado");
-                                timerPDF.cancel();
-                            }
-                        }.start();
-                    }else{
+                if (next) {
+
+                    if (i[0] == diasList.size()) {
+                        i[0] = 0;
+                        end = false;
+                        timerPDF.cancel();
+                    } else {
+
                         next = false;
                         final String diList = diasList.get(i[0]);
-                        Log.d("dias", diList);
+
                         firebaseFirestore.collection("Empresas")
                                 .document(empresa)
                                 .collection(rolT)
@@ -802,35 +790,43 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                     Date dateEn = simpleDateFormat.parse(horaEn);
                                     Date dateSa = simpleDateFormat.parse(horaSa);
                                     diferencia = dateSa.getTime() - dateEn.getTime();
-                                    int days = (int) (diferencia / (1000*60*60*24));
-                                    int hours = (int) ((diferencia - (1000*60*60*24*days)) / (1000*60*60));
-                                    int mindif = (int) (diferencia - (1000*60*60*24*days) - (1000*60*60*hours)) / (1000*60);
+                                    int days = (int) (diferencia / (1000 * 60 * 60 * 24));
+                                    int hours = (int) ((diferencia - (1000 * 60 * 60 * 24 * days)) / (1000 * 60 * 60));
+                                    int mindif = (int) (diferencia - (1000 * 60 * 60 * 24 * days) - (1000 * 60 * 60 * hours)) / (1000 * 60);
                                     int horasExtras = 0;
                                     int minExtras = 0;
-                                    Log.d("diferencia", hours + ":" + mindif);
-                                    if(hours>=8){
-                                        if(hours>8){
+
+                                    if (hours >= 8) {
+                                        if (hours > 8) {
                                             horasExtras = hours - 8;
-                                        }else{
+                                        } else {
                                             horasExtras = 0;
                                         }
-                                        if(mindif>0){
+                                        if (mindif > 0) {
                                             minExtras = mindif;
-                                        }else if(mindif==0){
+                                        } else if (mindif == 0) {
                                             minExtras = 0;
                                         }
                                     }
-                                    if(horasExtras!=0){
+                                    if (horasExtras != 0) {
                                         hours = hours - horasExtras;
                                     }
-                                    if(minExtras!=0){
+                                    if (minExtras != 0) {
                                         mindif = mindif - minExtras;
                                     }
                                     int horasTotales = hours + horasExtras;
-                                    int minutosTotales = mindif+ minExtras;
+                                    int minutosTotales = mindif + minExtras;
                                     horaEn = horas.get(0);
                                     horaSa = horas.get(horas.size() - 1);
-                                    templatePDF.tablaMain(diList, horaEn, horaSa,  hours + ":" + mindif, horasExtras + ":" + minExtras, horasTotales + ":" + minutosTotales);
+                                    if (i[0] == diasList.size() - 1) {
+                                        end = true;
+                                    }
+                                    templatePDF.tablaMain(diList, horaEn, horaSa, hours + ":" + mindif, horasExtras + ":" + minExtras, horasTotales + ":" + minutosTotales, idT, localFile.getAbsolutePath(), end, anoT, empresa, empleado, mesnu, almacen);
+                                    if (end) {
+                                        SHAREempleado = empleado;
+                                        SHAREano = anoT;
+                                        SHAREmes = mesnu;
+                                    }
                                     next = true;
                                     i[0]++;
                                 } catch (ParseException e) {
@@ -842,40 +838,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 }
 
             }
+
             @Override
             public void onFinish() {
+
             }
+
         }.start();
-    }
-
-    private void subida(String fP, final File fi, String ao1) {
-        Toast.makeText(MenuAdmin.this, fP, Toast.LENGTH_LONG).show();
-        StorageReference pdfRef = almacen.getReference();
-        Uri file = Uri.fromFile(fi);
-        StorageReference riversRef = pdfRef.child(empresa + "/Registros/" + empleado + "/" + ao1 + "/" + mes1 + "/" + file.getLastPathSegment());
-
-        String filename = empleado + "_" + mes1 + "_" + ao1 + ".pdf";
-        File filelocation = new File(getFilesDir().getAbsolutePath(), filename);
-        Uri path = Uri.fromFile(filelocation);
-
-        UploadTask uploadTask = riversRef.putFile(path);
-
-        uploadTask.addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-                Toast.makeText(MenuAdmin.this, "FALLO SUBIENDO", Toast.LENGTH_LONG).show();
-                Toast.makeText(MenuAdmin.this, exception.toString(), Toast.LENGTH_LONG).show();
-                fi.delete();
-                cargandoloNO();
-            }
-        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-            @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                Toast.makeText(MenuAdmin.this, "SUBIDO", Toast.LENGTH_LONG).show();
-                fi.delete();
-                cargandoloNO();
-            }
-        });
     }
 
     public void crearCanalDeNotificaciones() {
@@ -1161,6 +1130,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     btnEmpleados.setVisibility(View.INVISIBLE);
                     btnObras.setVisibility(View.INVISIBLE);
                     btnRegistroJornada.setVisibility(View.INVISIBLE);
+                    btnGenerar.setVisibility(View.INVISIBLE);
+                    btnVerRegistro.setVisibility(View.INVISIBLE);
+                    btnModoCentralita.setVisibility(View.INVISIBLE);
                     Cerrar.setVisibility(View.INVISIBLE);
                     almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
@@ -1170,6 +1142,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnEmpleados.setVisibility(View.VISIBLE);
                             btnObras.setVisibility(View.VISIBLE);
                             btnRegistroJornada.setVisibility(View.VISIBLE);
+                            btnGenerar.setVisibility(View.VISIBLE);
+                            btnVerRegistro.setVisibility(View.VISIBLE);
+                            btnModoCentralita.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -1179,6 +1154,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnEmpleados.setVisibility(View.VISIBLE);
                             btnObras.setVisibility(View.VISIBLE);
                             btnRegistroJornada.setVisibility(View.VISIBLE);
+                            btnGenerar.setVisibility(View.VISIBLE);
+                            btnVerRegistro.setVisibility(View.VISIBLE);
+                            btnModoCentralita.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     });
@@ -1544,7 +1522,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
                         if (distan2 == 1.2) {
                             distan2 = 1.0;
-                            Log.d("MenuEmpleado", "SE CANCELA PORQUE HA IDO BIEN");
+
                             cancel();
                             aprox.setVisibility(View.INVISIBLE);
                         } else if (distan2 == 1.0) {
@@ -2271,11 +2249,111 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         }
     }
 
+    public void menuShare() {
+        cargandoloNO();
+        fragmentoCompartir fragmentoCompartir = new fragmentoCompartir();
+        fragmentoCompartir.show(getSupportFragmentManager(), "Menu Compartir");
+        emailShare = false;
+    }
+
+    public static MenuAdmin getInstance() {
+        return instance;
+    }
+
+    @Override
+    public void onItemClick(final String item) {
+        folder = new File(Environment.getExternalStorageDirectory().toString(), "PDF");
+        fileShare = new File(folder, "Resgistro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+        final Uri pathShare = Uri.fromFile(fileShare);
+        almacenRef.child(empresa + "/Registros/" + SHAREempleado + "/" + SHAREano + "/" + SHAREmes + "/" + SHAREempleado + "_" + SHAREmes + "_" + SHAREano + ".pdf").getFile(fileShare).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                switch (item) {
+                    case "Email":
+                        emailShare = true;
+                        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+                        emailIntent.setType("vnd.android.cursor.dir/email");
+
+                        emailIntent.putExtra(Intent.EXTRA_EMAIL, email);
+
+                        emailIntent.putExtra(Intent.EXTRA_STREAM, pathShare);
+                        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Registro de jornada del mes " + SHAREmes + " del año " + SHAREano + " del empleado " + SHAREempleado);
+                        startActivity(Intent.createChooser(emailIntent, "Envia email..."));
+                        break;
+                    case "Descargar":
+                        File folder2 = new File(Environment.getExternalStorageDirectory().toString(), "Registros de " + empresa);
+                        if (!folder2.exists()) {
+                            folder2.mkdirs();
+                        }
+                       File fileShare2 = new File(folder2, "Registro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+                        fileShare.renameTo(fileShare2);
+                        Uri url = Uri.fromFile(fileShare2);
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(url);
+                        startActivity(intent);
+                        break;
+                    case "Imprimir":
+                        emailShare = true;
+                        PrintManager printManager = (PrintManager) MenuAdmin.this
+                                .getSystemService(Context.PRINT_SERVICE);
+
+                        String jobName = MenuAdmin.this.getString(R.string.app_name) + "Registro PDF";
+
+                        printManager.print(jobName, new MyPrintDocumentAdapter(MenuAdmin.this, fileShare.getPath()), new PrintAttributes.Builder().build());
+                        break;
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+
+            }
+        });
+    }
+
+    protected void onPause() {
+        super.onPause();
+        if(!emailShare){
+            deleteRecursive(folder);
+        }
+    }
+
+    protected void onStop() {
+        super.onStop();
+        if(!emailShare){
+            deleteRecursive(folder);
+        }
+    }
+
+    protected void onResume(){
+        super.onResume();
+        if(emailShare){
+            emailShare = false;
+            deleteRecursive(folder);
+        }
+    }
+
+    void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory != null ){
+            if (fileOrDirectory.isDirectory()){
+                for (File child : fileOrDirectory.listFiles()){
+                    deleteRecursive(child);
+                }
+            }
+            if(fileOrDirectory != null){
+                fileOrDirectory.delete();
+            }
+        }
+    }
+
     private void cargandoloSI() {
         btnRegistroJornada.setEnabled(false);
         btnObras.setEnabled(false);
         Cerrar.setEnabled(false);
         btnEmpleados.setEnabled(false);
+        btnGenerar.setEnabled(false);
+        btnVerRegistro.setEnabled(false);
+        btnModoCentralita.setEnabled(false);
         cargando.setVisibility(View.VISIBLE);
     }
 
@@ -2288,8 +2366,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             Cerrar.setEnabled(true);
         }
         btnEmpleados.setEnabled(true);
+
+        btnGenerar.setEnabled(true);
+        btnVerRegistro.setEnabled(true);
+        btnModoCentralita.setEnabled(true);
         cargando.setVisibility(View.INVISIBLE);
     }
+
 
 }
 

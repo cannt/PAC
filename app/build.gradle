@@ -51,6 +51,8 @@ dependencies {
     implementation 'joda-time:joda-time:2.10.2'
     implementation 'com.itextpdf:itextg:5.5.10'
     implementation 'com.github.barteksc:android-pdf-viewer:2.8.1'
+    implementation 'com.google.android.material:material:1.2.0-alpha02'
+
 
 }
 
