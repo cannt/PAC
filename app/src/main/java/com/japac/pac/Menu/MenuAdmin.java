@@ -123,7 +123,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
-    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnGenerar, btnVerRegistro, btnModoCentralita;
+    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnGenerar, btnVerRegistro;
 
     private String IMG1, idEm, myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2,
             letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu,
@@ -202,7 +202,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             btnEmpleados = (Button) findViewById(R.id.btnAdmEmpleados);
             btnGenerar = (Button) findViewById(R.id.pdfGenerar);
             btnVerRegistro = (Button) findViewById(R.id.btnVerRegistro);
-            btnModoCentralita = (Button) findViewById(R.id.btnModoCentralita);
             pPt = (TextView) findViewById(R.id.PrivacyPolicy);
             aprox = (TextView) findViewById(R.id.aproxad);
 
@@ -283,16 +282,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 @Override
                 public void onClick(View view) {
                     VerRegistro();
-                }
-            });
-
-            btnModoCentralita.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-
-                    Intent intent = new Intent(MenuAdmin.this, MenuCentralita.class);
-                    startActivity(intent);
-
                 }
             });
         }
@@ -1132,7 +1121,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     btnRegistroJornada.setVisibility(View.INVISIBLE);
                     btnGenerar.setVisibility(View.INVISIBLE);
                     btnVerRegistro.setVisibility(View.INVISIBLE);
-                    btnModoCentralita.setVisibility(View.INVISIBLE);
                     Cerrar.setVisibility(View.INVISIBLE);
                     almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
@@ -1144,7 +1132,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnRegistroJornada.setVisibility(View.VISIBLE);
                             btnGenerar.setVisibility(View.VISIBLE);
                             btnVerRegistro.setVisibility(View.VISIBLE);
-                            btnModoCentralita.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -1156,7 +1143,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnRegistroJornada.setVisibility(View.VISIBLE);
                             btnGenerar.setVisibility(View.VISIBLE);
                             btnVerRegistro.setVisibility(View.VISIBLE);
-                            btnModoCentralita.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     });
@@ -2353,7 +2339,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         btnEmpleados.setEnabled(false);
         btnGenerar.setEnabled(false);
         btnVerRegistro.setEnabled(false);
-        btnModoCentralita.setEnabled(false);
         cargando.setVisibility(View.VISIBLE);
     }
 
@@ -2369,7 +2354,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
         btnGenerar.setEnabled(true);
         btnVerRegistro.setEnabled(true);
-        btnModoCentralita.setEnabled(true);
         cargando.setVisibility(View.INVISIBLE);
     }
 
