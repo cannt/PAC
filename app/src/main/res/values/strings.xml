@@ -30,7 +30,7 @@
     <string name="btnObras">Administrar obras</string>
     <string name="btnFirmar">Registrar Firma</string>
     <string name="btnBorrar">Borrar Firma</string>
-    <string name="btnPdfGenerar">Generar PDF</string>
+    <string name="btnPdfGenerar">Generar Registro</string>
     <string name="politicaDePrivacidad">Politica de privacidad</string>
     <string name="btnVerRegistr">Ver Registro</string>
     <string name="justificar">Justificar</string>

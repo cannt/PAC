@@ -4,11 +4,13 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,6 +19,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -54,6 +57,7 @@ import org.joda.time.DateTimeZone;
 
 import java.text.DateFormatSymbols;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -263,39 +267,46 @@ public class Login extends AppCompatActivity {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
-                    startLocationService();
-                    sroles = documentSnapshot.getString("rol");
-                    if (sroles.equals("Administrador")) {
-                        cargandoloNO();
-                        startActivity(new Intent(Login.this, MenuAdmin.class));
-                        finish();
-                    } else if (sroles.equals("Empleado")) {
-                        codigoEmpleado = documentSnapshot.getString("codigo empleado");
-                        if (codigoEmpleado.length() > 14) {
+                    Boolean desac = documentSnapshot.getBoolean("DESACTIVADO");
+                    if(!desac){
+                        startLocationService();
+                        sroles = documentSnapshot.getString("rol");
+                        if (sroles.equals("Administrador")) {
                             cargandoloNO();
-                            startActivity(new Intent(Login.this, MenuJefeDeObra.class));
+                            startActivity(new Intent(Login.this, MenuAdmin.class));
                             finish();
-                        } else {
-                            cargandoloNO();
-                            startActivity(new Intent(Login.this, MenuEmpleado.class));
-                            finish();
+                        } else if (sroles.equals("Empleado")) {
+                            codigoEmpleado = documentSnapshot.getString("codigo empleado");
+                            if (codigoEmpleado.length() > 14) {
+                                cargandoloNO();
+                                startActivity(new Intent(Login.this, MenuJefeDeObra.class));
+                                finish();
+                            } else {
+                                cargandoloNO();
+                                startActivity(new Intent(Login.this, MenuEmpleado.class));
+                                finish();
+                            }
                         }
-                    }
-                    if (FueraDeHora.returnAcepta()) {
-                        firebaseFirestore.collection("Empresas").document(documentSnapshot.getString("empresa")).collection(documentSnapshot.getString("rol")).document(documentSnapshot.getString("nombre")).update("fuera de jornada", true).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Todas las ids").document(id).update("fuera de jornada", true);
-                                FueraDeHora.acepta = false;
-                            }
-                        });
-                    } else if (!FueraDeHora.returnAcepta()) {
-                        firebaseFirestore.collection("Empresas").document(documentSnapshot.getString("empresa")).collection(documentSnapshot.getString("rol")).document(documentSnapshot.getString("nombre")).update("fuera de jornada", false).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Todas las ids").document(id).update("fuera de jornada", false);
-                            }
-                        });
+                        if (FueraDeHora.returnAcepta()) {
+                            FueraDeHora.acepta = false;
+                        }
+                    }else if(desac){
+                        final AlertDialog.Builder desaDialogoB = new AlertDialog.Builder(Login.this)
+                                .setTitle("Usuario actualmente desactivado")
+                                .setMessage("Contante con el responsable de su empresa");
+                        desaDialogoB
+                                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(final DialogInterface dialogInterface, int i) {
+                                        mAuth.signOut();
+                                        email.setText("");
+                                        contraseña.setText("");
+                                    }
+                                });
+                        final AlertDialog desaDialogo = desaDialogoB.create();
+                        desaDialogo.setCanceledOnTouchOutside(false);
+                        cargandoloNO();
+                        desaDialogo.show();
                     }
                 } else {
                     cargandoloNO();
@@ -337,6 +348,7 @@ public class Login extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case 0x1:
                 switch (resultCode) {

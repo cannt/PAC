@@ -2,6 +2,7 @@ package com.japac.pac.PDF;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,8 @@ import com.japac.pac.R;
 
 public class fragmentoCompartir extends BottomSheetDialogFragment
         implements View.OnClickListener {
+
+
 
     public static final String TAG = "ActionBottomDialog";
 

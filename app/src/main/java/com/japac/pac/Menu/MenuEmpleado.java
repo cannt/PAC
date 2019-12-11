@@ -26,6 +26,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Environment;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,9 +42,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,12 +76,16 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.FirmaConfirma;
 import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
+import com.japac.pac.PDF.MyPrintDocumentAdapter;
+import com.japac.pac.PDF.TemplatePDF;
+import com.japac.pac.PDF.fragmentoCompartir;
 import com.japac.pac.R;
 import com.squareup.picasso.Picasso;
 
@@ -82,7 +94,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LocationListener {
+public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LocationListener, fragmentoCompartir.ItemClickListener {
 
     public static final int Permisos = 8991;
     String[] permisos = new String[]{
@@ -99,13 +111,13 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
-    private Button Iniciar, Finalizar, Cerrar, OtroEmpleado;
+    private Button Iniciar, Finalizar, Cerrar, OtroEmpleado, GenerarRegistro;
 
-    private String mañaOtard, empresa, IoF, fecha, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto, email, nombreAn;
+    private String mañaOtard, empresa, IoF, fecha, ano1,mesnu, mes, mes1, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto, email, nombreAn, naf, nif, cif, SHAREempleado, SHAREano, SHAREmes;
 
-    private ArrayAdapter<String> obraAdapter;
+    private ArrayAdapter<String> obraAdapter, anoAdapter;
 
-    private Spinner obraSpinner, obraSpinner2;
+    private Spinner obraSpinner, obraSpinner2, anoMesSpinner;
 
     private LocalizacionUsuario mLocalizarUsuario;
 
@@ -123,15 +135,19 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private static final int ERROR_DIALOGO_PEDIR = 9001;
 
-    private boolean cerrar = false, finali = false, trayectoBo = false, tardando, otro = false;
+    private boolean cerrar = false, finali = false, trayectoBo = false, tardando, otro = false, next = true, end = false, emailShare;
 
     private TextView pPt, aprox;
 
-    private View mLoginDialog, mFueraObra, mSpinner;
+    private View mLoginDialog, mFueraObra, mSpinner, mAnoMes;
 
     private Map<String, Object> map = new HashMap<>();
 
-    CountDownTimer timer, tard;
+    private File localFile,folder, fileShare;
+
+    CountDownTimer timer, tard, timerPDF2;
+
+    private static MenuEmpleado instance;
 
 
     @Override
@@ -140,6 +156,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         setContentView(R.layout.activity_menu_empleado);
         cargando = new ProgressBar(this);
         cargando = (ProgressBar) findViewById(R.id.cargandoEmpleado);
+        instance = this;
 
         if (compruebapermisos() && isServicesOK()) {
 
@@ -147,6 +164,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             Finalizar = (Button) findViewById(R.id.btnFinalizarJornada);
             Cerrar = (Button) findViewById(R.id.btnCerrar);
             OtroEmpleado = (Button) findViewById(R.id.btnOtro);
+            GenerarRegistro = (Button) findViewById(R.id.GenerarRegistro);
 
             logo = (ImageView) findViewById(R.id.logoEmpleado);
             pPt = (TextView) findViewById(R.id.PrivacyPolicy);
@@ -224,16 +242,441 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 }
             });
 
+            GenerarRegistro.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    leerRegistro();
+                }
+            });
+
             overridePendingTransition(0, 0);
         }
     }
 
+    private void leerRegistro() {
+        firebaseFirestore
+                .collection("Empresas")
+                .document(empresa)
+                .collection("Empleado")
+                .document(nombre)
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot1) {
+                        if (documentSnapshot1.exists()) {
+                            cargandoloSI();
+                            firebaseFirestore
+                                    .collection("Empresas")
+                                    .document(empresa)
+                                    .collection("Empleado")
+                                    .document(nombre)
+                                    .collection("Registro")
+                                    .document("AÑOS")
+                                    .get()
+                                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot2) {
+                                            String ans = documentSnapshot2.getString("años");
+                                            final List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                @Override
+                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                    try {
+
+                                                        localFile = File.createTempFile("firma", "jpg");
+                                                        almacenRef.child(empresa + "/Firmas/" + nombre + "/" + id + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                                                elegirFechasAños(ansL);
+                                                            }
+                                                        }).addOnFailureListener(new OnFailureListener() {
+                                                            @Override
+                                                            public void onFailure(@NonNull Exception exception) {
+                                                                // Handle any errors
+                                                            }
+                                                        });
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    cargandoloNO();
+
+
+                                                }
+                                            });
+                                        }
+                                    });
+                        }
+                    }
+                });
+    }
+
+    private void elegirFechasAños(List<String> años) {
+        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                ano1 = adapterView.getItemAtPosition(i).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+        anoAdapter = new ArrayAdapter<String>(MenuEmpleado.this, android.R.layout.simple_spinner_item, años);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final AlertDialog.Builder añoEle = new AlertDialog.Builder(MenuEmpleado.this)
+                .setTitle("Eliga un año");
+        añoEle
+                .setView(mAnoMes)
+                .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialogInterface, int i) {
+                        cargandoloSI();
+                        firebaseFirestore
+                                .collection("Empresas")
+                                .document(empresa)
+                                .collection("Empleado")
+                                .document(nombre)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(ano1)
+                                .document("MESES")
+                                .get()
+                                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot3) {
+                                        String ms = documentSnapshot3.getString("meses");
+                                        List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
+                                        cargandoloNO();
+                                        elegirFechasMeses(msL, ano1);
+                                        dialogInterface.dismiss();
+
+                                    }
+                                });
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        final AlertDialog dialogoAñoEle = añoEle.create();
+        dialogoAñoEle.setCanceledOnTouchOutside(false);
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mAnoMes);
+            dialogoAñoEle.show();
+        } else {
+            dialogoAñoEle.show();
+        }
+    }
+
+    private void elegirFechasMeses(List<String> meses, final String ano3) {
+        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                mes1 = adapterView.getItemAtPosition(i).toString();
+                mesnu = adapterView.getItemAtPosition(i).toString();
+                if (mes1.equals("01")) {
+                    mes1 = "Enero";
+                } else if (mes1.equals("02")) {
+                    mes1 = "Febrero";
+                } else if (mes1.equals("03")) {
+                    mes1 = "Marzo";
+                } else if (mes1.equals("04")) {
+                    mes1 = "Abril";
+                } else if (mes1.equals("05")) {
+                    mes1 = "Mayo";
+                } else if (mes1.equals("06")) {
+                    mes1 = "Junio";
+                } else if (mes1.equals("07")) {
+                    mes1 = "Julio";
+                } else if (mes1.equals("08")) {
+                    mes1 = "Agosto";
+                } else if (mes1.equals("09")) {
+                    mes1 = "Septiembre";
+                } else if (mes1.equals("10")) {
+                    mes1 = "Octubre";
+                } else if (mes1.equals("11")) {
+                    mes1 = "Nobiembre";
+                } else if (mes1.equals("12")) {
+                    mes1 = "Diciembre";
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+        anoAdapter = new ArrayAdapter<String>(MenuEmpleado.this, android.R.layout.simple_spinner_item, meses);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final AlertDialog.Builder mesEle = new AlertDialog.Builder(MenuEmpleado.this)
+                .setTitle("Eliga el mes");
+        mesEle
+                .setView(mAnoMes)
+                .setPositiveButton("Siguiente", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialogInterface, int i) {
+                        firebaseFirestore
+                                .collection("Empresas")
+                                .document(empresa)
+                                .collection("Empleado")
+                                .document(nombre)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(ano3)
+                                .document("MESES")
+                                .collection(mesnu)
+                                .document("DIAS")
+                                .get()
+                                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshotd) {
+                                        if (documentSnapshotd.exists()) {
+                                            String dia = documentSnapshotd.getString("dias");
+                                            List<String> diL = Arrays.asList(dia.split("\\s*,\\s*"));
+                                            creacionPdf(diL, mesnu, ano3);
+                                            dialogInterface.dismiss();
+                                        }
+                                    }
+                                });
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                });
+        final AlertDialog dialogoMesEle = mesEle.create();
+        dialogoMesEle.setCanceledOnTouchOutside(false);
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mAnoMes);
+            dialogoMesEle.show();
+        } else {
+            dialogoMesEle.show();
+        }
+    }
+
+    private void creacionPdf(final List<String> diasList, String me, final String anoT) {
+        cargandoloSI();
+        final TemplatePDF templatePDF = new TemplatePDF(getApplicationContext());
+        templatePDF.openDocument("E",nombre, me, anoT);
+        templatePDF.addMetaData(empresa, nombre, me, anoT);
+        templatePDF.crearHeader(empresa, nombre, cif, nif, naf, mes1, anoT);
+        final int[] i = {0};
+        timerPDF2 = new CountDownTimer(999999999, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+                if (next) {
+
+                    if (i[0] == diasList.size()) {
+                        i[0] = 0;
+                        end = false;
+                        timerPDF2.cancel();
+                    } else {
+
+                        next = false;
+                        final String diList = diasList.get(i[0]);
+
+                        firebaseFirestore.collection("Empresas")
+                                .document(empresa)
+                                .collection("Empleado")
+                                .document(nombre)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(anoT)
+                                .document("MESES")
+                                .collection(mesnu)
+                                .document("DIAS")
+                                .collection(diList).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                List<String> horas = new ArrayList<>();
+                                if (task.isSuccessful()) {
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
+                                        horas.add(document.getId());
+                                    }
+                                }
+                                String horaEn = horas.get(0);
+                                String horaSa = horas.get(horas.size() - 1);
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
+                                Long diferencia;
+                                try {
+                                    Date dateEn = simpleDateFormat.parse(horaEn);
+                                    Date dateSa = simpleDateFormat.parse(horaSa);
+                                    diferencia = dateSa.getTime() - dateEn.getTime();
+                                    int days = (int) (diferencia / (1000 * 60 * 60 * 24));
+                                    int hours = (int) ((diferencia - (1000 * 60 * 60 * 24 * days)) / (1000 * 60 * 60));
+                                    int mindif = (int) (diferencia - (1000 * 60 * 60 * 24 * days) - (1000 * 60 * 60 * hours)) / (1000 * 60);
+                                    int horasExtras = 0;
+                                    int minExtras = 0;
+
+                                    if (hours >= 8) {
+                                        if (hours > 8) {
+                                            horasExtras = hours - 8;
+                                        } else {
+                                            horasExtras = 0;
+                                        }
+                                        if (mindif > 0) {
+                                            minExtras = mindif;
+                                        } else if (mindif == 0) {
+                                            minExtras = 0;
+                                        }
+                                    }
+                                    if (horasExtras != 0) {
+                                        hours = hours - horasExtras;
+                                    }
+                                    if (minExtras != 0) {
+                                        mindif = mindif - minExtras;
+                                    }
+                                    int horasTotales = hours + horasExtras;
+                                    int minutosTotales = mindif + minExtras;
+                                    horaEn = horas.get(0);
+                                    horaSa = horas.get(horas.size() - 1);
+                                    if (i[0] == diasList.size() - 1) {
+                                        end = true;
+                                    }
+                                    templatePDF.tablaMain(diList, horaEn, horaSa, hours + ":" + mindif, horasExtras + ":" + minExtras, horasTotales + ":" + minutosTotales, id, localFile.getAbsolutePath(), end, anoT, empresa, nombre, mesnu, almacen);
+                                    if (end) {
+                                        SHAREempleado = nombre;
+                                        SHAREano = anoT;
+                                        SHAREmes = mesnu;
+                                    }
+                                    next = true;
+                                    i[0]++;
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFinish() {
+
+            }
+
+        }.start();
+    }
+
+    public void menuShareE() {
+        cargandoloNO();
+        fragmentoCompartir fragmentoCompartir = new fragmentoCompartir();
+        fragmentoCompartir.show(getSupportFragmentManager(), "Menu Compartir");
+        emailShare = false;
+    }
+
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
-    {
+    public void onItemClick(final String item) {
+        folder = new File(Environment.getExternalStorageDirectory().toString(), "PDF");
+        fileShare = new File(folder, "Resgistro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+        final Uri pathShare = Uri.fromFile(fileShare);
+        almacenRef.child(empresa + "/Registros/" + SHAREempleado + "/" + SHAREano + "/" + SHAREmes + "/" + SHAREempleado + "_" + SHAREmes + "_" + SHAREano + ".pdf").getFile(fileShare).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                switch (item) {
+                    case "Email":
+                        emailShare = true;
+                        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+                        emailIntent.setType("vnd.android.cursor.dir/email");
+                        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        emailIntent.putExtra(Intent.EXTRA_EMAIL, email);
+
+                        emailIntent.putExtra(Intent.EXTRA_STREAM, pathShare);
+                        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Registro de jornada del mes " + SHAREmes + " del año " + SHAREano + " del empleado " + SHAREempleado);
+                        startActivity(Intent.createChooser(emailIntent, "Envia email..."));
+                        break;
+                    case "Descargar":
+                        File folder2 = new File(Environment.getExternalStorageDirectory().toString(), "Registros de " + empresa);
+                        if (!folder2.exists()) {
+                            folder2.mkdirs();
+                        }
+                        File fileShare2 = new File(folder2, "Registro de " + SHAREempleado + " a " + mes1 + " de " + SHAREano + ".pdf");
+                        if (fileShare2.exists()) {
+                            fileShare2.delete();
+                        }
+                        fileShare.renameTo(fileShare2);
+                        Uri url = Uri.fromFile(fileShare2);
+                        Intent intent2 = new Intent(Intent.ACTION_VIEW);
+                        intent2.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        intent2.setData(url);
+                        startActivity(intent2);
+                        break;
+                    case "Imprimir":
+                        emailShare = true;
+                        PrintManager printManager = (PrintManager) MenuEmpleado.this
+                                .getSystemService(Context.PRINT_SERVICE);
+
+                        String jobName = MenuEmpleado.this.getString(R.string.app_name) + "Registro PDF";
+
+                        printManager.print(jobName, new MyPrintDocumentAdapter(MenuEmpleado.this, fileShare.getPath()), new PrintAttributes.Builder().build());
+                        break;
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+
+            }
+        });
+    }
+
+    protected void onPause() {
+        super.onPause();
+        if (!emailShare) {
+            deleteRecursive(folder);
+        }
+    }
+
+    protected void onStop() {
+        super.onStop();
+        if (!emailShare) {
+            deleteRecursive(folder);
+        }
+    }
+
+    protected void onResume() {
+        super.onResume();
+        if (emailShare) {
+            emailShare = false;
+            deleteRecursive(folder);
+        }
+    }
+
+    void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory != null) {
+            if (fileOrDirectory.isDirectory()) {
+                for (File child : fileOrDirectory.listFiles()) {
+                    deleteRecursive(child);
+                }
+            }
+            if (fileOrDirectory != null) {
+                fileOrDirectory.delete();
+            }
+        }
+    }
+
+
+    public static MenuEmpleado getInstance() {
+        return instance;
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==2)
-        {
+        if (requestCode == 2) {
             dConfirma();
         }
     }
@@ -258,7 +701,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                         final String emailNu = semail.getText().toString();
                         final String contraseñaNu = scontraseña.getText().toString();
                         if (!emailNu.isEmpty() && !contraseñaNu.isEmpty()) {
-                            if (!emailNu.equals(email)){
+                            if (!emailNu.equals(email)) {
                                 mAuth.signOut();
                                 mAuth.signInWithEmailAndPassword(emailNu, contraseñaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                                     @Override
@@ -269,7 +712,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                 @Override
                                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                     if (documentSnapshot.exists()) {
-                                                        Toast.makeText(MenuEmpleado.this, "EXISTE ID", Toast.LENGTH_SHORT).show();
                                                         codigoEmpresa = documentSnapshot.getString("codigo empresa");
                                                         comp = documentSnapshot.getString("comprobar");
                                                         empresa = documentSnapshot.getString("empresa");
@@ -291,9 +733,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                         otro = true;
                                                         dialogoLogin.dismiss();
                                                         dRegistrar();
-                                                    } else {
-
-                                                        Toast.makeText(MenuEmpleado.this, "NO EXISTE ID", Toast.LENGTH_SHORT).show();
                                                     }
                                                 }
                                             });
@@ -303,7 +742,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                         }
                                     }
                                 });
-                            }else{
+                            } else {
                                 semail.getText().clear();
                                 scontraseña.getText().clear();
                                 semail.setError("Usuario actual");
@@ -370,7 +809,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialog) {
-                if (cerrar){
+                if (cerrar) {
                     Button negativoFinaliza = dialogoRegistro.getButton(AlertDialog.BUTTON_NEGATIVE);
                     negativoFinaliza.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -384,7 +823,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             }
                         }
                     });
-                }else if (!cerrar) {
+                } else if (!cerrar) {
                     Button negativoInicia = dialogoRegistro.getButton(AlertDialog.BUTTON_NEGATIVE);
                     negativoInicia.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -593,10 +1032,9 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
 
                 if (!otro) {
-                    nombreAn= documentSnapshot.getString("nombre");
+                    nombreAn = documentSnapshot.getString("nombre");
                 }
                 if (documentSnapshot.exists()) {
-                    Toast.makeText(MenuEmpleado.this, "EXISTE ID", Toast.LENGTH_SHORT).show();
                     codigoEmpresa = documentSnapshot.getString("codigo empresa");
                     comp = documentSnapshot.getString("comprobar");
                     empresa = documentSnapshot.getString("empresa");
@@ -604,6 +1042,9 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                     roles = documentSnapshot.getString("rol");
                     nombre = documentSnapshot.getString("nombre");
                     email = documentSnapshot.getString("email");
+                    naf = documentSnapshot.getString("NAF");
+                    nif = documentSnapshot.getString("NIF");
+                    cif = documentSnapshot.getString("cif");
                     if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
                         obcomprueba = documentSnapshot.getString("obra");
                         if (comp.equals("iniciada")) {
@@ -644,8 +1085,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     });
-                } else {
-                    Toast.makeText(MenuEmpleado.this, "NO EXISTE ID", Toast.LENGTH_SHORT).show();
                 }
                 cargandoloNO();
             }
@@ -680,12 +1119,12 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                 obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
                                 obraSpinner.setEnabled(false);
                             }
-                            if (comp.equals("finalizada")){
+                            if (comp.equals("finalizada")) {
 
                                 obraSpinner.setEnabled(true);
 
                             }
-                    }
+                        }
                     });
                     mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
                     obraSpinner.setOnItemSelectedListener(MenuEmpleado.this);
@@ -721,7 +1160,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 timer = new CountDownTimer(60000, 5000) {
                     @Override
                     public void onTick(long millisUntilFinished) {
-                        Log.d("MenuEmpleado", "1 TICK" + " DISTANCIA = " + dis);
                         if (dis >= 100.0) {
                             aprox.setText("Tiempo aproximado de espera 1~ minutos");
                             aprox.setVisibility(View.VISIBLE);
@@ -762,7 +1200,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                                             }
                                                                         }
                                                                         spinnerPosition = obraAdapter.getPosition(obra);
-                                                                        Log.d("MenuEmpleado", "ENVIANDO");
                                                                         distan2 = 1.2;
                                                                         aprox.setVisibility(View.INVISIBLE);
                                                                         cargandoloNO();
@@ -780,7 +1217,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                 });
                             } else if (entrada_salida.equals("Salida")) {
                                 distan2 = 1.2;
-                                Log.d("MenuEmpleado", "COMPROBANDO");
                                 aprox.setVisibility(View.INVISIBLE);
                                 cargandoloNO();
                                 compruebaObra();
@@ -789,21 +1225,17 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                         } else if (Double.compare(distan, 50.0) > 0) {
                             distan2 = 1.0;
                             Toast.makeText(MenuEmpleado.this, "Solucionando problemas de localizacion", Toast.LENGTH_LONG).show();
-                            Log.d("MenuEmpleado", "NO ESTA CERCA");
                             dis = dis + 50.0;
                         }
-                        Log.d("MenuEmpleado", "1");
                     }
 
                     @Override
                     public void onFinish() {
-                        Log.d("MenuEmpleado", "FINAL");
                         latitudDetectada = geoPointLocalizayo.getLatitude();
                         longitudDetectada = geoPointLocalizayo.getLongitude();
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
                         if (distan2 == 1.2) {
                             distan2 = 1.0;
-                            Log.d("MenuEmpleado", "SE CANCELA PORQUE HA IDO BIEN");
                             aprox.setVisibility(View.INVISIBLE);
                             cargandoloNO();
                             cancel();
@@ -1151,7 +1583,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                 mapM.put("meses", m + ", " + mes);
                                             } else if (m.contains(mes)) {
                                                 mapM.put("meses", m);
-
                                             }
                                         }
                                         firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -1325,10 +1756,11 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         Finalizar.setEnabled(false);
         Cerrar.setEnabled(false);
         OtroEmpleado.setEnabled(false);
+        GenerarRegistro.setEnabled(false);
         if (obraSpinner != null) {
             obraSpinner.setEnabled(false);
         }
-        if(obraSpinner2 != null){
+        if (obraSpinner2 != null) {
             obraSpinner2.setEnabled(false);
         }
         cargando.setVisibility(View.VISIBLE);
@@ -1341,7 +1773,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         if (obraSpinner != null) {
             obraSpinner.setEnabled(true);
         }
-        if(obraSpinner2 != null){
+        if (obraSpinner2 != null) {
             obraSpinner2.setEnabled(false);
         }
         if (cerrar) {
@@ -1360,6 +1792,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             }
         }
         OtroEmpleado.setEnabled(true);
+        GenerarRegistro.setEnabled(true);
         cargando.setVisibility(View.INVISIBLE);
     }
 

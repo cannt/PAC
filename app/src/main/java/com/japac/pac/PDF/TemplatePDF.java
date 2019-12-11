@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Environment;
+import android.text.SpannableString;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -25,6 +26,7 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.japac.pac.Menu.MenuAdmin;
+import com.japac.pac.Menu.MenuEmpleado;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,12 +44,14 @@ public class TemplatePDF {
     private Document document;
     private PdfWriter pdfWriter;
     private String fecha, hora;
+    private String ac;
 
     public TemplatePDF(Context context) {
         this.context = context;
     }
 
-    public void openDocument(String empleado, String mes, String ano) {
+    public void openDocument(String act, String empleado, String mes, String ano) {
+        ac = act;
         createFile(empleado, mes, ano);
         try {
             document = new Document(PageSize.A4);
@@ -62,6 +66,7 @@ public class TemplatePDF {
     private void createFile(String empleado, String mes, String ano) {
         File folder = new File(Environment.getExternalStorageDirectory().toString(), "PDF");
         if (!folder.exists()) {
+
             folder.mkdirs();
         }
         pdfFile = new File(folder, empleado + "_" + mes + "_" + ano + ".pdf");
@@ -79,7 +84,6 @@ public class TemplatePDF {
     }
 
     public void crearHeader(String empresa, String empleado, String CIF, String NIF, String NAF, String mes, String ano) {
-
         try {
             DateFormat dayFormat = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
             DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
@@ -155,7 +159,6 @@ public class TemplatePDF {
     }
 
     public void tablaMain(String dia, String horaEntrada, String horaSalida, String numeroHorasOrdinarias, String numeroHorasComplementarias, String numeroHorasTotal, String id, String ruta, boolean end, String ano, String empre, String emple, String mesn, FirebaseStorage almacen) {
-
         try {
             PdfPTable pdfPTableTablaMain = new PdfPTable(6);
             pdfPTableTablaMain.setTotalWidth(PageSize.A4.getWidth());
@@ -190,7 +193,6 @@ public class TemplatePDF {
     }
 
     public void tablaEnd(String idEmpleado, String rutaFirma, String ano, String empre, String emple, String mesn, FirebaseStorage almacen) {
-
         try {
 
             PdfPTable pdfPTableTablaEnd = new PdfPTable(1);
@@ -245,7 +247,6 @@ public class TemplatePDF {
     }
 
     private static Bitmap removeMargins2(Bitmap bmp, int color) {
-
         long dtMili = System.currentTimeMillis();
         int MTop = 0, MBot = 0, MLeft = 0, MRight = 0;
         boolean found1 = false, found2 = false;
@@ -350,7 +351,11 @@ public class TemplatePDF {
         }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                MenuAdmin.getInstance().menuShare();
+                if(ac.equals("E")){
+                    MenuEmpleado.getInstance().menuShareE();
+                }else if (ac.equals("A")){
+                    MenuAdmin.getInstance().menuShareA();
+                }
                 pdfFile.delete();
             }
         });

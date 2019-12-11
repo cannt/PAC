@@ -228,7 +228,6 @@ public class Registrar extends AppCompatActivity {
 
     public void codConfirma() {
         if (cod.equals(confirma) == true) {
-            Toast.makeText(Registrar.this, "EXISTE EL EMPLEADO", Toast.LENGTH_SHORT).show();
             privacyPolicy();
 
         } else if (cod.equals(confirma) == false) {
@@ -302,10 +301,10 @@ public class Registrar extends AppCompatActivity {
                     map.put("codigo empleado", cod);
                     map.put("comprobar", "no");
                     map.put("id", id);
-                    map.put("fuera de jornada", false);
                     map.put("notificacion", false);
                     map.put("NIF", snif);
                     map.put("NAF", snaf);
+                    map.put("DESACTIVADO", false);
                     if (roles.equals("Administrador")) {
                         map.put("jefe", "todo");
                     } else if (roles.equals("Empleado")) {

@@ -733,13 +733,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     private void creacionPdf(final List<String> diasList, String empl, final String rolT, String me, final String anoT, String empr, final String idT, String NIF, String NAF) {
         cargandoloSI();
         final TemplatePDF templatePDF = new TemplatePDF(getApplicationContext());
-        templatePDF.openDocument(empl, me, anoT);
+        templatePDF.openDocument("A", empl, me, anoT);
         templatePDF.addMetaData(empr, empl, me, anoT);
         templatePDF.crearHeader(empr, empl, cif, NIF, NAF, mes1, anoT);
         final int[] i = {0};
         timerPDF = new CountDownTimer(999999999, 1000) {
             @Override
-            public void onTick(long millisUntilFinished) {
+            public void onTick(long mmenushareillisUntilFinished) {
 
                 if (next) {
 
@@ -978,7 +978,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                             progressDialog.dismiss();
-                            Toast.makeText(MenuAdmin.this, "Subida", Toast.LENGTH_SHORT).show();
                             firebaseFirestore.collection("Empresas").document(empresa).update("logo", true);
                             firebaseFirestore.collection("Empresas").document(empresa).update("filepath", filePath.toString());
                             cargandoloNO();
@@ -1146,8 +1145,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     });
-                } else {
-                    Toast.makeText(MenuAdmin.this, "NO EXISTE ID", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -1370,7 +1367,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                             @Override
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                 if (documentSnapshot.exists()) {
-                                                    Toast.makeText(MenuAdmin.this, "EXISTE ID", Toast.LENGTH_SHORT).show();
                                                     codigoEmpresa = documentSnapshot.getString("codigo empresa");
                                                     comp = documentSnapshot.getString("comprobar");
                                                     empresa = documentSnapshot.getString("empresa");
@@ -1382,9 +1378,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                     otro = true;
                                                     dialogoLogin.dismiss();
                                                     dRegistrar();
-                                                } else {
-
-                                                    Toast.makeText(MenuAdmin.this, "NO EXISTE ID", Toast.LENGTH_SHORT).show();
                                                 }
                                             }
                                         });
@@ -1943,6 +1936,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         snombre = nom.getText().toString();
                         if (!snombre.isEmpty()) {
                             if (snombre.length() > 3) {
+                                dialogoEmpleadoGen.dismiss();
                                 if (jfs.isEmpty()) {
                                     codigo = letras1 + letras2 + letras3;
                                     firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(snombre, codigo);
@@ -1965,11 +1959,71 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                         }
                                     }
                                     if (sa.equals(snombrea)) {
-                                        firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        final String[] roleEli = {null};
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(snombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                             @Override
-                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                if (documentSnapshot.contains(snombre)) {
-                                                    codigoEmpleadoChech = documentSnapshot.getString(snombre);
+                                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                                if(task.isSuccessful()){
+                                                    roleEli[0] = "Empleado";
+
+                                                }else{
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Administrador").document(snombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            roleEli[0] = "Administrador";
+                                                        }
+                                                    });
+                                                }
+
+                                                Boolean desEli = task.getResult().getBoolean("DESACTIVADO");
+                                                if (desEli) {
+                                                    final AlertDialog.Builder reactivar = new AlertDialog.Builder(MenuAdmin.this)
+                                                            .setTitle("Usuario desativado")
+                                                            .setMessage("¿Desea reactivar al empleado " + snombre + "?");
+                                                    obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
+                                                    reactivar
+                                                            .setPositiveButton("Reactivar", null)
+                                                            .setNeutralButton("Cancelar", null);
+                                                    final AlertDialog dialogoReactivar = reactivar.create();
+                                                    dialogoReactivar.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                        @Override
+                                                        public void onShow(DialogInterface dialog) {
+                                                            Button positivoCrearEmp = dialogoReactivar.getButton(AlertDialog.BUTTON_POSITIVE);
+                                                            Button neutralElEm = dialogoReactivar.getButton(AlertDialog.BUTTON_NEUTRAL);
+                                                            positivoCrearEmp.setOnClickListener(new View.OnClickListener() {
+                                                                @Override
+                                                                public void onClick(View v) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roleEli[0]).document(snombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                        @Override
+                                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                            firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id")).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                @Override
+                                                                                public void onSuccess(Void aVoid) {
+                                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection(roleEli[0]).document(snombre).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                        @Override
+                                                                                        public void onSuccess(Void aVoid) {
+                                                                                            dialogoReactivar.dismiss();
+                                                                                        }
+                                                                                    });
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+
+                                                            neutralElEm.setOnClickListener(new View.OnClickListener() {
+                                                                @Override
+                                                                public void onClick(View v) {
+                                                                    dialogoEmpleadoGen.show();
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                    dialogoReactivar.setCanceledOnTouchOutside(false);
+                                                    nom.setText("");
+                                                    dialogoReactivar.show();
+                                                } else if (!desEli) {
                                                     if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
                                                         if (codigoEmpleadoChech.charAt(7) == 'E') {
                                                             nom.setError(snombre + " ya es un empleado y jefe de obra de " + empresa);
@@ -1981,6 +2035,28 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                     } else if (codigoEmpleadoChech.charAt(4) == 'a') {
                                                         nom.setError(snombre + " ya es un administrador y jefe de obra de " + empresa);
                                                     }
+                                                }
+                                            }
+                                        });
+                                        firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.contains(snombre)) {
+                                                    codigoEmpleadoChech = documentSnapshot.getString(snombre);
+                                                    String roleEli = null;
+                                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
+                                                            roleEli = "Empleado";
+                                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
+                                                            roleEli = "Administrador";
+                                                        }
+                                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
+                                                        roleEli = "Empleado";
+                                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
+                                                        roleEli = "Administrador";
+                                                    }
+                                                    final String finalRoleEli = roleEli;
+
                                                 }
                                             }
                                         });
@@ -2060,6 +2136,31 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                     if (documentSnapshot.exists()) {
                                         roll = documentSnapshot.getString(jefes);
+                                        if(roll.equals("ELIMINADO")){
+                                            final AlertDialog.Builder yaElim = new AlertDialog.Builder(MenuAdmin.this)
+                                                    .setTitle("No se puede eliminar al usuario")
+                                                    .setMessage("El empleado " + jefes + " ya esta eliminado");
+                                            obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
+                                            yaElim
+                                                    .setPositiveButton("Ok", null);
+                                            final AlertDialog dialogoYaElim = yaElim.create();
+                                            dialogoYaElim.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                @Override
+                                                public void onShow(DialogInterface dialog) {
+                                                    Button positivoCrearEmp = dialogoYaElim.getButton(AlertDialog.BUTTON_POSITIVE);
+                                                    positivoCrearEmp.setOnClickListener(new View.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(View v) {
+                                                            dialogoYaElim.dismiss();
+                                                            dialogoEliminarEmpleado.show();
+                                                            cargandoloNO();
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                            dialogoYaElim.setCanceledOnTouchOutside(false);
+                                            dialogoYaElim.show();
+                                        }
                                         if (roll.charAt(0) == 'J' && roll.charAt(1) == 'e' && roll.charAt(2) == 'F') {
                                             if (roll.charAt(7) == 'a') {
                                                 roll = "Administrador";
@@ -2113,44 +2214,38 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     idElim = documento1.getString("id");
                     emailElim = documento1.getString("email");
                     jefeElim = documento1.getString("jefe");
-                    almacenFirmas = FirebaseStorage.getInstance().getReference().child(empresa + "/Firmas/" + jefes + "/" + idElim + ".jpg");
-                    almacenFirmas.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                    firebaseFirestore.collection("Empresas").document(empresa).collection(roll).document(jefes).update("DESACTIVADO", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            firebaseFirestore.collection("Empresas").document(empresa).collection(roll).document(jefes).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                            firebaseFirestore.collection("Todas las ids").document(idElim).update("DESACTIVADO", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    firebaseFirestore.collection("Todas las ids").document(idElim).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(jefes, "ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(jefes, "ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(jefes).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
-                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(jefes).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                                         @Override
-                                                        public void onSuccess(Void aVoid) {
-                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                                                @Override
-                                                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                                                    if (task.isSuccessful()) {
-                                                                        for (QueryDocumentSnapshot document : task.getResult()) {
-                                                                            String JFob = document.getString("jefe");
-                                                                            String obran = document.getString("obra");
-                                                                            if (jefes.equals(JFob)) {
-                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obran).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                                    @Override
-                                                                                    public void onSuccess(Void aVoid) {
-                                                                                        firebaseFirestore.collection("Jefes").document(idElim).delete();
-                                                                                    }
-                                                                                });
+                                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                                            if (task.isSuccessful()) {
+                                                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                                                    String JFob = document.getString("jefe");
+                                                                    String obran = document.getString("obra");
+                                                                    if (jefes.equals(JFob)) {
+                                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Obras").document(obran).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                firebaseFirestore.collection("Jefes").document(idElim).delete();
                                                                             }
-                                                                        }
+                                                                        });
                                                                     }
-                                                                    cargandoloNO();
-                                                                    firestoreNombres();
-
                                                                 }
-                                                            });
+                                                            }
+                                                            cargandoloNO();
+                                                            firestoreNombres();
+
                                                         }
                                                     });
                                                 }
@@ -2235,7 +2330,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         }
     }
 
-    public void menuShare() {
+    public void menuShareA() {
         cargandoloNO();
         fragmentoCompartir fragmentoCompartir = new fragmentoCompartir();
         fragmentoCompartir.show(getSupportFragmentManager(), "Menu Compartir");
@@ -2292,7 +2387,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         emailIntent.putExtra(Intent.EXTRA_STREAM, pathShare);
                         emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Registro de jornada del mes " + SHAREmes + " del año " + SHAREano + " del empleado " + SHAREempleado);
                         startActivity(Intent.createChooser(emailIntent, "Envia email..."));
-                        recreate();
                         break;
                     case "Descargar":
                         File folder2 = new File(Environment.getExternalStorageDirectory().toString(), "Registros de " + empresa);
@@ -2308,7 +2402,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(url);
                         startActivity(intent);
-                        recreate();
                         break;
                     case "Imprimir":
                         emailShare = true;
@@ -2318,7 +2411,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         String jobName = MenuAdmin.this.getString(R.string.app_name) + "Registro PDF";
 
                         printManager.print(jobName, new MyPrintDocumentAdapter(MenuAdmin.this, fileShare.getPath()), new PrintAttributes.Builder().build());
-                        recreate();
                         break;
                 }
             }
