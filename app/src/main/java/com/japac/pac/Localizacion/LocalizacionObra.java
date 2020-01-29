@@ -6,12 +6,14 @@ public class LocalizacionObra {
 
     private GeoPoint geoPoint;
     private String jefe, obra;
+    private int online;
 
 
-    public LocalizacionObra(GeoPoint geoPoint, String jefe, String obra) {
+    public LocalizacionObra(GeoPoint geoPoint, String jefe, String obra, int online) {
         this.geoPoint = geoPoint;
         this.jefe = jefe;
         this.obra = obra;
+        this.online = online;
     }
 
     public LocalizacionObra() {
@@ -42,12 +44,17 @@ public class LocalizacionObra {
         this.obra = obra;
     }
 
+    public int getOnline(){return online;}
+
+    public void setOnline(int online){this.online = online;}
+
     @Override
     public String toString() {
         return "LocalizacionObra{" +
                 "geoPoint=" + geoPoint +
                 ", jefe='" + jefe + '\'' +
                 ", obra='" + obra + '\'' +
+                ", online='" + online + '\'' +
                 '}';
     }
 }

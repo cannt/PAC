@@ -3,7 +3,8 @@
     <string name="volver">volver</string>
     <string name="localizarYo">Localizarme</string>
     <string name="usoCrear">crear obra</string>
-    <string name="buscador">Introduzca dirección, ciudad o codigo postal</string>
+    <string name="buscador">Introduzca dirección, ciudad o obra</string>
+    <string name="buscadorEmpleados">Introduzca dirección, ciudad o empleado</string>
     <string name="app_name">PAC</string>
     <string name="regNombre">Nombre</string>
     <string name="reNif">NIF</string>
@@ -32,7 +33,6 @@
     <string name="btnBorrar">Borrar Firma</string>
     <string name="btnPdfGenerar">Generar Registro</string>
     <string name="politicaDePrivacidad">Politica de privacidad</string>
-    <string name="btnVerRegistr">Ver Registro</string>
     <string name="justificar">Justificar</string>
     <string name="otroEmpleado">Soy otro empleado</string>
     <string name="btnModoCentralita">Modo Centralita</string>
@@ -40,5 +40,25 @@
     <string name="action_email">Email</string>
     <string name="action_descargar">Descargar</string>
     <string name="action_imprimir">Imprimir</string>
+    <string name="btnDiasLibres">Gestionar dias libres</string>
+    <string name="DiasPend">Dias libres penditentes de aprobación</string>
+    <string name="DiasAsig">Dias libres asignados</string>
+    <string name="SoliVACAS">vacaciones</string>
+    <string name="SoliBAJA">baja laboral</string>
+    <string name="SoliOTROS">otro motivo</string>
+    <string name="SoliCANCE">Cancelar</string>
+    <string name="ElimSolici">Eliminar solicitud</string>
+    <string name="CambMot">Cambiar motivo</string>
+    <string name="sigu">siguiente</string>
+    <string name="DarDias">Asignar dia libre</string>
+    <string name="title_activity_prueba">prueba</string>
+    <string name="tab_menu">Menu principal</string>
+    <string name="tab_admin">Empleados</string>
+    <string name="tab_gest">Dias libres</string>
+    <string name="cambiar">Cambiar</string>
+    <string name="nuvNom">Nuevo nombre</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
 

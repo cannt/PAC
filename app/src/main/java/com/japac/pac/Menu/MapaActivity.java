@@ -130,7 +130,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private List<String> obs, jfs;
 
-    private ImageView gps, icCrear, volver;
+    private ImageView gps, icCrear;
 
     private View mNombres;
 
@@ -200,7 +200,6 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                         mBuscar = (EditText) findViewById(R.id.input_buscar);
                         gps = (ImageView) findViewById(R.id.ic_gps);
-                        volver = (ImageView) findViewById(R.id.ic_volver);
                         icCrear = (ImageView) findViewById(R.id.ic_crearObra);
                         pPt = (TextView) findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
@@ -311,7 +310,6 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         gps.setOnClickListener(MapaActivity.this);
-        volver.setOnClickListener(MapaActivity.this);
         icCrear.setOnClickListener(MapaActivity.this);
 
         ocultarTeclado();
@@ -383,7 +381,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                     mLocalizaAddress = new LatLng(direccionLat, direccionLong);
                     mMap.setOnInfoWindowClickListener(this);
-                    crearObra();
+                    /*crearObra();*/
                 }
             });
 
@@ -495,6 +493,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                     for (QueryDocumentSnapshot document : task.getResult()) {
                         String obran = document.getString("obra");
                         String jefe1 = document.getString("jefe");
+                        int online = document.getLong("online").intValue();
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
                         if (jefe1 != null) {
                             if (jefe1.equals("no")) {
@@ -503,7 +502,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                         } else if (jefe1 == null) {
                             jefe1 = "sin jefe de obra";
                         }
-                        añadirMarcadores(geoPoint2.getLatitude(), geoPoint2.getLongitude(), obran, jefe1);
+                        añadirMarcadores(geoPoint2.getLatitude(), geoPoint2.getLongitude(), obran, jefe1, online);
                         obs.add(obran);
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -524,7 +523,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    private void añadirMarcadores(final double latitud, final double longitud, String title, String snippet) {
+    private void añadirMarcadores(final double latitud, final double longitud, String title, String snippet, int onl) {
         markersMap = new HashMap<String, String>();
         MarkerOptions mo = new MarkerOptions()
                 .rotation(0);
@@ -532,7 +531,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(latitud, longitud)));
-        MarcadoresObras marcadoresObras = new MarcadoresObras(new LatLng(latitud, longitud), title, snippet, title);
+        MarcadoresObras marcadoresObras = new MarcadoresObras(new GeoPoint(latitud, longitud), title, snippet, title, onl);
         markersMap.put(marcadoresObras.getTag(), mkr.getId());
         mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
@@ -564,7 +563,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
                             }
                         }
                     });
-                    mNombres = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+                    mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                     jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
                     jefeAdapter = new ArrayAdapter<String>(MapaActivity.this, android.R.layout.simple_spinner_item, jfs);
                     jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1017,7 +1016,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    private void crearObra() {
+    /*private void crearObra() {
 
         final AlertDialog.Builder obraCrear = new AlertDialog.Builder(icCrear.getContext());
         View mCrearDialogo = getLayoutInflater().inflate(R.layout.activity_menu_crear_obra, null);
@@ -1080,7 +1079,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialogoObraCrear.setCanceledOnTouchOutside(false);
         dialogoObraCrear.show();
 
-    }
+    }*/
 
     private void dObraExiste() {
 
@@ -1137,31 +1136,7 @@ public class MapaActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         if (v.equals(icCrear)) {
 
-            crearObra();
-        }
-        if (v.equals(volver)) {
-
-            mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                @Override
-                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    if (documentSnapshot.exists()) {
-                        roles = documentSnapshot.getString("rol");
-                        if (roles.equals("Administrador")) {
-                            startActivity(new Intent(MapaActivity.this, MenuAdmin.class));
-                            finish();
-                        } else if (roles.equals("Empleado")) {
-                            codigoEmpleado = documentSnapshot.getString("codigo empleado");
-                            if (codigoEmpleado.length() > 13) {
-                                startActivity(new Intent(MapaActivity.this, MenuJefeDeObra.class));
-                                finish();
-                            } else {
-                                startActivity(new Intent(MapaActivity.this, MenuEmpleado.class));
-                                finish();
-                            }
-                        }
-                    }
-                }
-            });
+            /*crearObra();*/
         }
     }
 

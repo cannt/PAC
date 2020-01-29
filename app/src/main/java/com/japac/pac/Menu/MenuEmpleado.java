@@ -17,7 +17,9 @@ import android.net.Uri;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -30,14 +32,17 @@ import android.os.Environment;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -63,6 +68,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -72,7 +78,6 @@ import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
-import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
@@ -82,17 +87,16 @@ import com.google.firebase.storage.StorageReference;
 import com.google.maps.android.SphericalUtil;
 import com.japac.pac.Auth.FirmaConfirma;
 import com.japac.pac.Auth.Login;
+import com.japac.pac.Calendario.calendario;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.PDF.MyPrintDocumentAdapter;
 import com.japac.pac.PDF.TemplatePDF;
 import com.japac.pac.PDF.fragmentoCompartir;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.snackbarDS;
 import com.squareup.picasso.Picasso;
 
 import java.util.Calendar;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LocationListener, fragmentoCompartir.ItemClickListener {
 
@@ -111,9 +115,9 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
-    private Button Iniciar, Finalizar, Cerrar, OtroEmpleado, GenerarRegistro;
+    private Button Iniciar, Finalizar, Cerrar, OtroEmpleado, GenerarRegistro, btnDiasLibres;
 
-    private String mañaOtard, empresa, IoF, fecha, ano1,mesnu, mes, mes1, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto, email, nombreAn, naf, nif, cif, SHAREempleado, SHAREano, SHAREmes;
+    private String mañaOtard, empresa, IoF, fecha, ano1, mesnu, mes, mes1, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, trayecto, email, nombreAn, naf, nif, cif, SHAREempleado, SHAREano, SHAREmes;
 
     private ArrayAdapter<String> obraAdapter, anoAdapter;
 
@@ -143,7 +147,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     private Map<String, Object> map = new HashMap<>();
 
-    private File localFile,folder, fileShare;
+    private File localFile, folder, fileShare;
 
     CountDownTimer timer, tard, timerPDF2;
 
@@ -164,6 +168,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             Finalizar = (Button) findViewById(R.id.btnFinalizarJornada);
             Cerrar = (Button) findViewById(R.id.btnCerrar);
             OtroEmpleado = (Button) findViewById(R.id.btnOtro);
+            btnDiasLibres = (Button) findViewById(R.id.btnDiasLibres);
             GenerarRegistro = (Button) findViewById(R.id.GenerarRegistro);
 
             logo = (ImageView) findViewById(R.id.logoEmpleado);
@@ -242,6 +247,15 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                 }
             });
 
+            btnDiasLibres.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(MenuEmpleado.this, calendario.class);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+
             GenerarRegistro.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -252,6 +266,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             overridePendingTransition(0, 0);
         }
     }
+
 
     private void leerRegistro() {
         firebaseFirestore
@@ -311,7 +326,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void elegirFechasAños(List<String> años) {
-        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -375,7 +390,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void elegirFechasMeses(List<String> meses, final String ano3) {
-        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -468,7 +483,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
     private void creacionPdf(final List<String> diasList, String me, final String anoT) {
         cargandoloSI();
         final TemplatePDF templatePDF = new TemplatePDF(getApplicationContext());
-        templatePDF.openDocument("E",nombre, me, anoT);
+        templatePDF.openDocument("E", nombre, me, anoT);
         templatePDF.addMetaData(empresa, nombre, me, anoT);
         templatePDF.crearHeader(empresa, nombre, cif, nif, naf, mes1, anoT);
         final int[] i = {0};
@@ -669,10 +684,10 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-
     public static MenuEmpleado getInstance() {
         return instance;
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -777,7 +792,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         dialogoLogin.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
 
             dialogoLogin.show();
 
@@ -905,7 +920,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         dialogoConfirma.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
             dialogoConfirma.show();
 
         } else {
@@ -913,7 +928,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
             dialogoConfirma.show();
         }
     }
-
 
     public void crearCanalDeNotificaciones() {
         if (comp.equals("iniciada")) {
@@ -973,7 +987,6 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-
     private void guardarLocalizacion() {
         if (mLocalizarUsuario != null) {
             DocumentReference locationRef = firebaseFirestore
@@ -999,7 +1012,13 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
                             mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
                             mLocalizarUsuario.setTimestamp(null);
-                            guardarLocalizacion();
+                            firebaseFirestore.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                @Override
+                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                    mLocalizarUsuario.setObra(documentSnapshot.getString("obra"));
+                                    guardarLocalizacion();
+                                }
+                            });
                         }
                     }
                 });
@@ -1087,6 +1106,85 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                     });
                 }
                 cargandoloNO();
+
+                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable final DocumentSnapshot documentSnapshotN, @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+
+                            return;
+                        }
+                        if (documentSnapshotN.exists()) {
+                            if (documentSnapshotN.getBoolean("aceptado") != null && documentSnapshotN.getBoolean("asignado") != null && documentSnapshotN.getBoolean("rechazado") != null && documentSnapshotN.getBoolean("eliminado") != null) {
+                                Log.d("alguno", "true");
+                                Snackbar snackbar = Snackbar.make(findViewById(R.id.viewSnack), "", 3000)
+                                        .setActionTextColor(Color.WHITE);
+                                snackbar.addCallback(new Snackbar.Callback() {
+
+                                    @Override
+                                    public void onDismissed(Snackbar snackbar, int event) {
+                                        if (documentSnapshotN.getBoolean("aceptado").equals(true)) {
+                                            Log.d("aceptado2", "true");
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).update("aceptado", false);
+                                        } else if (documentSnapshotN.getBoolean("asignado").equals(true)) {
+                                            Log.d("asignado2", "true");
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).update("asignado", false);
+                                        } else if (documentSnapshotN.getBoolean("rechazado").equals(true)) {
+                                            Log.d("rechazado2", "true");
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).update("rechazado", false);
+                                        } else if (documentSnapshotN.getBoolean("eliminado").equals(true)) {
+                                            Log.d("eliminado2", "true");
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).update("eliminado", false);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onShown(Snackbar snackbar) {
+                                        if (documentSnapshotN.getBoolean("aceptado").equals(true)) {
+                                            Log.d("aceptado", "true");
+                                            snackbar.setText("Un dia libre solicitado se ha aceptado");
+                                        } else if (documentSnapshotN.getBoolean("asignado").equals(true)) {
+                                            Log.d("asignado", "true");
+                                            snackbar.setText("Se le ha asignado un dia libre");
+                                        } else if (documentSnapshotN.getBoolean("rechazado").equals(true)) {
+                                            Log.d("rechazado", "true");
+                                            snackbar.setText("Un dia libre solicitado se ha rechazado");
+                                        } else if (documentSnapshotN.getBoolean("eliminado").equals(true)) {
+                                            Log.d("eliminado", "true");
+                                            snackbar.setText("Se le ha eliminado un dia libre");
+                                        }
+
+                                    }
+                                });
+                                if (documentSnapshotN.getBoolean("aceptado").equals(true)) {
+                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(12);
+                                    tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    snackbarDS.configSnackbar(MenuEmpleado.this, snackbar);
+                                    snackbar.show();
+                                } else if (documentSnapshotN.getBoolean("asignado").equals(true)) {
+                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(12);
+                                    tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    snackbarDS.configSnackbar(MenuEmpleado.this, snackbar);
+                                    snackbar.show();
+                                } else if (documentSnapshotN.getBoolean("rechazado").equals(true)) {
+                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(12);
+                                    tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    snackbarDS.configSnackbar(MenuEmpleado.this, snackbar);
+                                    snackbar.show();
+                                } else if (documentSnapshotN.getBoolean("eliminado").equals(true)) {
+                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(12);
+                                    tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                    snackbarDS.configSnackbar(MenuEmpleado.this, snackbar);
+                                    snackbar.show();
+                                }
+                            }
+                        }
+                    }
+                });
             }
         });
         overridePendingTransition(0, 0);
@@ -1105,7 +1203,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                         obs.add(obran);
                     }
                     obraSpinner = (Spinner) findViewById(R.id.spinnerObra);
-                    mSpinner = getLayoutInflater().inflate(R.layout.spinner_dialogo, null);
+                    mSpinner = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                     obraSpinner2 = (Spinner) mSpinner.findViewById(R.id.spinnerObra);
                     obraAdapter = new ArrayAdapter<String>(MenuEmpleado.this, android.R.layout.simple_spinner_item, obs);
                     obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1126,7 +1224,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                             }
                         }
                     });
-                    mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+                    mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
                     obraSpinner.setOnItemSelectedListener(MenuEmpleado.this);
                     obraSpinner2.setOnItemSelectedListener(MenuEmpleado.this);
                 } else if (!task.isSuccessful()) {
@@ -1176,35 +1274,40 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                         firebaseFirestore.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-                                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
-                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                        trayecto = documentSnapshot.getString("marca temporal");
-                                                                        if (trayecto != null) {
-                                                                            String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                                    " del " + trayecto.charAt(19) + trayecto.charAt(20) +
-                                                                                    " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
-                                                                            DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-                                                                            String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
-                                                                            if (fechaAhora.equals(fechaGuardada)) {
-                                                                                trayectoBo = true;
-                                                                                DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
-                                                                                String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
-                                                                                trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                            @Override
+                                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                                trayecto = documentSnapshot.getString("marca temporal");
+                                                                                if (trayecto != null) {
+                                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                    DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                    String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                    if (fechaAhora.equals(fechaGuardada)) {
+                                                                                        trayectoBo = true;
+                                                                                        DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                        String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                        trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                    }
+                                                                                }
+                                                                                spinnerPosition = obraAdapter.getPosition(obra);
+                                                                                distan2 = 1.2;
+                                                                                aprox.setVisibility(View.INVISIBLE);
+                                                                                cargandoloNO();
+                                                                                enviajornada();
+                                                                                cancel();
                                                                             }
-                                                                        }
-                                                                        spinnerPosition = obraAdapter.getPosition(obra);
-                                                                        distan2 = 1.2;
-                                                                        aprox.setVisibility(View.INVISIBLE);
-                                                                        cargandoloNO();
-                                                                        enviajornada();
-                                                                        cancel();
+                                                                        });
                                                                     }
                                                                 });
                                                             }
@@ -1258,72 +1361,78 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                                 public void onSuccess(Void aVoid) {
                                                                     firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                         @Override
-                                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                            trayecto = documentSnapshot.getString("marca temporal");
-                                                                            if (trayecto != null) {
-                                                                                String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
-                                                                                        " del " + trayecto.charAt(19) + trayecto.charAt(20) +
-                                                                                        " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
-                                                                                DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-                                                                                String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
-                                                                                if (fechaAhora.equals(fechaGuardada)) {
-                                                                                    trayectoBo = true;
-                                                                                    DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
-                                                                                    String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
-                                                                                    trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
-                                                                                }
-                                                                            }
-                                                                            spinnerPosition = obraAdapter.getPosition(obra);
-                                                                            cargandoloNO();
-                                                                            aprox.setVisibility(View.INVISIBLE);
-                                                                            if (dis >= 650) {
-                                                                                mFueraObra = getLayoutInflater().inflate(R.layout.justificar_dialogo, null, false);
-                                                                                final AlertDialog.Builder Login = new AlertDialog.Builder(MenuEmpleado.this);
-                                                                                final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
-                                                                                Login
-                                                                                        .setTitle("Se te ha detectado muy lejos de la obra " + obra)
-                                                                                        .setView(mFueraObra)
-                                                                                        .setPositiveButton("Enviar", null);
-                                                                                final AlertDialog dialogoLogin = Login.create();
-                                                                                dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
-                                                                                    @Override
-                                                                                    public void onShow(final DialogInterface dialog) {
-                                                                                        Button positivoEnviar = (Button) dialogoLogin.getButton(AlertDialog.BUTTON_POSITIVE);
-                                                                                        positivoEnviar.setOnClickListener(new View.OnClickListener() {
+                                                                        public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                @Override
+                                                                                public void onSuccess(Void aVoid) {
+                                                                                    trayecto = documentSnapshot.getString("marca temporal");
+                                                                                    if (trayecto != null) {
+                                                                                        String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                                " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                                " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                        DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                        String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                        if (fechaAhora.equals(fechaGuardada)) {
+                                                                                            trayectoBo = true;
+                                                                                            DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                            String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                            trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                        }
+                                                                                    }
+                                                                                    spinnerPosition = obraAdapter.getPosition(obra);
+                                                                                    cargandoloNO();
+                                                                                    aprox.setVisibility(View.INVISIBLE);
+                                                                                    if (dis >= 650) {
+                                                                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(MenuEmpleado.this);
+                                                                                        final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
+                                                                                        Login
+                                                                                                .setTitle("Se te ha detectado muy lejos de la obra " + obra)
+                                                                                                .setView(mFueraObra)
+                                                                                                .setPositiveButton("Enviar", null);
+                                                                                        sJustificar.setText("texto");
+                                                                                        final AlertDialog dialogoLogin = Login.create();
+                                                                                        dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
                                                                                             @Override
-                                                                                            public void onClick(View v) {
-                                                                                                final String JustTexto = sJustificar.getText().toString();
+                                                                                            public void onShow(final DialogInterface dialog) {
+                                                                                                Button positivoEnviar = (Button) dialogoLogin.getButton(AlertDialog.BUTTON_POSITIVE);
+                                                                                                positivoEnviar.setOnClickListener(new View.OnClickListener() {
+                                                                                                    @Override
+                                                                                                    public void onClick(View v) {
+                                                                                                        final String JustTexto = sJustificar.getText().toString();
 
-                                                                                                if (!JustTexto.isEmpty()) {
+                                                                                                        if (!JustTexto.isEmpty()) {
 
 
-                                                                                                    map.put("Justificacion fuera de obra: ", JustTexto);
+                                                                                                            map.put("Justificacion fuera de obra: ", JustTexto);
 
-                                                                                                    sJustificar.setHintTextColor(Color.GRAY);
-                                                                                                    dialogoLogin.dismiss();
-                                                                                                    enviajornada();
+                                                                                                            sJustificar.setHintTextColor(Color.GRAY);
+                                                                                                            dialogoLogin.dismiss();
+                                                                                                            enviajornada();
 
-                                                                                                } else if (JustTexto.isEmpty()) {
+                                                                                                        } else if (JustTexto.isEmpty()) {
 
-                                                                                                    sJustificar.setHintTextColor(Color.RED);
+                                                                                                            sJustificar.setHintTextColor(Color.RED);
 
-                                                                                                }
+                                                                                                        }
+                                                                                                    }
+                                                                                                });
                                                                                             }
                                                                                         });
+                                                                                        dialogoLogin.setCanceledOnTouchOutside(false);
+                                                                                        if (mFueraObra.getParent() != null) {
+                                                                                            ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
+                                                                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+
+                                                                                            dialogoLogin.show();
+
+                                                                                        } else {
+
+                                                                                            dialogoLogin.show();
+                                                                                        }
                                                                                     }
-                                                                                });
-                                                                                dialogoLogin.setCanceledOnTouchOutside(false);
-                                                                                if (mFueraObra.getParent() != null) {
-                                                                                    ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
-                                                                                    mFueraObra = getLayoutInflater().inflate(R.layout.justificar_dialogo, null, false);
-
-                                                                                    dialogoLogin.show();
-
-                                                                                } else {
-
-                                                                                    dialogoLogin.show();
                                                                                 }
-                                                                            }
+                                                                            });
                                                                         }
                                                                     });
                                                                 }
@@ -1338,7 +1447,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                     if (dis >= 650) {
                                         cargandoloNO();
                                         aprox.setVisibility(View.INVISIBLE);
-                                        mFueraObra = getLayoutInflater().inflate(R.layout.justificar_dialogo, null, false);
+                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
                                         final AlertDialog.Builder Login = new AlertDialog.Builder(MenuEmpleado.this);
                                         final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
                                         Login
@@ -1376,7 +1485,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                         dialogoLogin.setCanceledOnTouchOutside(false);
                                         if (mFueraObra.getParent() != null) {
                                             ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
-                                            mFueraObra = getLayoutInflater().inflate(R.layout.justificar_dialogo, null, false);
+                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
 
                                             dialogoLogin.show();
 
@@ -1416,15 +1525,21 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
                                                 firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        DateFormat dayFormat = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-                                                        DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
-                                                        fecha = dayFormat.format(Calendar.getInstance().getTime());
-                                                        hora = hourFormat.format(Calendar.getInstance().getTime());
-                                                        trayecto = "Iniciado el " + fecha + " a las " + hora + " y finalizado el ";
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("marca temporal", trayecto).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-                                                                enviajornada();
+
+                                                                DateFormat dayFormat = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                fecha = dayFormat.format(Calendar.getInstance().getTime());
+                                                                hora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                trayecto = "Iniciado el " + fecha + " a las " + hora + " y finalizado el ";
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection(roles).document(nombre).update("marca temporal", trayecto).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @Override
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        enviajornada();
+                                                                    }
+                                                                });
                                                             }
                                                         });
                                                     }
@@ -1757,6 +1872,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         Cerrar.setEnabled(false);
         OtroEmpleado.setEnabled(false);
         GenerarRegistro.setEnabled(false);
+        btnDiasLibres.setEnabled(false);
         if (obraSpinner != null) {
             obraSpinner.setEnabled(false);
         }
@@ -1793,6 +1909,7 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
         }
         OtroEmpleado.setEnabled(true);
         GenerarRegistro.setEnabled(true);
+        btnDiasLibres.setEnabled(true);
         cargando.setVisibility(View.INVISIBLE);
     }
 
@@ -1814,6 +1931,11 @@ public class MenuEmpleado extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onProviderDisabled(String provider) {
+
+    }
+
+    @Override
+    public void onBackPressed() {
 
     }
 }

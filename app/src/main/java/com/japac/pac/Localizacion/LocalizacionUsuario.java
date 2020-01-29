@@ -8,14 +8,15 @@ public class LocalizacionUsuario {
 
     private GeoPoint geoPoint;
     private @ServerTimestamp Date timestamp;
-    private String id, nombre;
+    private String id, nombre, obra;
 
 
-    public LocalizacionUsuario(GeoPoint geoPoint, Date timestamp, String id, String nombre) {
+    public LocalizacionUsuario(GeoPoint geoPoint, Date timestamp, String id, String nombre, String obra) {
         this.geoPoint = geoPoint;
         this.timestamp = timestamp;
         this.id = id;
         this.nombre = nombre;
+        this.obra = obra;
     }
 
     public LocalizacionUsuario() {
@@ -54,13 +55,22 @@ public class LocalizacionUsuario {
         this.nombre = nombre;
     }
 
+    public String getObra() {
+        return obra;
+    }
+
+    public void setObra(String obra) {
+        this.obra = obra;
+    }
+
     @Override
     public String toString() {
         return "LocalizacionUsuario{" +
                 "geoPoint=" + geoPoint +
                 ", timestamp=" + timestamp +
                 ", id='" + id + '\'' +
-                ", nombre1='" + nombre + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", obra='" + obra + '\'' +
                 '}';
     }
 }

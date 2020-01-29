@@ -11,6 +11,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
@@ -30,6 +32,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,13 +72,17 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.common.collect.Iterables;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -89,14 +96,18 @@ import com.google.maps.android.SphericalUtil;
 import com.itextpdf.text.Image;
 import com.japac.pac.Auth.FirmaConfirma;
 import com.japac.pac.Auth.Login;
+import com.japac.pac.Calendario.calendario;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.PDF.MyPrintDocumentAdapter;
 import com.japac.pac.PDF.TemplatePDF;
 import com.japac.pac.PDF.fragmentoCompartir;
 import com.japac.pac.R;
+import com.japac.pac.Servicios.snackbarDS;
 import com.squareup.picasso.Picasso;
 
 import java.util.Calendar;
+
+import javax.annotation.Nullable;
 
 public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSelectedListener, fragmentoCompartir.ItemClickListener {
 
@@ -123,9 +134,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private Double latitudDetectada, longitudDetectada, latitudGuardada, longitudGuardada, distan, distan2 = 1.0, dis;
 
-    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnGenerar, btnVerRegistro;
+    private Button btnRegistroJornada, btnObras, Cerrar, btnEmpleados, btnGenerar, btnGestionarVacaciones;
 
-    private String IMG1, idEm, myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2,
+    private String IMG1, idEm, myFilePath, idreg, cif, email, empleado, rolE, roll = "Empleado", rolElima, IoF, mañaOtard, emailElim, idElim, sa, ultimo1, codigoEmpleado, codigoEmpleadoChech, codigo, letras1, letras2,
             letras3, snombre, empresa, fecha, jefeElim, trayecto, mes1, ano1, mes, dia, hora, entrada_salida, nombre, roles, obra, codigoEmpresa, id, comp, obcomp, obcomprueba, nombreAm, emailAn, jefes, mesnu,
             SHAREempleado, SHAREano, SHAREmes;
 
@@ -139,7 +150,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private View mSpinner, mLoginDialog, mNombres, mAnoMes;
 
-    private List<String> obs, jfs, name;
+    private List<String> obs, jfs, name, diasSLista;
 
     private int spinnerPosition;
 
@@ -201,7 +212,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             Cerrar = (Button) findViewById(R.id.btnCerrar);
             btnEmpleados = (Button) findViewById(R.id.btnAdmEmpleados);
             btnGenerar = (Button) findViewById(R.id.pdfGenerar);
-            btnVerRegistro = (Button) findViewById(R.id.btnVerRegistro);
+            btnGestionarVacaciones = (Button) findViewById(R.id.btnGesVacas);
             pPt = (TextView) findViewById(R.id.PrivacyPolicy);
             aprox = (TextView) findViewById(R.id.aproxad);
 
@@ -216,10 +227,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
             id = mAuth.getCurrentUser().getUid();
             comp = "no";
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
             cargandoloSI();
             primero();
-
             pPt.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -261,6 +271,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                 public void onClick(View v) {
                     Intent intent = new Intent(MenuAdmin.this, MapaActivity.class);
                     startActivity(intent);
+                    finish();
                 }
             });
 
@@ -278,57 +289,16 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             });
             overridePendingTransition(0, 0);
 
-            btnVerRegistro.setOnClickListener(new View.OnClickListener() {
+            btnGestionarVacaciones.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    VerRegistro();
+                    Intent intent = new Intent(MenuAdmin.this, calendario.class);
+                    startActivity(intent);
+                    finish();
+
                 }
             });
         }
-    }
-
-    private void VerRegistro() {
-
-        DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
-        String FEC = fechaF.format(Calendar.getInstance().getTime()).toString();
-        final AlertDialog.Builder VerRE = new AlertDialog.Builder(MenuAdmin.this)
-                .setTitle("Revisar Registros")
-                .setPositiveButton("Hoy " + FEC, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        final DateFormat daño = new SimpleDateFormat("yyyy");
-                        final DateFormat dmes = new SimpleDateFormat("MM");
-                        final DateFormat ddia = new SimpleDateFormat("dd");
-                        firebaseFirestore
-                                .collection("Empresas")
-                                .document(empresa)
-                                .collection("Registro")
-                                .document(daño.format(Calendar.getInstance().getTime()))
-                                .collection(dmes.format(Calendar.getInstance().getTime()))
-                                .document(ddia.format(Calendar.getInstance().getTime())).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                revisa(daño, dmes, ddia);
-
-                            }
-                        });
-                    }
-                })
-                .setNegativeButton("Elegir Fecha", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
-                })
-                .setNeutralButton("Elegir Empleado", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
-                });
-
-        jfs.add(nombre);
-        VerRE.show();
     }
 
     private void revisa(final DateFormat año, final DateFormat mes, final DateFormat dia) {
@@ -572,7 +542,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     private void elegirFechasAños(List<String> años, final String roles1, final String empleado, final String nif, final String naf, final String id1) {
         jfs.remove(nombre);
-        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -637,7 +607,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     }
 
     private void elegirFechasMeses(List<String> meses, final String roles1, final String empleado, final String ano3, final String nif, final String naf, final String id1) {
-        mAnoMes = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -1032,7 +1002,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     email = documentSnapshot.getString("email");
                     cif = documentSnapshot.getString("cif");
                     if (roles.equals("Administrador") && cif == null) {
-                        final AlertDialog.Builder InCif = new AlertDialog.Builder(MenuAdmin.this);
+                        /*final AlertDialog.Builder InCif = new AlertDialog.Builder(MenuAdmin.this);
                         View mCrearDialogo = getLayoutInflater().inflate(R.layout.activity_menu_crear_obra, null);
                         final EditText scif = mCrearDialogo.findViewById(R.id.insObra);
                         scif.setHint("CIF de " + empresa);
@@ -1080,13 +1050,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         dialogoInCif.setCanceledOnTouchOutside(false);
                         if (mLoginDialog.getParent() != null) {
                             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-                            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+                            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
                             dialogoInCif.show();
 
                         } else {
 
                             dialogoInCif.show();
-                        }
+                        }*/
                     }
                     if (!otro) {
                         nombreAm = documentSnapshot.getString("nombre");
@@ -1119,7 +1089,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     btnObras.setVisibility(View.INVISIBLE);
                     btnRegistroJornada.setVisibility(View.INVISIBLE);
                     btnGenerar.setVisibility(View.INVISIBLE);
-                    btnVerRegistro.setVisibility(View.INVISIBLE);
+                    btnGestionarVacaciones.setVisibility(View.INVISIBLE);
                     Cerrar.setVisibility(View.INVISIBLE);
                     almacenRef.child(empresa + "/" + "Logo/" + "Logo" + codigoEmpresa + ".jpg").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
@@ -1130,7 +1100,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnObras.setVisibility(View.VISIBLE);
                             btnRegistroJornada.setVisibility(View.VISIBLE);
                             btnGenerar.setVisibility(View.VISIBLE);
-                            btnVerRegistro.setVisibility(View.VISIBLE);
+                            btnGestionarVacaciones.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -1141,8 +1111,182 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             btnObras.setVisibility(View.VISIBLE);
                             btnRegistroJornada.setVisibility(View.VISIBLE);
                             btnGenerar.setVisibility(View.VISIBLE);
-                            btnVerRegistro.setVisibility(View.VISIBLE);
+                            btnGestionarVacaciones.setVisibility(View.VISIBLE);
                             Cerrar.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+
+                                return;
+                            }
+                            for (DocumentChange doc : queryDocumentSnapshots.getDocumentChanges()) {
+                                if (doc.getDocument().exists()) {
+                                    switch (doc.getType()) {
+                                        case ADDED:
+                                        case MODIFIED:
+                                            if (doc.getDocument().getString("Dias libres solicitados") != null) {
+                                                String noMod = doc.getDocument().getString("nombre");
+                                                if (doc.getDocument().getBoolean("solicita") != null && doc.getDocument().getBoolean("solicita")) {
+                                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                        NotificationChannel notificationChannelD = new NotificationChannel("diasLibres", "Un empleado a solicitado dias libres", NotificationManager.IMPORTANCE_HIGH);
+                                                        notificationChannelD.setDescription("Expanda la notificacion para obtener mas detalles");
+                                                        notificationChannelD.setShowBadge(true);
+                                                        NotificationManager notificationManagerD = getSystemService(NotificationManager.class);
+                                                        StatusBarNotification[] notifications = notificationManagerD.getActiveNotifications();
+                                                        for (StatusBarNotification notification : notifications) {
+                                                            if (notification.getId() == 123456 || notification.getId() == 1234567) {
+                                                                notificationManagerD.cancelAll();
+                                                            }
+                                                        }
+                                                        notificationManagerD.createNotificationChannel(notificationChannelD);
+                                                        Intent intentD = new Intent(MenuAdmin.this, calendario.class);
+                                                        intentD.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                                        PendingIntent pendingIntentD = PendingIntent.getActivity(MenuAdmin.this, 0, intentD, 0);
+                                                        NotificationCompat.Builder builderD = new NotificationCompat.Builder(MenuAdmin.this, "diasLibres")
+                                                                .setSmallIcon(R.mipmap.ic_launcher)
+                                                                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
+                                                                .setContentTitle("Un empleado a solicitado dias libres")
+                                                                .setContentText("Expanda la notificacion para obtener mas detalles")
+                                                                .setStyle(new NotificationCompat.BigTextStyle().bigText("El empleado " + noMod + " a solicitado dias libres")
+                                                                        .setBigContentTitle("Un empleado a solicitado dias libres"))
+                                                                .addAction(R.mipmap.ic_launcher, "Gestionar", pendingIntentD)
+                                                                .setPriority(NotificationCompat.PRIORITY_MAX)
+                                                                .setChannelId("diasLibres")
+                                                                .setAutoCancel(true);
+
+                                                        NotificationManagerCompat notificationManagerCompatD = NotificationManagerCompat.from(MenuAdmin.this);
+                                                        notificationManagerCompatD.notify(123456, builderD.build());
+
+
+                                                    }
+                                                    Snackbar snackbar = Snackbar.make(findViewById(R.id.viewSnack), "El empleado " + noMod + " a solicitado un dia libre", 8000)
+                                                                    .setActionTextColor(Color.WHITE)
+                                                                    .setAction("Gestionar", new View.OnClickListener() {
+                                                                        @Override
+                                                                        public void onClick(View view) {
+                                                                            Intent intentD = new Intent(MenuAdmin.this, calendario.class);
+                                                                            startActivity(intentD);
+                                                                        }
+                                                                    });
+                                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    tv.setTextSize(8);
+                                                    TextView tv2 = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_action);
+                                                    tv2.setTextSize(8);
+                                                    snackbarDS.configSnackbar(MenuAdmin.this, snackbar);
+                                                    snackbar.show();
+                                                }
+                                            }
+                                            break;
+                                        case REMOVED:
+                                    }
+
+                                }
+                            }
+                        }
+                    });
+                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull final Task<QuerySnapshot> task) {
+                            if (task.isSuccessful()) {
+                                diasSLista = new ArrayList<String>();
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    if (document.getString("Dias libres solicitados") != null) {
+                                        diasSLista.add(document.getString("nombre"));
+                                    }
+                                }
+                                String diaSize = null;
+                                String diaSize2 = null;
+                                if (diasSLista.size() > 1) {
+                                    diaSize = "Algunos empleados han solicitado dias libres";
+                                    StringBuilder rString = new StringBuilder();
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        int aer = 0;
+                                        for (String each : diasSLista) {
+                                            String sep = ", ";
+                                            aer++;
+                                            if (aer == 1) {
+                                                sep = "";
+                                            }
+                                            if (diasSLista.size() == aer) {
+                                                sep = " y ";
+                                            }
+                                            rString.append(sep).append(each);
+                                        }
+                                        diaSize2 = "Los empleados " + rString.toString() + " han solicitado dias libres";
+                                        Snackbar snackbar = Snackbar.make(findViewById(R.id.viewSnack), "Algunos empleados han solicitado dias libres", 8000)
+                                                .setActionTextColor(Color.WHITE)
+                                                .setAction("Gestionar", new View.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(View view) {
+                                                        Intent intentD = new Intent(MenuAdmin.this, calendario.class);
+                                                        startActivity(intentD);
+                                                    }
+                                                });
+                                        TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        tv.setTextSize(8);
+                                        TextView tv2 = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_action);
+                                        tv2.setTextSize(8);
+                                        snackbarDS.configSnackbar(MenuAdmin.this, snackbar);
+                                        snackbar.show();
+                                        Log.d("dias", "mas de 1");
+                                    }
+                                } else if (diasSLista.size() == 1) {
+                                    Log.d("dsize", "1");
+                                    diaSize = "Un empleado a solicitado dias libres";
+                                    diaSize2 = "El empleado " + diasSLista.get(0) + " a solicitado dias libres";
+
+                                    Snackbar snackbar = Snackbar.make(findViewById(R.id.viewSnack), diaSize2, 8000)
+                                            .setActionTextColor(Color.WHITE)
+                                            .setAction("Gestionar", new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View view) {
+                                                    Intent intentD = new Intent(MenuAdmin.this, calendario.class);
+                                                    startActivity(intentD);
+                                                }
+                                            });
+                                    TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(8);
+                                    TextView tv2 = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_action);
+                                    tv2.setTextSize(8);
+                                    snackbarDS.configSnackbar(MenuAdmin.this, snackbar);
+                                    snackbar.show();
+                                    Log.d("dias", "1");
+                                }
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && diasSLista.size() >= 1) {
+                                    NotificationChannel notificationChannelD = new NotificationChannel("diasLibresPrimero", diaSize, NotificationManager.IMPORTANCE_HIGH);
+                                    notificationChannelD.setDescription("Expanda la notificacion para obtener mas detalles");
+                                    notificationChannelD.setShowBadge(true);
+                                    NotificationManager notificationManagerD = getSystemService(NotificationManager.class);
+                                    StatusBarNotification[] notifications = notificationManagerD.getActiveNotifications();
+                                    for (StatusBarNotification notification : notifications) {
+                                        if (notification.getId() == 123456 || notification.getId() == 1234567) {
+                                            notificationManagerD.cancelAll();
+                                        }
+                                    }
+                                    notificationManagerD.createNotificationChannel(notificationChannelD);
+                                    Intent intentD = new Intent(MenuAdmin.this, calendario.class);
+                                    intentD.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    PendingIntent pendingIntentD = PendingIntent.getActivity(MenuAdmin.this, 0, intentD, 0);
+                                    NotificationCompat.Builder builderD = new NotificationCompat.Builder(MenuAdmin.this, "diasLibresPrimero")
+                                            .setSmallIcon(R.mipmap.ic_launcher)
+                                            .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
+                                            .setContentTitle(diaSize)
+                                            .setContentText("Expanda la notificacion para obtener mas detalles")
+                                            .setStyle(new NotificationCompat.BigTextStyle().bigText(diaSize2).setBigContentTitle("¿Desea gestionar los dias libres?"))
+                                            .addAction(R.mipmap.ic_launcher, "Gestionar", pendingIntentD)
+                                            .setChannelId("diasLibresPrimero")
+                                            .setAutoCancel(true);
+
+                                    NotificationManagerCompat notificationManagerCompatD = NotificationManagerCompat.from(MenuAdmin.this);
+                                    notificationManagerCompatD.notify(1234567, builderD.build());
+                                    Log.d("not", "bien");
+                                }
+                            } else if (!task.isSuccessful()) {
+                                Log.d("task", "mal");
+                            }
                         }
                     });
                 }
@@ -1163,7 +1307,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                         obs.add(obran);
 
                     }
-                    mSpinner = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+                    mSpinner = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                     obraSpinner = (Spinner) mSpinner.findViewById(R.id.spinnerObra);
 
                     obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
@@ -1179,7 +1323,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             }
                         }
                     });
-                    mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+                    mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
                 } else if (!task.isSuccessful()) {
                     obs.add("SIN OBRAS");
                 }
@@ -1221,7 +1365,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             }
                         }
                     });
-                    mNombres = getLayoutInflater().inflate(R.layout.spinner_dialogo, null, false);
+                    mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                     jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
                     jefeSpinner.setOnItemSelectedListener(MenuAdmin.this);
                     jefeAdapter = new ArrayAdapter<String>(MenuAdmin.this, android.R.layout.simple_spinner_item, jfs);
@@ -1414,7 +1558,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         dialogoLogin.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
             dialogoLogin.show();
 
         } else {
@@ -1843,7 +1987,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         dialogoConfirma.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
             dialogoConfirma.show();
 
         } else {
@@ -1859,7 +2003,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
         obraAdministrarEmpledos
                 .setPositiveButton("Generar empleado", null)
-                .setNeutralButton("Eliminar empleado", null)
+                .setNeutralButton("Desactivar empleado", null)
                 .setNegativeButton("Cancelar", null);
         final AlertDialog dialogoAdministradorEmpleados = obraAdministrarEmpledos.create();
         dialogoAdministradorEmpleados.setOnShowListener(new DialogInterface.OnShowListener() {
@@ -1901,9 +2045,8 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     private void dGeneraEmpleado() {
 
         final AlertDialog.Builder empleadoGen = new AlertDialog.Builder(MenuAdmin.this);
-        View mCrearEmpleadoDialogo = getLayoutInflater().inflate(R.layout.generar_empleado, null);
-        nom = mCrearEmpleadoDialogo.findViewById(R.id.nombreDialogo);
-        final Switch emp = mCrearEmpleadoDialogo.findViewById(R.id.switchEmp);
+        View mCrearEmpleadoDialogo = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
+        nom = mCrearEmpleadoDialogo.findViewById(R.id.TextDos);
         empleadoGen
                 .setView(mCrearEmpleadoDialogo)
                 .setTitle("Generador de empleados")
@@ -1915,28 +2058,14 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
             public void onShow(final DialogInterface dialog) {
                 Button positivoCrea = (Button) dialogoEmpleadoGen.getButton(AlertDialog.BUTTON_POSITIVE);
                 Button negativoCancela = (Button) dialogoEmpleadoGen.getButton(AlertDialog.BUTTON_NEGATIVE);
-                emp.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                        if (isChecked) {
-                            letras2 = "a";
-                        } else if (isChecked == false) {
-                            letras2 = "E";
-                        }
-                    }
-                });
-                letras2 = "E";
-                emp.setChecked(false);
                 positivoCrea.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        dialogoEmpleadoGen.dismiss();
                         letras1 = codigoRandom(4);
                         letras3 = codigoRandom(5) + codigoEmpleado.substring(codigoEmpleado.length() - 3);
                         snombre = nom.getText().toString();
                         if (!snombre.isEmpty()) {
                             if (snombre.length() > 3) {
-                                dialogoEmpleadoGen.dismiss();
                                 if (jfs.isEmpty()) {
                                     codigo = letras1 + letras2 + letras3;
                                     firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(snombre, codigo);
@@ -1958,15 +2087,16 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                             break;
                                         }
                                     }
+                                    dialogoEmpleadoGen.dismiss();
                                     if (sa.equals(snombrea)) {
                                         final String[] roleEli = {null};
                                         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(snombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                             @Override
                                             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                                if(task.isSuccessful()){
+                                                if (task.isSuccessful()) {
                                                     roleEli[0] = "Empleado";
 
-                                                }else{
+                                                } else {
                                                     firebaseFirestore.collection("Empresas").document(empresa).collection("Administrador").document(snombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                         @Override
                                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -1977,8 +2107,9 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
                                                 Boolean desEli = task.getResult().getBoolean("DESACTIVADO");
                                                 if (desEli) {
+                                                    dialogoEmpleadoGen.dismiss();
                                                     final AlertDialog.Builder reactivar = new AlertDialog.Builder(MenuAdmin.this)
-                                                            .setTitle("Usuario desativado")
+                                                            .setTitle("Usuario desactivado")
                                                             .setMessage("¿Desea reactivar al empleado " + snombre + "?");
                                                     obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
                                                     reactivar
@@ -2002,7 +2133,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                                                     firebaseFirestore.collection("Empresas").document(empresa).collection(roleEli[0]).document(snombre).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                         @Override
                                                                                         public void onSuccess(Void aVoid) {
-                                                                                            dialogoReactivar.dismiss();
+                                                                                            firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                                                @Override
+                                                                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                                                    firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(snombre, documentSnapshot.getString(snombre).replace("_ELIMINADO", ""));
+                                                                                                    dialogoReactivar.dismiss();
+                                                                                                }
+                                                                                            });
                                                                                         }
                                                                                     });
                                                                                 }
@@ -2024,39 +2161,23 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                                     nom.setText("");
                                                     dialogoReactivar.show();
                                                 } else if (!desEli) {
-                                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
-                                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
-                                                            nom.setError(snombre + " ya es un empleado y jefe de obra de " + empresa);
-                                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
-                                                            nom.setError(snombre + " ya es un administrador y jefe de obra de " + empresa);
+                                                    firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            codigoEmpleadoChech = documentSnapshot.getString(snombre);
+                                                            if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                                                if (codigoEmpleadoChech.charAt(7) == 'E') {
+                                                                    nom.setError(snombre + " ya es un empleado y jefe de obra de " + empresa);
+                                                                } else if (codigoEmpleadoChech.charAt(7) == 'a') {
+                                                                    nom.setError(snombre + " ya es un administrador y jefe de obra de " + empresa);
+                                                                }
+                                                            } else if (codigoEmpleadoChech.charAt(4) == 'E') {
+                                                                nom.setError(snombre + " ya es un empleado de " + empresa);
+                                                            } else if (codigoEmpleadoChech.charAt(4) == 'a') {
+                                                                nom.setError(snombre + " ya es un administrador y jefe de obra de " + empresa);
+                                                            }
                                                         }
-                                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
-                                                        nom.setError(snombre + " ya es un empleado de " + empresa);
-                                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
-                                                        nom.setError(snombre + " ya es un administrador y jefe de obra de " + empresa);
-                                                    }
-                                                }
-                                            }
-                                        });
-                                        firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                            @Override
-                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                if (documentSnapshot.contains(snombre)) {
-                                                    codigoEmpleadoChech = documentSnapshot.getString(snombre);
-                                                    String roleEli = null;
-                                                    if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
-                                                        if (codigoEmpleadoChech.charAt(7) == 'E') {
-                                                            roleEli = "Empleado";
-                                                        } else if (codigoEmpleadoChech.charAt(7) == 'a') {
-                                                            roleEli = "Administrador";
-                                                        }
-                                                    } else if (codigoEmpleadoChech.charAt(4) == 'E') {
-                                                        roleEli = "Empleado";
-                                                    } else if (codigoEmpleadoChech.charAt(4) == 'a') {
-                                                        roleEli = "Administrador";
-                                                    }
-                                                    final String finalRoleEli = roleEli;
-
+                                                    });
                                                 }
                                             }
                                         });
@@ -2090,7 +2211,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
 
     }
 
-    String codigoRandom(int largo) {
+    private String codigoRandom(int largo) {
         StringBuilder sb = new StringBuilder(largo);
         for (int i = 0; i < largo; i++)
             sb.append(patron.charAt(aleatorio.nextInt(patron.length())));
@@ -2110,11 +2231,11 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
     private void dEliminarEmpleado() {
 
         final AlertDialog.Builder EliminarEmpleado = new AlertDialog.Builder(MenuAdmin.this)
-                .setTitle("¿Que empleado desea eliminar?");
+                .setTitle("¿Que empleado desea desactivar?");
         obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
         EliminarEmpleado
                 .setView(mNombres)
-                .setPositiveButton("Siguiente", null)
+                .setPositiveButton("Desactivar", null)
                 .setNegativeButton("Cancelar", null);
         final AlertDialog dialogoEliminarEmpleado = EliminarEmpleado.create();
         dialogoEliminarEmpleado.setOnShowListener(new DialogInterface.OnShowListener() {
@@ -2128,7 +2249,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                     public void onClick(View v) {
                         dialogoEliminarEmpleado.dismiss();
                         if (jefes.equals(nombreAm)) {
-                            Toast.makeText(MenuAdmin.this, nombreAm + " es esta cuenta, solo puede ser eliminada por otro Administrador", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MenuAdmin.this, nombreAm + " es esta cuenta, solo puede ser desactivada por otro Administrador", Toast.LENGTH_LONG).show();
                         } else if (!jefes.equals(nombreAm)) {
                             cargandoloSI();
                             firebaseFirestore.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -2136,10 +2257,11 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                     if (documentSnapshot.exists()) {
                                         roll = documentSnapshot.getString(jefes);
-                                        if(roll.equals("ELIMINADO")){
+                                        rolElima = documentSnapshot.getString(jefes);
+                                        if (roll.contains("_ELIMINADO")) {
                                             final AlertDialog.Builder yaElim = new AlertDialog.Builder(MenuAdmin.this)
-                                                    .setTitle("No se puede eliminar al usuario")
-                                                    .setMessage("El empleado " + jefes + " ya esta eliminado");
+                                                    .setTitle("No se puede desactivar al usuario")
+                                                    .setMessage("El empleado " + jefes + " ya esta desactivado");
                                             obraSpinner.setOnItemSelectedListener(MenuAdmin.this);
                                             yaElim
                                                     .setPositiveButton("Ok", null);
@@ -2160,22 +2282,23 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                                             });
                                             dialogoYaElim.setCanceledOnTouchOutside(false);
                                             dialogoYaElim.show();
-                                        }
-                                        if (roll.charAt(0) == 'J' && roll.charAt(1) == 'e' && roll.charAt(2) == 'F') {
-                                            if (roll.charAt(7) == 'a') {
-                                                roll = "Administrador";
-                                                dElimEmpleado();
-                                            } else if (roll.charAt(7) == 'E') {
-                                                roll = "Empleado";
-                                                dElimEmpleado();
-                                            }
-                                        } else {
-                                            if (roll.charAt(4) == 'a') {
-                                                roll = "Administrador";
-                                                dElimEmpleado();
-                                            } else if (roll.charAt(4) == 'E') {
-                                                roll = "Empleado";
-                                                dElimEmpleado();
+                                        } else if (!roll.contains("_ELIMINADO")) {
+                                            if (roll.charAt(0) == 'J' && roll.charAt(1) == 'e' && roll.charAt(2) == 'F') {
+                                                if (roll.charAt(7) == 'a') {
+                                                    roll = "Administrador";
+                                                    dElimEmpleado();
+                                                } else if (roll.charAt(7) == 'E') {
+                                                    roll = "Empleado";
+                                                    dElimEmpleado();
+                                                }
+                                            } else {
+                                                if (roll.charAt(4) == 'a') {
+                                                    roll = "Administrador";
+                                                    dElimEmpleado();
+                                                } else if (roll.charAt(4) == 'E') {
+                                                    roll = "Empleado";
+                                                    dElimEmpleado();
+                                                }
                                             }
                                         }
                                     }
@@ -2220,7 +2343,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
                             firebaseFirestore.collection("Todas las ids").document(idElim).update("DESACTIVADO", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(jefes, "ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    firebaseFirestore.collection("Codigos").document(codigoEmpresa).update(jefes, rolElima + "_ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
                                             firebaseFirestore.collection("Empresas").document(empresa).collection("Localizaciones").document(jefes).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2261,45 +2384,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         });
     }
 
-    private void dVacas() {
-        final AlertDialog.Builder Vacaciones = new AlertDialog.Builder(MenuAdmin.this);
-        Vacaciones
-                .setPositiveButton("Ver Calendario Actual", null)
-                .setNegativeButton("Administrar solicitudes ", null)
-                .setNeutralButton("Asignar vacaciones", null);
-        final AlertDialog dialogoVacaciones = Vacaciones.create();
-        dialogoVacaciones.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public void onShow(final DialogInterface dialog) {
-                Button positivoYo = (Button) dialogoVacaciones.getButton(AlertDialog.BUTTON_POSITIVE);
-                Button negativoOtro = (Button) dialogoVacaciones.getButton(AlertDialog.BUTTON_NEGATIVE);
-                Button neutroC = (Button) dialogoVacaciones.getButton(AlertDialog.BUTTON_NEUTRAL);
-                positivoYo.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialogoVacaciones.dismiss();
-                    }
-                });
-
-                negativoOtro.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialogoVacaciones.dismiss();
-                    }
-                });
-
-                neutroC.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialogoVacaciones.dismiss();
-                    }
-                });
-            }
-        });
-        dialogoVacaciones.setCanceledOnTouchOutside(false);
-        dialogoVacaciones.show();
-    }
-
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         obra = parent.getItemAtPosition(position).toString();
@@ -2335,33 +2419,6 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         fragmentoCompartir fragmentoCompartir = new fragmentoCompartir();
         fragmentoCompartir.show(getSupportFragmentManager(), "Menu Compartir");
         emailShare = false;
-    }
-
-    public static void deleteCache(Context context) {
-        try {
-            File dir = context.getCacheDir();
-            deleteDir(dir);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    public static boolean deleteDir(File dir) {
-        if (dir != null && dir.isDirectory()) {
-            String[] children = dir.list();
-            for (int i = 0; i < children.length; i++) {
-                boolean success = deleteDir(new File(dir, children[i]));
-                if (!success) {
-                    return false;
-                }
-            }
-            return dir.delete();
-        } else if (dir != null && dir.isFile()) {
-            return dir.delete();
-        } else {
-            return false;
-        }
     }
 
     public static MenuAdmin getInstance() {
@@ -2463,7 +2520,7 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         Cerrar.setEnabled(false);
         btnEmpleados.setEnabled(false);
         btnGenerar.setEnabled(false);
-        btnVerRegistro.setEnabled(false);
+        btnGestionarVacaciones.setEnabled(false);
         cargando.setVisibility(View.VISIBLE);
     }
 
@@ -2478,10 +2535,13 @@ public class MenuAdmin extends AppCompatActivity implements AdapterView.OnItemSe
         btnEmpleados.setEnabled(true);
 
         btnGenerar.setEnabled(true);
-        btnVerRegistro.setEnabled(true);
+        btnGestionarVacaciones.setEnabled(true);
         cargando.setVisibility(View.INVISIBLE);
     }
 
+    @Override
+    public void onBackPressed() {
 
+    }
 }
 

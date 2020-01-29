@@ -17,9 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -45,19 +43,17 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.japac.pac.Menu.MenuAdmin;
 import com.japac.pac.Menu.MenuEmpleado;
-import com.japac.pac.Menu.MenuJefeDeObra;
 import com.japac.pac.R;
 import com.japac.pac.Servicios.FueraDeHora;
 import com.japac.pac.Servicios.ServicioLocalizacion;
+import com.japac.pac.Menu.ViewPagers.Menu;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.text.DateFormatSymbols;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -273,13 +269,13 @@ public class Login extends AppCompatActivity {
                         sroles = documentSnapshot.getString("rol");
                         if (sroles.equals("Administrador")) {
                             cargandoloNO();
-                            startActivity(new Intent(Login.this, MenuAdmin.class));
+                            startActivity(new Intent(Login.this, Menu.class));
                             finish();
                         } else if (sroles.equals("Empleado")) {
                             codigoEmpleado = documentSnapshot.getString("codigo empleado");
                             if (codigoEmpleado.length() > 14) {
                                 cargandoloNO();
-                                startActivity(new Intent(Login.this, MenuJefeDeObra.class));
+                                startActivity(new Intent(Login.this, MenuEmpleado.class));
                                 finish();
                             } else {
                                 cargandoloNO();

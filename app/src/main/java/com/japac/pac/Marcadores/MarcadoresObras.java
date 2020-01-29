@@ -1,58 +1,64 @@
 package com.japac.pac.Marcadores;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.maps.android.clustering.ClusterItem;
 
-public class MarcadoresObras implements ClusterItem {
+public class MarcadoresObras {
 
-    private LatLng position;
-    private String title;
-    private String snippet;
-    private String Tag;
+    private GeoPoint geoPoint;
+    private String obra, jefe, Tag;
+    private long online;
 
-    public MarcadoresObras(LatLng position, String title, String snippet, String tag) {
-        this.position = position;
-        this.title = title;
-        this.snippet = snippet;
+    public MarcadoresObras(GeoPoint geoPoint, String obra, String jefe, String tag, long online) {
+        this.geoPoint = geoPoint;
+        this.obra = obra;
+        this.jefe = jefe;
         this.Tag = tag;
+        this.online = online;
     }
 
     public MarcadoresObras() {
     }
 
-    @Override
-    public LatLng getPosition() {
-        return position;
+    public GeoPoint getGeoPoint() {
+        return geoPoint;
     }
 
-    public void setPosition(LatLng position) {
-        this.position = position;
+    public void setGeoPoint(GeoPoint position) {
+        this.geoPoint = position;
     }
 
-    @Override
-    public String getTitle() {
-        return title;
+    public String getObra() {
+        return obra;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setObra(String obr) {
+        this.obra = obr;
     }
 
-    @Override
-    public String getSnippet() {
-        return snippet;
+    public String getJefe() {
+        return jefe;
     }
 
-    public void setSnippet(String snippet) {
-        this.snippet = snippet;
+    public void setJefe(String jef) {
+        this.jefe = jef;
     }
 
     public String getTag() {
         return Tag;
     }
 
-    public void setTag(String tag) {
-        this.Tag = tag;
+    public void setTag(String ta) {
+        this.Tag = ta;
+    }
+
+    public long getOnline() {
+        return online;
+    }
+
+    public void setOnline(int onl) {
+        this.online = onl;
     }
 
 }

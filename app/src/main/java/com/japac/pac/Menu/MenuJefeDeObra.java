@@ -354,7 +354,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                         }
 
                     }
-                    mSpinner = getLayoutInflater().inflate(R.layout.spinner_dialogo, null);
+                    mSpinner = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                     obraSpinner = (Spinner) mSpinner.findViewById(R.id.spinnerObra);
 
                     obraAdapter = new ArrayAdapter<String>(MenuJefeDeObra.this, android.R.layout.simple_spinner_item, obs);
@@ -382,7 +382,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
                             }
                         });
                     }
-                    mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+                    mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
                     obraSpinner.setOnItemSelectedListener(MenuJefeDeObra.this);
                 } else if (!task.isSuccessful()) {
                     obs.add("SIN OBRAS");
@@ -1047,7 +1047,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         dialogoLogin.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
 
             dialogoLogin.show();
 
@@ -1098,7 +1098,7 @@ public class MenuJefeDeObra extends AppCompatActivity implements AdapterView.OnI
         dialogoConfirma.setCanceledOnTouchOutside(false);
         if (mLoginDialog.getParent() != null) {
             ((ViewGroup) mLoginDialog.getParent()).removeView(mLoginDialog);
-            mLoginDialog = getLayoutInflater().inflate(R.layout.login_dialogo, null, false);
+            mLoginDialog = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
             dialogoConfirma.show();
 
         } else {

@@ -305,6 +305,8 @@ public class Registrar extends AppCompatActivity {
                     map.put("NIF", snif);
                     map.put("NAF", snaf);
                     map.put("DESACTIVADO", false);
+                    map.put("Dias libres",  null);
+                    map.put("Dias libres solicitados", null);
                     if (roles.equals("Administrador")) {
                         map.put("jefe", "todo");
                     } else if (roles.equals("Empleado")) {
@@ -323,13 +325,32 @@ public class Registrar extends AppCompatActivity {
                                     firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(snombre).collection("Registro").document("años,meses,dias").set(mapF).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            InputMethodManager inputManager = (InputMethodManager)
-                                                    getSystemService(Context.INPUT_METHOD_SERVICE);
-                                            inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
-                                                    InputMethodManager.HIDE_NOT_ALWAYS);
-                                            cargandoloNO();
-                                            startActivity(new Intent(Registrar.this, Firma.class));
-                                            finish();
+                                            final Map<String, Object> mapDias = new HashMap<>();
+                                            mapDias.put("Dias libres", null);
+                                            mapDias.put("Dias libres solicitados", null);
+                                            mapDias.put("Nombre", snombre);
+                                            firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres solicitados").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    mapDias.put("aceptado", false);
+                                                    mapDias.put("asignado", false);
+                                                    mapDias.put("rechazado", false);
+                                                    mapDias.put("eliminado", false);
+                                                    firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            InputMethodManager inputManager = (InputMethodManager)
+                                                                    getSystemService(Context.INPUT_METHOD_SERVICE);
+                                                            inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
+                                                                    InputMethodManager.HIDE_NOT_ALWAYS);
+                                                            cargandoloNO();
+                                                            startActivity(new Intent(Registrar.this, Firma.class));
+                                                            finish();
+                                                        }
+                                                    });
+
+                                                }
+                                            });
                                         }
                                     });
                                 }

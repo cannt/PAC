@@ -23,14 +23,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
+        <activity
+            android:name=".Menu.ViewPagers.Menu"
+            android:label="@string/title_activity_prueba"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity android:name=".Calendario.calendario" />
         <activity android:name=".Auth.FirmaConfirma" />
         <activity android:name=".Servicios.FueraDeHora" />
         <activity android:name=".Menu.MenuJefeDeObra" />
         <activity android:name=".Auth.Firma" />
         <activity android:name=".Menu.MenuAdmin" />
-        <activity
-            android:name=".Menu.MenuEmpleado" />
+        <activity android:name=".Menu.MenuEmpleado" />
         <activity android:name=".Auth.Registrar" />
         <activity android:name=".Menu.MapaActivity" />
         <activity android:name=".Auth.Login">
