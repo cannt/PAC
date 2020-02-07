@@ -15,15 +15,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.AccessControlContext;
 
 public class MyPrintDocumentAdapter extends PrintDocumentAdapter {
 
-    Context context = null;
+    AccessControlContext context = null;
     String pathName = "";
-    public MyPrintDocumentAdapter(Context ctxt, String pathName) {
+    public MyPrintDocumentAdapter(AccessControlContext ctxt, String pathName) {
         context = ctxt;
         this.pathName = pathName;
     }
+
     @Override
     public void onLayout(PrintAttributes printAttributes, PrintAttributes printAttributes1, CancellationSignal cancellationSignal, LayoutResultCallback layoutResultCallback, Bundle bundle) {
         if (cancellationSignal.isCanceled()) {

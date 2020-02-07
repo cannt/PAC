@@ -43,7 +43,6 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.japac.pac.Menu.MenuEmpleado;
 import com.japac.pac.R;
 import com.japac.pac.Servicios.FueraDeHora;
 import com.japac.pac.Servicios.ServicioLocalizacion;
@@ -275,11 +274,11 @@ public class Login extends AppCompatActivity {
                             codigoEmpleado = documentSnapshot.getString("codigo empleado");
                             if (codigoEmpleado.length() > 14) {
                                 cargandoloNO();
-                                startActivity(new Intent(Login.this, MenuEmpleado.class));
+                                startActivity(new Intent(Login.this, Menu.class));
                                 finish();
                             } else {
                                 cargandoloNO();
-                                startActivity(new Intent(Login.this, MenuEmpleado.class));
+                                startActivity(new Intent(Login.this, Menu.class));
                                 finish();
                             }
                         }

@@ -30,6 +30,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -75,7 +76,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private FirebaseFirestore firebaseFirestore;
 
-    private String id, empresa, nombre, empleSelec, otroMot, motiv, MODLN, MODLN2;
+    private String id, empresa, nombre, empleSelec, otroMot, motiv;
 
     private CalendarPickerView calendarPickerView, calendarPickerView2;
 
@@ -90,8 +91,6 @@ public class gestionarDiasAdministradores extends Fragment {
     private ArrayAdapter<String> empleadoAdapter;
 
     private SlidingUpPanelLayout slidingLayout;
-
-    private RelativeLayout expander;
 
     private Boolean hayDias = true;
 
@@ -108,8 +107,7 @@ public class gestionarDiasAdministradores extends Fragment {
     public View onCreateView(LayoutInflater inflater, final ViewGroup container,
                              Bundle savedInstanceState) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         root = (ViewGroup) inflater.inflate(R.layout.fragment_gestionar_dias, null, false);
         final Date hoy = new Date();
         final Calendar siguienteAño = Calendar.getInstance();
@@ -118,7 +116,6 @@ public class gestionarDiasAdministradores extends Fragment {
         xpand = root.findViewById(R.id.btnXpand);
         diasSolicTextV2 = (TextView) root.findViewById(R.id.DiasSoliList2);
         diasSolicTextV = (TextView) root.findViewById(R.id.DiasSoliList);
-        expander = (RelativeLayout) root.findViewById(R.id.expanderView);
         diasSolicTextV.setText("Dias libres pendientes de aprobación");
         diasSolicTextV2.setText("Dias libres asignados\nDezlizar para mas detalles");
         calendarPickerView = root.findViewById(R.id.calendar_view);
@@ -291,7 +288,7 @@ public class gestionarDiasAdministradores extends Fragment {
             }
         });
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
         return root;
     }
 
@@ -337,7 +334,7 @@ public class gestionarDiasAdministradores extends Fragment {
                             myMsgtitle.setTextColor(Color.BLACK);
                             final Button btnSiguient = (Button) mEmpleados.findViewById(R.id.btn1);
                             final Button btnCance = (Button) mEmpleados.findViewById(R.id.btn2);
-                            AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getActivity())
+                            AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                     .setCustomTitle(myMsgtitle)
                                     .setView(mEmpleados);
                             final AlertDialog dialogoAdministrarDiasLibresAd = AdministrarDiasLibresAd.create();
@@ -410,7 +407,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                 myMsgtitle.setTextColor(Color.BLACK);
                                 final Button btnSiguient = (Button) mEmpleados.findViewById(R.id.btn1);
                                 final Button btnCance = (Button) mEmpleados.findViewById(R.id.btn2);
-                                AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getActivity())
+                                AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                         .setCustomTitle(myMsgtitle)
                                         .setView(mEmpleados);
                                 final AlertDialog dialogoAdministrarDiasLibresAd = AdministrarDiasLibresAd.create();
@@ -465,7 +462,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                                                 final Button btnAsigDia = (Button) mDosBtn.findViewById(R.id.btn1);
                                                 final Button btnCancelar = (Button) mDosBtn.findViewById(R.id.btn2);
-                                                AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getActivity())
+                                                AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mDosBtn);
                                                 final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
@@ -492,7 +489,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
                                                         final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
                                                         final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
-                                                        AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getActivity())
+                                                        AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
                                                                 .setView(mCambMot);
                                                         final AlertDialog dialogoAdministrarDiasLibres = AdministrarDiasLibres.create();
@@ -519,7 +516,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             public void onClick(View v) {
                                                                 dialogoAdministrarDiasLibres.dismiss();
                                                                 mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                                                final AlertDialog.Builder Login = new AlertDialog.Builder(getActivity());
+                                                                final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                 final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
                                                                 final Button btnJusti = (Button) mJustificar.findViewById(R.id.btn1);
                                                                 Login
@@ -632,7 +629,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 myMsgtitle.setTextColor(Color.BLACK);
                                                 final Button btnSiguiente = (Button) mEmpleados.findViewById(R.id.btn1);
                                                 final Button btnCancelar = (Button) mEmpleados.findViewById(R.id.btn2);
-                                                AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getActivity())
+                                                AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mEmpleados);
                                                 final AlertDialog dialogoAdministrarDiasLibresAd = AdministrarDiasLibresAd.create();
@@ -659,7 +656,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
                                                         final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
                                                         final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
-                                                        AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getActivity())
+                                                        AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
                                                                 .setView(mCambMot);
                                                         final AlertDialog dialogoAdministrarDiasLibres = AdministrarDiasLibres.create();
@@ -687,7 +684,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
                                                                 dialogoAdministrarDiasLibres.dismiss();
                                                                 mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                                                final AlertDialog.Builder Login = new AlertDialog.Builder(getActivity());
+                                                                final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                 final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
                                                                 final Button btnJust = (Button) mJustificar.findViewById(R.id.btn1);
                                                                 Login
@@ -796,8 +793,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private void asignariDiaLibreAd(final String nombre2, final String fecha) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre2).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
@@ -866,7 +862,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                         }
                                                                     }
                                                                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                                    touch(false);
                                                                 }
                                                             });
                                                         }
@@ -889,7 +885,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         }
                                                     }
                                                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                    touch(false);
                                                 }
                                             }
                                         });
@@ -946,7 +942,7 @@ public class gestionarDiasAdministradores extends Fragment {
         final Button btnRechazar = (Button) mTresBtn.findViewById(R.id.btn2);
         btnRechazar.setText("Rechazar");
         final Button btnCance = (Button) mTresBtn.findViewById(R.id.Cancelar);
-        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getActivity())
+        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mTresBtn);
         final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
@@ -964,8 +960,7 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onClick(View v) {
                 Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                touch(true);
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(final DocumentSnapshot documentSnapshot) {
@@ -1008,7 +1003,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         snackbarDS.configSnackbar(getContext(), snackbar);
                                                         snackbar.show();
                                                         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                        touch(false);
                                                     }
                                                 });
                                             }
@@ -1028,8 +1023,7 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onClick(View v) {
                 Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                touch(true);
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(final DocumentSnapshot documentSnapshot) {
@@ -1093,7 +1087,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                 }
                                                             }
                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(false);
                                                         }
                                                     });
 
@@ -1163,7 +1157,7 @@ public class gestionarDiasAdministradores extends Fragment {
         myMsgtitle.setText(nombre3 + " tiene el dia " + date + " libre por " + motivo);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getActivity())
+        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mTresBtn);
         final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
@@ -1190,7 +1184,7 @@ public class gestionarDiasAdministradores extends Fragment {
                 final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
                 final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
                 final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
-                AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getActivity())
+                AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                         .setCustomTitle(titulo)
                         .setView(mCambMot);
                 final AlertDialog dialogoAdministrarDiasLibres = AdministrarDiasLibres.create();
@@ -1216,7 +1210,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
                         dialogoAdministrarDiasLibres.dismiss();
                         mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                        final AlertDialog.Builder Login = new AlertDialog.Builder(getActivity());
+                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                         final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
                         final Button btnJust = (Button) mJustificar.findViewById(R.id.btn1);
                         Login
@@ -1293,8 +1287,7 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onClick(View v) {
                 Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                touch(true);
                 dialogoAdministrarDiasLibresAd2.dismiss();
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre3).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
@@ -1344,7 +1337,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                                             snackbar.show();
                                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                                            touch(false);
                                                                         }
                                                                     });
                                                                 }
@@ -1358,7 +1351,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                             snackbar.show();
                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(false);
                                                         }
                                                     }
                                                 });
@@ -1395,8 +1388,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private void motivNu(final String nombre4, final String fecha, final String motivo) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre4).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
@@ -1429,7 +1421,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                                             snackbar.show();
                                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                                            touch(false);
                                                                         }
                                                                     });
                                                                 }
@@ -1442,12 +1434,11 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                             snackbar.show();
                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(false);
                                                         }
                                                         if (!motivo.equals("O") && m.contains("O")) {
                                                             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(true);
                                                             firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre4).update(fecha.replaceAll("/", "-"), FieldValue.delete()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                 @Override
                                                                 public void onSuccess(Void aVoid) {
@@ -1461,15 +1452,14 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                                             snackbar.show();
                                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                                            touch(false);
                                                                         }
                                                                     });
                                                                 }
                                                             });
                                                         } else {
                                                             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(true);
                                                             Snackbar snackbar = Snackbar.make(root.findViewById(R.id.viewSnack), "Motivo del dia libre " + fecha + " actualizado", 8000)
                                                                     .setActionTextColor(Color.WHITE);
                                                             TextView tv = (TextView) (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
@@ -1477,7 +1467,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             snackbarDS.configSnackbar(getContext(), snackbar);
                                                             snackbar.show();
                                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                                            touch(false);
                                                         }
                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                             if (Menu.getCambioDeFragment()) {
@@ -1507,8 +1497,7 @@ public class gestionarDiasAdministradores extends Fragment {
     private void actualizarCalendarioAd() {
         Log.d("actualizarCalendarioAd", "entra");
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         final Date hoy = new Date();
         final Calendar siguienteAño = Calendar.getInstance();
         siguienteAño.add(Calendar.YEAR, 1);
@@ -1519,8 +1508,19 @@ public class gestionarDiasAdministradores extends Fragment {
         calendarPickerView.setOnDateSelectedListener(new CalendarPickerView.OnDateSelectedListener() {
             @Override
             public void onDateSelected(Date date) {
-                calendarPickerView.clearSelectedDates();
-                dialogoLibresAd(date);
+                try {
+                    calendarPickerView.clearSelectedDates();
+                    String dateS = new SimpleDateFormat("dd/MM/yyyy").format(date);
+                    Date date1 = new SimpleDateFormat("dd/MM/yyyy").parse(dateS);
+                    Date currentTime = Calendar.getInstance().getTime();
+                    if (date1.before(currentTime)) {
+                        Toast.makeText(getActivity(), "Este dia ya ha pasado, seleccione un dia futuro", Toast.LENGTH_SHORT).show();
+                    }else{
+                        dialogoLibresAd(date);
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -1642,8 +1642,19 @@ public class gestionarDiasAdministradores extends Fragment {
                                     calendarPickerView2.setOnDateSelectedListener(new CalendarPickerView.OnDateSelectedListener() {
                                         @Override
                                         public void onDateSelected(Date date) {
-                                            calendarPickerView2.clearSelectedDates();
-                                            dialogoLibresAd(date);
+                                            try {
+                                                calendarPickerView.clearSelectedDates();
+                                                String dateS = new SimpleDateFormat("dd/MM/yyyy").format(date);
+                                                Date date1 = new SimpleDateFormat("dd/MM/yyyy").parse(dateS);
+                                                Date currentTime = Calendar.getInstance().getTime();
+                                                if (date1.before(currentTime)) {
+                                                    Toast.makeText(getActivity(), "Este dia ya ha pasado, seleccione un dia futuro", Toast.LENGTH_SHORT).show();
+                                                }else{
+                                                    dialogoLibresAd(date);
+                                                }
+                                            } catch (ParseException e) {
+                                                e.printStackTrace();
+                                            }
                                         }
 
                                         @Override
@@ -1668,7 +1679,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                     actualizarCalendarioAd();
                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                                     Menu.setCambioDeFragmento(false);
-                                                }else if(!Menu.getCambioDeFragment()){
+                                                } else if (!Menu.getCambioDeFragment()) {
                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                                 }
                                             }
@@ -1712,7 +1723,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 actualizarCalendarioAd();
                                                 slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                                 Menu.setCambioDeFragmento(false);
-                                            }else if(!Menu.getCambioDeFragment()){
+                                            } else if (!Menu.getCambioDeFragment()) {
                                                 slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                             }
                                         }
@@ -1722,16 +1733,25 @@ public class gestionarDiasAdministradores extends Fragment {
                                     diasSolicTextV2.setText("No hay dias libres asignados por ahora");
                                 }
                                 Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                touch(false);
                             } else {
                                 Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                touch(false);
                             }
                         }
                     });
                 }
             }
         });
+    }
+
+    private void touch(Boolean touch) {
+        if (touch) {
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        } else if (!touch) {
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        }
     }
 
     @Override

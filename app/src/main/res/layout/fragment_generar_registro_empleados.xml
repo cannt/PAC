@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Menu.Empleados.generarRegistroEmpleados">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/ic_regis"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:background="#01407B"
+            android:backgroundTint="#01407B"
+            android:padding="0dp"
+            android:scaleType="center"
+            android:visibility="invisible"
+            app:borderWidth="0dp"
+            app:elevation="4dp"
+            app:fabCustomSize="56dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:maxImageSize="56dp"
+            app:srcCompat="@drawable/ic_regis_grand" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

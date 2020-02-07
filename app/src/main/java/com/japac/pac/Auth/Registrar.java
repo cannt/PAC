@@ -27,7 +27,6 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.japac.pac.Menu.MenuAdmin;
 import com.japac.pac.R;
 
 import java.util.ArrayList;

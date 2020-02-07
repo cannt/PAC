@@ -19,7 +19,6 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
@@ -42,15 +41,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.github.gcacace.signaturepad.views.SignaturePad;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -75,12 +73,14 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.collect.Iterables;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
@@ -88,29 +88,37 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+import com.google.maps.android.SphericalUtil;
+import com.japac.pac.Auth.Login;
 import com.japac.pac.Localizacion.LocalizacionObra;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
 import com.japac.pac.Marcadores.MarcadoresEmpleados;
 import com.japac.pac.Marcadores.MarcadoresObras;
-import com.japac.pac.Menu.MenuAdmin;
 import com.japac.pac.Menu.ViewPagers.Menu;
+import com.japac.pac.PDF.TemplatePDF;
 import com.japac.pac.R;
 import com.japac.pac.adaptadorEmpleadosLista;
-import com.japac.pac.adaptadorObrasLista;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.text.DateFormat;
 import java.text.Normalizer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
@@ -161,8 +169,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
 
     private Map<String, String> markersMapObras, markersMapEmpleado;
+    private Map<String, Object> map = new HashMap<>();
 
-    private String id, IoF, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO, sa, codigo;
+    private String trayecto, obraselect, nombreNu, emailConf, entrada_salida, SHAREempleado, SHAREano, SHAREmes, cif, ano1, mes1, mesnu, id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, busquedaString, jefes, codigoEmpleadoChech, sa, codigo;
     private FirebaseAuth mAuth;
     public static final int Permisos = 8991;
     String[] permisos = new String[]{
@@ -179,7 +188,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private FloatingActionButton icCrear, icReactivar, gps;
 
-    private View mNombres, mCuatroBtn, mDosText, mDos;
+    private View mNombres, mTres, mDos, mAnoMes, mLogin, mObras, mFueraObra, mFirmar;
 
     private EditText mBuscar;
 
@@ -187,15 +196,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private GoogleMap mMap;
 
-    private GeoPoint geoPointLocalizaDirc, geoPointLocalizayo;
+    private GeoPoint geoPointLocalizayo;
 
     private FusedLocationProviderClient mProovedor;
 
     private LocalizacionUsuario mLocalizarUsuario;
 
-    private LocalizacionObra mLocalizacionObra;
-
-    CollectionReference geoFirestoreRefJfs, geoFirestoreRef2Jfs, geoFirestoreRefObs, geoFirestoreRefObs2;
+    CollectionReference geoFirestoreRefJfs, geoFirestoreRef2Jfs, geoFirestoreRefObs;
 
     FirebaseFirestore mDb;
     FirebaseStorage almacen;
@@ -207,13 +214,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private Marker marcadorCrea;
 
-    private boolean obraBo = false, igual = false, crearMark = false, cambiar = false, ElimJefe = false, arrastrado = false;
+    private boolean trayectoBo = false, crearMark = false, arrastrado = false, next = true, end = false, emailShare, readyObs = false, readyJfs = false, alreadyObs = false, alreadyJfs = false;
 
-    private ArrayAdapter<String> jefeAdapter;
+    private ArrayAdapter<String> jefeAdapter, anoAdapter, obraAdapter;
 
-    private Spinner jefeSpinner;
+    private Spinner jefeSpinner, anoMesSpinner, obraSpinner;
 
-    private Double direccionLat, direccionLong;
+    private Double direccionLat, direccionLong, latitudGuardada, longitudGuardada, latitudDetectada, longitudDetectada, distan, distan2 = 1.0, dis;
 
     private SlidingUpPanelLayout slidingLayout2;
 
@@ -223,17 +230,15 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private RecyclerView recyclerView;
 
-    private ArrayList<LocalizacionUsuario> mLocalizacionUsuarios = new ArrayList<>();
-
-    private CountDownTimer timerObs, timerJfs;
-
-    private int count2 = 0;
+    private CountDownTimer timerObs, timerJfs, timerPDF, timerLeergeo;
 
     private ArrayList<String> lM;
 
     static final String patron = "0123456789BCDGHIKLMNOPQRSTUVWXYZbcdghiklmnopqrstuvwxyz";
 
     static SecureRandom aleatorio = new SecureRandom();
+
+    private File folder, localFile, fileShare;
 
     public gestionarEmpleados() {
 
@@ -243,7 +248,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        View RootView = inflater.inflate(R.layout.fragment_gestionar_empleados, container, false);
         if (compruebapermisos() && isServicesOK()) {
+
             mAuth = FirebaseAuth.getInstance();
             id = mAuth.getCurrentUser().getUid();
             mDb = FirebaseFirestore.getInstance();
@@ -261,16 +268,18 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         nombreAm = documentSnapshot.getString("nombre");
                         emailAn = documentSnapshot.getString("email");
                         codigoEmpleado = documentSnapshot.getString("codigo empleado");
+                        cif = documentSnapshot.getString("cif");
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
                         slidingLayout2 = (SlidingUpPanelLayout) getView().findViewById(R.id.sliding_layout2);
-                        slidingLayout2.setTouchEnabled(false);
+                        slidingLayout2.setTouchEnabled(true);
                         xpand2 = (ImageView) getView().findViewById(R.id.btnXpand2);
-                        slidingLayout2.setDragView(xpand2);
+                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
                         xpand2.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
+                                ocultarTeclado();
                                 if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                                     if (Menu.getCambioDeFragment()) {
                                         setUpRecyclerView();
@@ -293,10 +302,21 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     xpand2.setImageResource(R.drawable.ic_expand_down);
 
                                 }
-
                             }
                         });
-                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
+                        slidingLayout2.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+                            @Override
+                            public void onPanelSlide(View panel, float slideOffset) {
+
+                            }
+
+                            @Override
+                            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                                if (previousState.equals(SlidingUpPanelLayout.PanelState.EXPANDED) && newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
+                                    slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                                }
+                            }
+                        });
                         gps = (FloatingActionButton) getView().findViewById(R.id.ic_gps);
                         icCrear = (FloatingActionButton) getView().findViewById(R.id.ic_crearEmpleado);
                         icReactivar = (FloatingActionButton) getView().findViewById(R.id.ic_reactivar);
@@ -317,7 +337,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 }
             });
         }
-        return inflater.inflate(R.layout.fragment_gestionar_empleados, container, false);
+        return RootView;
     }
 
     private void setUpRecyclerView() {
@@ -339,7 +359,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public void onItemClick(DocumentSnapshot documentSnapshot, int position) {
                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 GeoPoint geoPoint = adaptadorEmpleadosLista.getItem(position).getGeoPoint();
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 3000, null);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 600, null);
             }
         });
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -349,8 +369,125 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             }
 
             @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                dAdministrarEmpleados(adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre());
+            public void onSwiped(@NonNull final RecyclerView.ViewHolder viewHolder, int direction) {
+                if (direction == ItemTouchHelper.LEFT) {
+                    Menu.cargando(true);
+                    touch(true);
+                    mDb.collection("Empresas").document(empresa).collection("Empleado").document(adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            final TextView myMsgtitle = new TextView(getActivity());
+                            myMsgtitle.setText("Introduzca los credenciales del empleado " + adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre());
+                            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                            myMsgtitle.setTextColor(Color.BLACK);
+                            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+                            final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
+                            final EditText semail = mLogin.findViewById(R.id.emailDialogo);
+                            semail.setEnabled(false);
+                            semail.setText(documentSnapshot.getString("email"));
+                            final EditText scontraseña = mLogin.findViewById(R.id.contraseñaDialogo);
+                            final Button botonSig = mLogin.findViewById(R.id.btn1);
+                            final Button botonCan = mLogin.findViewById(R.id.btn2);
+                            Login
+                                    .setView(mLogin)
+                                    .setCustomTitle(myMsgtitle);
+                            final AlertDialog dialogoLogin = Login.create();
+                            botonSig.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoLogin.dismiss();
+                                    final String emailNu = semail.getText().toString();
+                                    final String contraseñaNu = scontraseña.getText().toString();
+                                    if (!emailNu.isEmpty() && !contraseñaNu.isEmpty()) {
+                                        if (!emailNu.equals(emailAn)) {
+                                            mAuth.signOut();
+                                            mAuth.signInWithEmailAndPassword(emailNu, contraseñaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                                    if (task.isSuccessful()) {
+                                                        id = mAuth.getCurrentUser().getUid();
+                                                        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                if (documentSnapshot.exists()) {
+
+                                                                    codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                                                                    comp = documentSnapshot.getString("comprobar");
+                                                                    empresa = documentSnapshot.getString("empresa");
+                                                                    nombreNu = documentSnapshot.getString("nombre");
+                                                                    emailConf = documentSnapshot.getString("email");
+                                                                    roles = documentSnapshot.getString("rol");
+                                                                    obcomprueba = documentSnapshot.getString("obra");
+                                                                    if (comp.equals("iniciada")) {
+                                                                        entrada_salida = "Salida";
+                                                                    } else if (comp.equals("finalizada") || comp.equals("no")) {
+                                                                        entrada_salida = "Entrada";
+                                                                    }
+                                                                    if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                                                                        obcomprueba = documentSnapshot.getString("obra");
+                                                                    }
+                                                                    dRegistrar();
+                                                                }
+                                                            }
+                                                        });
+                                                    } else {
+                                                        Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                                        dialogoLogin.show();
+                                                    }
+                                                }
+                                            });
+                                        } else if (emailNu.equals(emailAn)) {
+                                            Menu.cargando(true);
+                                            touch(true);
+                                            semail.getText().clear();
+                                            semail.setError("Introduzca el email del empleado invitado");
+                                            scontraseña.getText().clear();
+
+                                        }
+                                    } else if (emailNu.isEmpty()) {
+                                        semail.setError("Introduzca el email del empleado invitado");
+                                        if (contraseñaNu.isEmpty()) {
+                                            scontraseña.setError("Introduzca la contraseña del empleado invitado");
+                                        }
+
+                                    } else if (contraseñaNu.isEmpty()) {
+                                        scontraseña.setError("Introduzca el email del empleado invitado");
+                                        if (emailNu.isEmpty()) {
+                                            semail.setError("Introduzca la contraseña del empleado invitado");
+                                        }
+                                    }
+                                }
+                            });
+                            botonCan.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoLogin.dismiss();
+                                }
+                            });
+                            dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(final DialogInterface dialog) {
+                                    scontraseña.setEnabled(true);
+                                    botonSig.setEnabled(true);
+                                    botonCan.setEnabled(true);
+                                    Menu.cargando(false);
+                                    touch(false);
+                                }
+                            });
+                            dialogoLogin.setCanceledOnTouchOutside(false);
+                            if (mLogin.getParent() != null) {
+                                ((ViewGroup) mLogin.getParent()).removeView(mLogin);
+                                mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+                                dialogoLogin.show();
+
+                            } else {
+                                dialogoLogin.show();
+                            }
+                        }
+                    });
+                } else if (direction == ItemTouchHelper.RIGHT) {
+                    dAdministrarEmpleados(adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre());
+                }
                 adaptadorEmpleadosLista.notifyItemChanged(viewHolder.getAdapterPosition());
 
             }
@@ -364,6 +501,24 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         if (adaptadorEmpleadosLista != null) {
             adaptadorEmpleadosLista.stopListening();
         }
+        if (!emailShare) {
+            deleteRecursive(folder);
+        }
+    }
+
+    public void onPause() {
+        super.onPause();
+        if (!emailShare) {
+            deleteRecursive(folder);
+        }
+    }
+
+    public void onResume() {
+        super.onResume();
+        if (emailShare) {
+            emailShare = false;
+            deleteRecursive(folder);
+        }
     }
 
     private void centrarCamara() {
@@ -373,23 +528,30 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
                     Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(true);
                     GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
 
                     mLocaliza = new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude());
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                     setCamara();
                 }
             }
         });
     }
 
+    private void touch(Boolean touch) {
+        if (touch) {
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        } else if (!touch) {
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        }
+    }
+
     private void setCamara() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         double boundaryAbajo = mLocaliza.latitude - .1;
         double boundaryIzquierdo = mLocaliza.longitude - .1;
         double boundaryArriba = mLocaliza.latitude + .1;
@@ -404,7 +566,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             mMap.animateCamera(CameraUpdateFactory.zoomTo(15), 2000, null);
         }
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
 
     }
 
@@ -412,13 +574,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
         if (mLocalizarUsuario == null) {
             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(true);
             mLocalizarUsuario = new LocalizacionUsuario();
             mLocalizarUsuario.setId(id);
             mLocalizarUsuario.setNombre(nombre);
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             localizacion();
 
         }
@@ -428,8 +589,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
         if (mLocalizarUsuario != null) {
             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(true);
             DocumentReference locationRef = mDb
                     .collection("Empresas")
                     .document(empresa)
@@ -439,14 +599,14 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                     centrarCamara();
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                 }
             });
         }
@@ -455,8 +615,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void init() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         mBuscar.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -464,10 +623,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         || actionId == EditorInfo.IME_ACTION_DONE
                         || event.getAction() == KeyEvent.ACTION_DOWN
                         || event.getAction() == KeyEvent.KEYCODE_ENTER) {
-
                     geoLocalizar();
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
 
                 }
                 return false;
@@ -483,8 +641,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void geoLocalizar() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         busquedaString = mBuscar.getText().toString();
         String busc = Normalizer.normalize(busquedaString.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         InputMethodManager inputManager = (InputMethodManager)
@@ -512,8 +669,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                         if (list.size() > 0) {
                             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(true);
                             final Address address = list.get(0);
                             MarkerOptions options = new MarkerOptions()
                                     .title("Crear obra")
@@ -524,7 +680,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                             }
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(address.getLatitude(), address.getLongitude()), ZOOM_PREDETERMINADO));
-
                             if (marcadorCrea != null) {
 
                                 marcadorCrea.remove();
@@ -565,12 +720,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     mMap.setOnInfoWindowClickListener(this);
                                 }
                             });
+                            mBuscar.getText().clear();
                         } else {
                             mBuscar.getText().clear();
                         }
                     }
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                 }
             });
         }
@@ -580,8 +736,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void localizacion() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
@@ -592,39 +747,14 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (task.isSuccessful()) {
                             Location locacizacionActual = (Location) task.getResult();
                             geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
-                            final int[] online = new int[1];
-                            online[0] = 0;
-                            if (obraBo) {
-                                obraBo = false;
-                                if (crearMark) {
-                                    geoPointLocalizaDirc = new GeoPoint(mLocalizaAddress.latitude, mLocalizaAddress.longitude);
-                                    mLocalizacionObra.setGeoPoint(geoPointLocalizaDirc);
-                                } else if (!crearMark) {
-                                    mLocalizacionObra.setGeoPoint(geoPointLocalizayo);
-                                }
-                                crearMark = false;
-                                if (igual) {
-                                    igual = false;
-                                    mDb.collection("Empresas").document(empresa).collection("Obras").document(ob.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                        @Override
-                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                            online[0] = documentSnapshot.getLong("online").intValue();
-                                            mDb.collection("Empresas").document(empresa).collection("Obras").document(ob.toLowerCase().trim()).delete();
-                                        }
-                                    });
-                                }
-                                mLocalizacionObra.setOnline(online[0]);
-                                mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).set(mLocalizacionObra);
-                            } else if (!obraBo) {
-                                mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
-                                mLocalizarUsuario.setTimestamp(null);
-                            }
+                            mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
+                            mLocalizarUsuario.setTimestamp(null);
                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(false);
                             guardarLocalizacion();
                         } else {
                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(false);
                         }
                     }
                 });
@@ -637,33 +767,31 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void iniciarMapa() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapa);
         mapFragment.getMapAsync(gestionarEmpleados.this);
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
 
     }
 
     public boolean isServicesOK() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getActivity());
 
         if (available == ConnectionResult.SUCCESS) {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             return true;
         } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(getActivity(), available, ERROR_DIALOGO_PEDIR);
             dialog.show();
         } else {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             Toast.makeText(getActivity(), "Mapas no funciona", Toast.LENGTH_SHORT).show();
 
         }
@@ -672,8 +800,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private boolean compruebapermisos() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
@@ -687,359 +814,20 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             return false;
         }
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
         return true;
     }
 
     private void ocultarTeclado() {
-        this.getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-    }
-
-    private void firestoreObras() {
-        Log.d("FIRESTORE OBRAS", "ENTRA");
-        Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
-        obs = new ArrayList<String>();
-        obs.clear();
-        if (markersMapObras != null) {
-            markersMapObras.clear();
-        }
-        geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
-            @Override
-            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
-                List<Task<QuerySnapshot>> tasks2 = new ArrayList<Task<QuerySnapshot>>();
-                if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : task.getResult()) {
-                        String obran = document.getString("obra");
-                        Log.d("obran", obran);
-                        String jefe1 = document.getString("jefe");
-                        GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
-                        long online = document.getLong("online");
-                        if (jefe1 != null) {
-                            if (jefe1.equals("no")) {
-                                jefe1 = "sin jefe de obra";
-                            }
-                        } else if (jefe1 == null) {
-                            jefe1 = "sin jefe de obra";
-                        }
-                        if (!obs.contains(obran)) {
-                            añadirMarcadores(geoPoint2, obran, jefe1, online);
-                            obs.add(obran);
-                        }
-                    }
-                    mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                        @Override
-                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                            if (documentSnapshot.contains("obra")) {
-                                obcomprueba = documentSnapshot.getString("obra");
-                            }
-                        }
-                    });
-                    Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-                } else if (!task.isSuccessful()) {
-                    Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-                    obs.add("SIN OBRAS");
-                }
-                return Tasks.whenAllSuccess(tasks2);
-            }
-
-        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @Override
-            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (obs.contains("SIN OBRAS")) {
-                            obs.remove("SIN OBRAS");
-                        }
-                        if (sobra != null) {
-                            mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                @Override
-                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                    if (documentSnapshot.exists()) {
-                                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(documentSnapshot.getGeoPoint("geoPoint").getLatitude(), documentSnapshot.getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
-                                    }
-                                }
-                            });
-                        }
-                        sobra = null;
-                        mBuscar.getText().clear();
-                        busquedaString = null;
-
-                    }
-                });
-            }
-        });
-    }
-
-    private void listenerObs() {
-        Log.d("listenerObs", "INICIADO");
-        final int[] count = {0};
-        geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
-        geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
-            @Override
-            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
-                List<Task<QuerySnapshot>> tasks2 = new ArrayList<Task<QuerySnapshot>>();
-                if (task.isSuccessful()) {
-                    Log.d("MdbOBS", "SUCCESS");
-                    firestoreObras();
-                    for (DocumentSnapshot document : task.getResult()) {
-                        Log.d("RECORRE OBS", Integer.toString(count[0]));
-                        Log.d("RECORRE OBS", document.getString("nombre"));
-                        count[0]++;
-                        Log.d("RECORRE OBS 2", Integer.toString(count[0]));
-                    }
-
-                }
-                return Tasks.whenAllSuccess(tasks2);
-            }
-
-        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @Override
-            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                Log.d("TASK OBS", "TERMINADA");
-                Log.d("TICK OBS", "INICIADO");
-                timerObs = new CountDownTimer(30000, 1000) {
-                    @Override
-                    public void onTick(long millisUntilFinished) {
-                        Log.d("TICK OBS", Long.toString(millisUntilFinished));
-                        Log.d("SIZE OBS", Integer.toString(obs.size()));
-                        Log.d("COUNT SIZE", String.valueOf(count[0]));
-                        if (obs.size() == count[0]) {
-                            Log.d("OBS SIZE", " ES COUNT[0]");
-                            timerObs.cancel();
-                            timerObs.onFinish();
-
-                        }
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        if (obs.size() != count[0]) {
-                            timerObs.start();
-                        } else if (obs.size() == count[0]) {
-                            final int[] cuentaObs = {obs.size()};
-                            geoFirestoreRefObs.addSnapshotListener(new EventListener<QuerySnapshot>() {
-                                @Override
-                                public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
-                                    if (e != null) {
-                                        Log.e(TAG, "onEvent: Listen failed", e);
-                                        return;
-                                    }
-                                    if (queryDocumentSnapshots != null) {
-                                        for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
-                                            if (documentChange.getDocument().exists()) {
-                                                switch (documentChange.getType()) {
-                                                    case ADDED:
-                                                    case MODIFIED:
-                                                    case REMOVED:
-                                                        Log.d("cuentaObs PRIN", Integer.toString(cuentaObs[0]));
-                                                        if (cuentaObs[0] == 0) {
-                                                            mMap.clear();
-                                                            firestoreObras();
-                                                            firestoreNombres();
-                                                        }
-                                                        if (cuentaObs[0] > 0) {
-                                                            cuentaObs[0] = cuentaObs[0] - 1;
-                                                        }
-                                                        Log.d("cuentaObs FIN", Integer.toString(cuentaObs[0]));
-                                                        break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                }.start();
-            }
-        });
-    }
-
-    private void listenerJfs() {
-        Log.d("listenerJfs", "INICIADO");
-        count2 = 0;
-        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
-            @Override
-            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
-                List<Task<QuerySnapshot>> tasks2 = new ArrayList<Task<QuerySnapshot>>();
-                if (task.isSuccessful()) {
-                    Log.d("MdbJFS", "SUCCESS");
-                    firestoreNombres();
-                    for (DocumentSnapshot document : task.getResult()) {
-                        Log.d("RECORRE JFS", Integer.toString(count2));
-                        Log.d("RECORRE JFS", document.getString("nombre"));
-                        count2++;
-                        Log.d("RECORRE JFS 2", Integer.toString(count2));
-                    }
-
-                }
-                return Tasks.whenAllSuccess(tasks2);
-            }
-
-        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @Override
-            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                Log.d("TASK JFS", "TERMINADA");
-                Log.d("TICK JFS", "INICIADO");
-                timerJfs = new CountDownTimer(30000, 1000) {
-                    @Override
-                    public void onTick(long millisUntilFinished) {
-                        Log.d("TICK JFS", Long.toString(millisUntilFinished));
-                        if (lM != null) {
-                            Log.d("lM", "NO NULL");
-                            if (!lM.isEmpty()) {
-                                Log.d("SIZE lM", Integer.toString(lM.size()));
-                                if (lM.size() == count2) {
-                                    Log.d("SIZE count2", Integer.toString(count2));
-                                    timerJfs.cancel();
-                                    timerJfs.onFinish();
-                                }
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        if (lM.size() != count2) {
-                            Log.d("FINISHED JFS", "SIZE MAL");
-                            timerJfs.start();
-                        } else if (lM.size() == count2) {
-                            final int[] cuentaEmp = {lM.size()};
-                            final ArrayList<String> Marca = new ArrayList<>();
-                            Log.d("cuentaEmp INICIO", String.valueOf(cuentaEmp[0]));
-                            mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
-                                @Override
-                                public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
-                                    if (e != null) {
-                                        Log.e(TAG, "onEvent: Listen failed", e);
-                                        return;
-                                    }
-                                    if (queryDocumentSnapshots != null) {
-                                        final Boolean[] marcBolean = {false};
-                                        for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
-                                            if (documentChange.getDocument().exists()) {
-                                                switch (documentChange.getType()) {
-                                                    case ADDED:
-                                                    case MODIFIED:
-                                                    case REMOVED:
-                                                        Log.d("ACTUALIZA", "ENTRA");
-                                                        Log.d("DOCUMENTO", documentChange.getDocument().toString());
-                                                        if (!Marca.contains(documentChange.getDocument().getString("nombre"))) {
-                                                            Log.d("MARCA", "NO CONTIENE JEFE");
-                                                            Marca.add(documentChange.getDocument().getString("nombre"));
-                                                            Log.d("MARCA LIST", Marca.toString());
-                                                        } else if (Marca.contains(documentChange.getDocument().getString("nombre"))) {
-                                                            Log.d("MARCA", "CONTIENE JEFE");
-                                                            marcBolean[0] = true;
-                                                            Log.d("marcBolean", marcBolean.toString());
-                                                        }
-                                                        if (marcBolean[0]) {
-                                                            Log.d("marcBolean", "ENTRA");
-                                                            marcBolean[0] = false;
-                                                            mMap.clear();
-                                                            firestoreObras();
-                                                            firestoreNombres();
-                                                        }
-                                                        break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                }.start();
-            }
-        });
-    }
-
-    private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId) {
-        Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        vectorDrawable.setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
-        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        vectorDrawable.draw(canvas);
-        Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        return BitmapDescriptorFactory.fromBitmap(bitmap);
-    }
-
-    private void añadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
-        Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        markersMapObras = new HashMap<String, String>();
-
-        MarkerOptions mo = new MarkerOptions()
-                .rotation(0)
-                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_casa));
-        Marker mkr = mMap.addMarker(mo
-                .title(title)
-                .snippet(snippet)
-                .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        MarcadoresObras marcadoresObras = new MarcadoresObras(geoPoint1, title, snippet, title, onl);
-        markersMapObras.put(marcadoresObras.getTag(), mkr.getId());
-        mMap.setOnMarkerClickListener(this);
-        mkr.showInfoWindow();
-        Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-    }
-
-    private void añadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
-        Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        Log.d("EMPLEADOS", "AÑADE MARCADOR");
-        markersMapEmpleado = new HashMap<String, String>();
-        String estadoDef = null;
-        String ob = obra;
-        MarkerOptions mo = new MarkerOptions()
-                .rotation(0)
-                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
-        if (obra != null) {
-            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
-            estadoDef = "online";
-            ob = obra;
-        }
-        if (obra == null) {
-            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
-            estadoDef = "offline";
-            ob = "null";
-        }
-
-        Marker mkr = mMap.addMarker(mo
-                .title(nombre)
-                .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        if (obra != null) {
-            mkr.setSnippet(obra);
-        }
-        MarcadoresEmpleados marcadoresEmpleados = new MarcadoresEmpleados(geoPoint1, nombre, ob, estadoDef, id);
-        markersMapEmpleado.put(marcadoresEmpleados.getTag(), mkr.getId());
-        mMap.setOnInfoWindowClickListener(this);
-        mMap.setOnMarkerClickListener(this);
-        mkr.showInfoWindow();
-        Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
     }
 
     private void firestoreNombres() {
         Log.d("FIRESTORE NOMBRES", "ENTRA");
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
+        alreadyJfs = false;
         geoFirestoreRefJfs = mDb.collection("Empresas").document(empresa).collection("Empleado");
         geoFirestoreRef2Jfs = mDb.collection("Empresas").document(empresa).collection("Administrador");
         jfs = new ArrayList<String>();
@@ -1095,11 +883,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         jefeSpinner.setAdapter(jefeAdapter);
                         lM = new ArrayList();
                         lM.clear();
-                        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
                             @Override
-                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                if (task.isSuccessful()) {
-                                    for (final QueryDocumentSnapshot document2 : task.getResult()) {
+                            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
+                                List<Task<QuerySnapshot>> tasks3 = new ArrayList<Task<QuerySnapshot>>();
+                                if (task2.isSuccessful()) {
+                                    for (final QueryDocumentSnapshot document2 : task2.getResult()) {
                                         String jefe = document2.getString("nombre");
                                         if (!lM.contains(jefe)) {
                                             if (jefe != null) {
@@ -1112,36 +901,310 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         }
                                     }
                                 }
+                                return Tasks.whenAllSuccess(tasks3);
+                            }
+                        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+                            @RequiresApi(api = Build.VERSION_CODES.O)
+                            @Override
+                            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                                readyJfs = true;
+                                alreadyJfs = true;
+                                Menu.cargando(false);
+                                touch(false);
                             }
                         });
-                        Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
                     }
                 });
             }
         });
     }
 
-    private void dAdministrarEmpleados(final String empleadoSelec) {
+    private void listenerJfs() {
+        firestoreNombres();
+        Log.d("listenerJfs", "INICIADO");
+        timerJfs = new CountDownTimer(30000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                Log.d("TICK JFS", Long.toString(millisUntilFinished));
+                if (readyJfs) {
+                    timerJfs.cancel();
+                    timerJfs.onFinish();
+                }
+            }
 
+            @Override
+            public void onFinish() {
+                if (readyJfs) {
+                    readyJfs = false;
+                    final int[] cuentaEmp = {lM.size()};
+                    final ArrayList<String> Marca = new ArrayList<>();
+                    Log.d("cuentaEmp INICIO", String.valueOf(cuentaEmp[0]));
+                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+                                Log.e(TAG, "onEvent: Listen failed", e);
+                                return;
+                            }
+                            if (queryDocumentSnapshots != null) {
+                                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                                    if (documentChange.getDocument().exists()) {
+                                        switch (documentChange.getType()) {
+                                            case ADDED:
+                                            case MODIFIED:
+                                            case REMOVED:
+                                                Log.d("listenerJfs", "ENTRA");
+                                                if (alreadyJfs) {
+                                                    Log.d("alreadyJfs", "TRUE");
+                                                    mMap.clear();
+                                                    firestoreNombres();
+                                                    firestoreObras();
+                                                }
+                                                break;
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }.start();
+    }
+
+    private void firestoreObras() {
+        Log.d("FIRESTORE OBRAS", "ENTRA");
+        Menu.cargando(true);
+        touch(true);
+        alreadyObs = false;
+        geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
+        obs = new ArrayList<String>();
+        obs.clear();
+        if (markersMapObras != null) {
+            markersMapObras.clear();
+        }
+        geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+            @Override
+            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
+                List<Task<QuerySnapshot>> tasks2 = new ArrayList<Task<QuerySnapshot>>();
+                if (task.isSuccessful()) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
+                        String obran = document.getString("obra");
+                        Log.d("obran", obran);
+                        String jefe1 = document.getString("jefe");
+                        GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
+                        long online = document.getLong("online");
+                        if (jefe1 != null) {
+                            if (jefe1.equals("no")) {
+                                jefe1 = "sin jefe de obra";
+                            }
+                        } else if (jefe1 == null) {
+                            jefe1 = "sin jefe de obra";
+                        }
+                        if (!obs.contains(obran)) {
+                            añadirMarcadores(geoPoint2, obran, jefe1, online);
+                            obs.add(obran);
+                        }
+                    }
+                    mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            if (documentSnapshot.contains("obra")) {
+                                obcomprueba = documentSnapshot.getString("obra");
+                            }
+                        }
+                    });
+                    Menu.cargando(false);
+                    touch(false);
+                } else if (!task.isSuccessful()) {
+                    Menu.cargando(false);
+                    touch(false);
+                    obs.add("SIN OBRAS");
+                }
+                return Tasks.whenAllSuccess(tasks2);
+            }
+
+        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (obs.contains("SIN OBRAS")) {
+                            obs.remove("SIN OBRAS");
+                        }
+                        mBuscar.getText().clear();
+                        busquedaString = null;
+                        readyObs = true;
+                        alreadyObs = true;
+                    }
+                });
+            }
+        });
+    }
+
+    private void listenerObs() {
+        firestoreObras();
+        Log.d("listenerObs", "INICIADO");
+        final int[] contador = {0};
+        timerObs = new CountDownTimer(30000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                contador[0]++;
+                Log.d("contador OBS", String.valueOf(contador[0]));
+                Log.d("TICK OBS", Long.toString(millisUntilFinished));
+                if (readyObs) {
+                    contador[0] = 30;
+                }
+                if (contador[0] == 30) {
+                    Log.d("contador OBS ENTRA", String.valueOf(contador[0]));
+                    timerObs.cancel();
+                    timerObs.onFinish();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                if (readyObs) {
+                    Log.d("readyObs", "TRUE");
+                    geoFirestoreRefObs.addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+                                Log.e(TAG, "onEvent: Listen failed", e);
+                                return;
+                            }
+                            if (queryDocumentSnapshots != null) {
+                                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                                    if (documentChange.getDocument().exists()) {
+                                        switch (documentChange.getType()) {
+                                            case ADDED:
+                                            case MODIFIED:
+                                            case REMOVED:
+                                                Log.d("listenerObs", "ENTRA");
+                                                if (alreadyObs) {
+                                                    Log.d("alreadyObs", "TRUE");
+                                                    mMap.clear();
+                                                    firestoreObras();
+                                                    firestoreNombres();
+
+                                                }
+                                                break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else if (!readyObs) {
+                    Log.d("readyObs", "FALSE");
+                    timerObs.start();
+                }
+            }
+        }.start();
+    }
+
+    private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId) {
+        Menu.cargando(true);
+        touch(true);
+        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+        vectorDrawable.setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
+        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        vectorDrawable.draw(canvas);
+        Menu.cargando(false);
+        touch(false);
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
+    }
+
+    private void añadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
+        Menu.cargando(true);
+        touch(true);
+        markersMapObras = new HashMap<String, String>();
+
+        MarkerOptions mo = new MarkerOptions()
+                .rotation(0)
+                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_casa));
+        Marker mkr = mMap.addMarker(mo
+                .title(title)
+                .snippet(snippet)
+                .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
+        MarcadoresObras marcadoresObras = new MarcadoresObras(geoPoint1, title, snippet, title, onl);
+        markersMapObras.put(marcadoresObras.getTag(), mkr.getId());
+        mMap.setOnMarkerClickListener(this);
+        mkr.showInfoWindow();
+        Menu.cargando(false);
+        touch(false);
+    }
+
+    private void añadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
+        Menu.cargando(true);
+        touch(true);
+        Log.d("EMPLEADOS", "AÑADE MARCADOR");
+        markersMapEmpleado = new HashMap<String, String>();
+        String estadoDef = null;
+        String ob = obra;
+        MarkerOptions mo = new MarkerOptions()
+                .rotation(0)
+                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
+        if (obra != null) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
+            estadoDef = "online";
+            ob = obra;
+        }
+        if (obra == null) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
+            estadoDef = "offline";
+            ob = "null";
+        }
+
+        Marker mkr = mMap.addMarker(mo
+                .title(nombre)
+                .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
+        if (obra != null) {
+            mkr.setSnippet(obra);
+        }
+        MarcadoresEmpleados marcadoresEmpleados = new MarcadoresEmpleados(geoPoint1, nombre, ob, estadoDef, id);
+        markersMapEmpleado.put(marcadoresEmpleados.getTag(), mkr.getId());
+        mMap.setOnInfoWindowClickListener(this);
+        mMap.setOnMarkerClickListener(this);
+        mkr.showInfoWindow();
+        Menu.cargando(false);
+        touch(false);
+    }
+
+    private void dAdministrarEmpleados(final String empleadoSelec) {
+        Menu.cargando(true);
+        touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Menu de administracion de empleados");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-        final Button botonDesactivar = mDos.findViewById(R.id.btn1);
+        mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+        final Button botonDesactivar = mTres.findViewById(R.id.btn2);
         botonDesactivar.setText("Desactivar");
-        final Button botonCancelar = mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder obraAdministrarEmpledos = new AlertDialog.Builder(getActivity())
+        final Button botonRegistro = mTres.findViewById(R.id.btn1);
+        botonRegistro.setText("Generar Registro");
+        final Button botonCancelar = mTres.findViewById(R.id.Cancelar);
+        final AlertDialog.Builder obraAdministrarEmpledos = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
         obraAdministrarEmpledos
-                .setView(mDos);
+                .setView(mTres);
         final AlertDialog dialogoAdministradorEmpleados = obraAdministrarEmpledos.create();
         botonDesactivar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dialogoAdministradorEmpleados.dismiss();
                 dEliminarEmpleado(empleadoSelec);
+            }
+        });
+        botonRegistro.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAdministradorEmpleados.dismiss();
+                leerRegistro(empleadoSelec);
             }
         });
         botonCancelar.setOnClickListener(new View.OnClickListener() {
@@ -1154,13 +1217,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onShow(DialogInterface dialog) {
                 botonDesactivar.setEnabled(true);
+                botonRegistro.setEnabled(true);
                 botonCancelar.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
             }
         });
         dialogoAdministradorEmpleados.setCanceledOnTouchOutside(false);
-        if (mDos.getParent() != null) {
-            ((ViewGroup) mDos.getParent()).removeView(mDos);
-            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+        if (mTres.getParent() != null) {
+            ((ViewGroup) mTres.getParent()).removeView(mTres);
+            mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
             dialogoAdministradorEmpleados.show();
         } else {
             dialogoAdministradorEmpleados.show();
@@ -1169,7 +1235,405 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     }
 
+    private void leerRegistro(final String empleado) {
+        mDb
+                .collection("Empresas")
+                .document(empresa)
+                .collection("Empleado")
+                .document(empleado)
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot1) {
+                        if (documentSnapshot1.exists()) {
+                            Menu.cargando(true);
+                            touch(true);
+                            final String nif = documentSnapshot1.getString("NIF");
+                            final String naf = documentSnapshot1.getString("NAF");
+                            String idreg = documentSnapshot1.getString("id");
+                            mDb
+                                    .collection("Empresas")
+                                    .document(empresa)
+                                    .collection("Empleado")
+                                    .document(empleado)
+                                    .collection("Registro")
+                                    .document("AÑOS")
+                                    .get()
+                                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot2) {
+                                            String ans = documentSnapshot2.getString("años");
+                                            final List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
+                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                @Override
+                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                    final String idEm = documentSnapshot.getString("id");
+                                                    try {
+
+                                                        localFile = File.createTempFile("firma", "jpg");
+                                                        almacenRef.child(empresa + "/Firmas/" + empleado + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                                                Menu.cargando(false);
+                                                                touch(false);
+                                                                elegirFechasAños(ansL, "Empleado", empleado, nif, naf, idEm);
+                                                            }
+                                                        }).addOnFailureListener(new OnFailureListener() {
+                                                            @Override
+                                                            public void onFailure(@NonNull Exception exception) {
+                                                                Menu.cargando(false);
+                                                                touch(false);
+                                                            }
+                                                        });
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                        Menu.cargando(false);
+                                                        touch(false);
+                                                    }
+
+                                                }
+                                            });
+                                        }
+                                    }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Menu.cargando(false);
+                                    touch(false);
+                                    Toast.makeText(getActivity(), "El empleado " + empleado + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                    }
+                });
+
+    }
+
+    private void elegirFechasAños(List<String> años, final String roles1, final String empleado, final String nif, final String naf, final String id1) {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Elija el año");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                ano1 = adapterView.getItemAtPosition(i).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+        anoAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, años);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
+        final Button botonCancelar = mAnoMes.findViewById(R.id.btn2);
+        final AlertDialog.Builder añoEle = new AlertDialog.Builder(getContext())
+                .setCustomTitle(myMsgtitle);
+        añoEle
+                .setView(mAnoMes);
+        final AlertDialog dialogoAñoEle = añoEle.create();
+        botonSiguiente.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Menu.cargando(true);
+                touch(true);
+                mDb
+                        .collection("Empresas")
+                        .document(empresa)
+                        .collection(roles1)
+                        .document(empleado)
+                        .collection("Registro")
+                        .document("AÑOS")
+                        .collection(ano1)
+                        .document("MESES")
+                        .get()
+                        .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot3) {
+                                String ms = documentSnapshot3.getString("meses");
+                                List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
+                                Menu.cargando(false);
+                                touch(false);
+                                elegirFechasMeses(msL, roles1, empleado, ano1, nif, naf, id1);
+                                dialogoAñoEle.dismiss();
+
+                            }
+                        });
+            }
+        });
+        botonCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAñoEle.dismiss();
+            }
+        });
+        dialogoAñoEle.setCanceledOnTouchOutside(false);
+        dialogoAñoEle.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                anoMesSpinner.setEnabled(true);
+                botonSiguiente.setEnabled(true);
+                botonCancelar.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mAnoMes);
+            mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
+            dialogoAñoEle.show();
+        } else {
+            dialogoAñoEle.show();
+        }
+    }
+
+    private void elegirFechasMeses(List<String> meses, final String roles1, final String empleado, final String ano3, final String nif, final String naf, final String id1) {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Elija el mes");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                mes1 = adapterView.getItemAtPosition(i).toString();
+                mesnu = adapterView.getItemAtPosition(i).toString();
+                if (mes1.equals("01")) {
+                    mes1 = "Enero";
+                } else if (mes1.equals("02")) {
+                    mes1 = "Febrero";
+                } else if (mes1.equals("03")) {
+                    mes1 = "Marzo";
+                } else if (mes1.equals("04")) {
+                    mes1 = "Abril";
+                } else if (mes1.equals("05")) {
+                    mes1 = "Mayo";
+                } else if (mes1.equals("06")) {
+                    mes1 = "Junio";
+                } else if (mes1.equals("07")) {
+                    mes1 = "Julio";
+                } else if (mes1.equals("08")) {
+                    mes1 = "Agosto";
+                } else if (mes1.equals("09")) {
+                    mes1 = "Septiembre";
+                } else if (mes1.equals("10")) {
+                    mes1 = "Octubre";
+                } else if (mes1.equals("11")) {
+                    mes1 = "Nobiembre";
+                } else if (mes1.equals("12")) {
+                    mes1 = "Diciembre";
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+        anoAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, meses);
+        anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        anoMesSpinner.setAdapter(anoAdapter);
+        final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
+        final Button botonCancelar = mAnoMes.findViewById(R.id.btn2);
+        final AlertDialog.Builder mesEle = new AlertDialog.Builder(getContext())
+                .setCustomTitle(myMsgtitle);
+        jefeSpinner.setOnItemSelectedListener(this);
+        mesEle
+                .setView(mAnoMes);
+        final AlertDialog dialogoMesEle = mesEle.create();
+        botonSiguiente.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Menu.cargando(true);
+                touch(true);
+                mDb
+                        .collection("Empresas")
+                        .document(empresa)
+                        .collection(roles1)
+                        .document(empleado)
+                        .collection("Registro")
+                        .document("AÑOS")
+                        .collection(ano3)
+                        .document("MESES")
+                        .collection(mesnu)
+                        .document("DIAS")
+                        .get()
+                        .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshotd) {
+                                if (documentSnapshotd.exists()) {
+                                    Menu.cargando(false);
+                                    touch(false);
+                                    String dia = documentSnapshotd.getString("dias");
+                                    List<String> diL = Arrays.asList(dia.split("\\s*,\\s*"));
+                                    creacionPdf(diL, empleado, roles1, mesnu, ano3, empresa, id1, nif, naf);
+                                    dialogoMesEle.dismiss();
+                                }
+                            }
+                        });
+            }
+        });
+        botonCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoMesEle.dismiss();
+            }
+        });
+        dialogoMesEle.setCanceledOnTouchOutside(false);
+        dialogoMesEle.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                anoMesSpinner.setEnabled(true);
+                botonSiguiente.setEnabled(true);
+                botonCancelar.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        if (mAnoMes.getParent() != null) {
+            ((ViewGroup) mAnoMes.getParent()).removeView(mAnoMes);
+            mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
+            dialogoMesEle.show();
+        } else {
+            dialogoMesEle.show();
+        }
+    }
+
+    private void creacionPdf(final List<String> diasList, final String empl, final String rolT, String me, final String anoT, String empr, final String idT, String NIF, String NAF) {
+        Menu.cargando(true);
+        touch(true);
+        final TemplatePDF templatePDF = new TemplatePDF(getContext());
+        templatePDF.openDocument(empl, me, anoT);
+        templatePDF.addMetaData(empr, empl, me, anoT);
+        templatePDF.crearHeader(empr, empl, cif, NIF, NAF, mes1, anoT);
+        final int[] i = {0};
+        timerPDF = new CountDownTimer(999999999, 1000) {
+            @Override
+            public void onTick(long mmenushareillisUntilFinished) {
+
+                if (next) {
+
+                    if (i[0] == diasList.size()) {
+                        i[0] = 0;
+                        end = false;
+                        timerPDF.cancel();
+                    } else {
+
+                        next = false;
+                        final String diList = diasList.get(i[0]);
+
+                        mDb.collection("Empresas")
+                                .document(empresa)
+                                .collection(rolT)
+                                .document(empl)
+                                .collection("Registro")
+                                .document("AÑOS")
+                                .collection(anoT)
+                                .document("MESES")
+                                .collection(mesnu)
+                                .document("DIAS")
+                                .collection(diList).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                List<String> horas = new ArrayList<>();
+                                if (task.isSuccessful()) {
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
+                                        horas.add(document.getId());
+                                    }
+                                }
+                                String horaEn = horas.get(0);
+                                String horaSa = horas.get(horas.size() - 1);
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
+                                Long diferencia;
+                                try {
+                                    Date dateEn = simpleDateFormat.parse(horaEn);
+                                    Date dateSa = simpleDateFormat.parse(horaSa);
+                                    diferencia = dateSa.getTime() - dateEn.getTime();
+                                    int days = (int) (diferencia / (1000 * 60 * 60 * 24));
+                                    int hours = (int) ((diferencia - (1000 * 60 * 60 * 24 * days)) / (1000 * 60 * 60));
+                                    int mindif = (int) (diferencia - (1000 * 60 * 60 * 24 * days) - (1000 * 60 * 60 * hours)) / (1000 * 60);
+                                    int horasExtras = 0;
+                                    int minExtras = 0;
+
+                                    if (hours >= 8) {
+                                        if (hours > 8) {
+                                            horasExtras = hours - 8;
+                                        } else {
+                                            horasExtras = 0;
+                                        }
+                                        if (mindif > 0) {
+                                            minExtras = mindif;
+                                        } else if (mindif == 0) {
+                                            minExtras = 0;
+                                        }
+                                    }
+                                    if (horasExtras != 0) {
+                                        hours = hours - horasExtras;
+                                    }
+                                    if (minExtras != 0) {
+                                        mindif = mindif - minExtras;
+                                    }
+                                    int horasTotales = hours + horasExtras;
+                                    int minutosTotales = mindif + minExtras;
+                                    horaEn = horas.get(0);
+                                    horaSa = horas.get(horas.size() - 1);
+                                    if (i[0] == diasList.size() - 1) {
+                                        end = true;
+                                    }
+                                    templatePDF.tablaMain(diList, horaEn, horaSa, hours + ":" + mindif, horasExtras + ":" + minExtras, horasTotales + ":" + minutosTotales, idT, localFile.getAbsolutePath(), end, anoT, empresa, empl, mesnu, almacen);
+                                    if (end) {
+                                        SHAREempleado = empl;
+                                        SHAREano = anoT;
+                                        SHAREmes = mesnu;
+                                        Menu.cargando(false);
+                                        touch(false);
+                                        Menu.datos(folder, fileShare, SHAREempleado, mes1, SHAREano, SHAREmes, empresa, emailAn);
+                                    }
+                                    next = true;
+                                    i[0]++;
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFinish() {
+
+            }
+
+        }.start();
+    }
+
+    void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory != null) {
+            if (fileOrDirectory.isDirectory()) {
+                for (File child : fileOrDirectory.listFiles()) {
+                    deleteRecursive(child);
+                }
+            }
+            if (fileOrDirectory != null) {
+                fileOrDirectory.delete();
+            }
+        }
+    }
+
     private void dEliminarEmpleado(final String empleadoSeleccionado) {
+        Menu.cargando(true);
+        touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Seguro que desea desactivar al empleado\n" + empleadoSeleccionado);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1178,7 +1642,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         final Button botonDesactivar = mDos.findViewById(R.id.btn1);
         botonDesactivar.setText("Desactivar");
         final Button botonCancelar = mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder EliminarEmpleado = new AlertDialog.Builder(getActivity())
+        final AlertDialog.Builder EliminarEmpleado = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
         EliminarEmpleado
                 .setView(mDos);
@@ -1194,11 +1658,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             String roll = documentSnapshot.getString(empleadoSeleccionado);
                             String rolElima = documentSnapshot.getString(empleadoSeleccionado);
                             if (roll.contains("_ELIMINADO")) {
+                                Menu.cargando(true);
+                                touch(true);
                                 final TextView myMsgtitle = new TextView(getActivity());
                                 myMsgtitle.setText("El empleado " + jefes + " ya esta desactivado");
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
-                                final AlertDialog.Builder yaElim = new AlertDialog.Builder(getActivity())
+                                final AlertDialog.Builder yaElim = new AlertDialog.Builder(getContext())
                                         .setCustomTitle(myMsgtitle);
                                 yaElim
                                         .setPositiveButton("Ok", null);
@@ -1214,6 +1680,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                 dialogoEliminarEmpleado.show();
                                             }
                                         });
+                                        Menu.cargando(false);
+                                        touch(false);
                                     }
                                 });
                                 dialogoYaElim.setCanceledOnTouchOutside(false);
@@ -1241,6 +1709,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public void onShow(DialogInterface dialog) {
                 botonDesactivar.setEnabled(true);
                 botonCancelar.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
             }
         });
         dialogoEliminarEmpleado.setCanceledOnTouchOutside(false);
@@ -1314,6 +1784,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void dGeneraEmpleado() {
+        Menu.cargando(true);
+        touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Generar empleado");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1366,13 +1838,15 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         if (task.isSuccessful()) {
                                             Boolean desEli = task.getResult().getBoolean("DESACTIVADO");
                                             if (desEli) {
+                                                Menu.cargando(true);
+                                                touch(true);
                                                 dialogoEmpleadoGen.dismiss();
                                                 final TextView myMsgtitle = new TextView(getActivity());
                                                 myMsgtitle.setText("Empleado desactivado\n¿Desea reactivar al empleado " + finalSnombre + "?");
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
                                                 mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                final AlertDialog.Builder reactivar = new AlertDialog.Builder(getActivity())
+                                                final AlertDialog.Builder reactivar = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mDos);
                                                 jefeSpinner.setOnItemSelectedListener(gestionarEmpleados.this);
@@ -1418,6 +1892,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     public void onShow(DialogInterface dialog) {
                                                         btnReactivar.setEnabled(true);
                                                         btnCancelar.setEnabled(true);
+                                                        Menu.cargando(false);
+                                                        touch(false);
                                                     }
                                                 });
                                                 dialogoReactivar.setCanceledOnTouchOutside(false);
@@ -1480,6 +1956,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 nom.setEnabled(true);
                 botonCancelar.setEnabled(true);
                 botonCrear.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
             }
         });
         dialogoEmpleadoGen.setCanceledOnTouchOutside(false);
@@ -1493,11 +1971,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     }
 
-    private void dReactivarEmpleados(){
+    private void dReactivarEmpleados() {
         final ArrayList<String> emplesDesac = new ArrayList<>();
         mDb.collection("Todas las ids").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
+                Menu.cargando(true);
+                touch(true);
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<Task<QuerySnapshot>>();
                 if (task2.isSuccessful()) {
                     for (QueryDocumentSnapshot document : task2.getResult()) {
@@ -1505,19 +1985,23 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         Log.d("NOMB", nomb);
                         Boolean des = document.getBoolean("DESACTIVADO").booleanValue();
                         Log.d("DES", des.toString());
-                        if (nomb!=null && des) {
+                        if (nomb != null && des) {
                             Log.d("ENTRA", "DES");
                             emplesDesac.add(nomb);
                         }
                     }
                 }
+                Menu.cargando(false);
+                touch(false);
                 return Tasks.whenAllSuccess(tasks3);
             }
         }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                if(!emplesDesac.isEmpty()){
+                Menu.cargando(true);
+                touch(true);
+                if (!emplesDesac.isEmpty()) {
                     mDos = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                     Spinner desSpinner = (Spinner) mDos.findViewById(R.id.spinnerObra);
                     ArrayAdapter<String> desAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, emplesDesac);
@@ -1539,7 +2023,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     myMsgtitle.setText("Seleccione un empleado que reactivar");
                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                     myMsgtitle.setTextColor(Color.BLACK);
-                    final AlertDialog.Builder reactivar = new AlertDialog.Builder(getActivity())
+                    final AlertDialog.Builder reactivar = new AlertDialog.Builder(getContext())
                             .setCustomTitle(myMsgtitle)
                             .setView(mDos);
                     final Button btnReactivar = mDos.findViewById(R.id.btn1);
@@ -1584,6 +2068,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         public void onShow(DialogInterface dialog) {
                             btnReactivar.setEnabled(true);
                             btnCancelar.setEnabled(true);
+                            Menu.cargando(false);
+                            touch(false);
                         }
                     });
                     dialogoReactivar.setCanceledOnTouchOutside(false);
@@ -1594,8 +2080,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     } else {
                         dialogoReactivar.show();
                     }
-                }else{
-                    Toast.makeText(getContext(), "No hay empleados desactivados", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getActivity(), "No hay empleados desactivados", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -1618,6 +2104,1065 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         startActivity(shareIntent);
     }
 
+    private int leeObras(Spinner spinner, String obraselecionada) {
+        for (int i = 0; i < spinner.getCount(); i++) {
+            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(obraselecionada)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private void dRegistrar() {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Seleccione la obra");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+        obraSpinner = (Spinner) mObras.findViewById(R.id.spinnerObra);
+        obraAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, obs);
+        obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        obraSpinner.setAdapter(obraAdapter);
+        final Button botonJornada = mObras.findViewById(R.id.btn1);
+        final Button botonCancelar = mObras.findViewById(R.id.btn2);
+        obraSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                obraselect = adapterView.getItemAtPosition(i).toString();
+                if (obraselect.equals(obcomprueba)) {
+                    botonJornada.setText("Finalizar");
+                } else if (!obraselect.equals(obcomprueba)) {
+                    botonJornada.setText("Iniciar");
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                if (comp.equals("iniciada")) {
+                    obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
+                    obraselect = adapterView.getItemAtPosition(leeObras(obraSpinner, obcomprueba)).toString();
+                } else if (comp.equals("finalizada") || comp.equals("no")) {
+                    obraSpinner.setSelection(0);
+                    obraselect = adapterView.getItemAtPosition(0).toString();
+                }
+
+            }
+        });
+        final AlertDialog.Builder registroJornada = new AlertDialog.Builder(getContext());
+        registroJornada.setCustomTitle(myMsgtitle);
+        registroJornada.setView(mObras);
+        final AlertDialog dialogoRegistro = registroJornada.create();
+        botonJornada.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRegistro.dismiss();
+                if (botonJornada.getText().equals("Iniciar")) {
+                    if (comp.equals("iniciada")) {
+                        Toast.makeText(getActivity(), "Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero", Toast.LENGTH_LONG).show();
+                        botonJornada.setText("Finalizar");
+                        botonJornada.setTextColor(Color.RED);
+                        obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
+                    } else if (comp.equals("finalizada") || comp.equals("no")) {
+                        entrada_salida = "Entrada";
+                        leerGeo(obraselect);
+                    }
+                } else if (botonJornada.getText().equals("Finalizar")) {
+                    if (comp.contentEquals("finalizada") || comp.contentEquals("no")) {
+                        Toast.makeText(getActivity(), "Debes iniciar primero una jornada", Toast.LENGTH_SHORT).show();
+                        botonJornada.setText("Iniciar");
+                        botonJornada.setTextColor(Color.RED);
+                    } else if (comp.contentEquals("iniciada")) {
+                        entrada_salida = "Salida";
+                        leerGeo(obraselect);
+                    }
+
+                }
+            }
+        });
+        botonCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRegistro.dismiss();
+                dConfirma();
+            }
+        });
+        dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                if (comp.equals("iniciada")) {
+                    botonJornada.setText("Finalizar");
+                    obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
+                    obraselect = obraSpinner.getItemAtPosition(leeObras(obraSpinner, obcomprueba)).toString();
+                    obraSpinner.setEnabled(false);
+                    botonJornada.setEnabled(true);
+                    botonCancelar.setEnabled(true);
+                } else if (comp.equals("finalizada") || comp.equals("no")) {
+                    botonJornada.setText("Iniciar");
+                    obraSpinner.setEnabled(true);
+                    botonJornada.setEnabled(true);
+                    botonCancelar.setEnabled(true);
+                }
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoRegistro.setCanceledOnTouchOutside(false);
+        if (mObras.getParent() != null) {
+            ((ViewGroup) mObras.getParent()).removeView(mObras);
+            mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+            dialogoRegistro.show();
+        } else {
+            dialogoRegistro.show();
+        }
+
+
+    }
+
+    private void dLogin(final Boolean obraMark, final String obraMarker) {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Introduzca los credenciales del empleado invitado");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
+        final EditText semail = mLogin.findViewById(R.id.emailDialogo);
+        final EditText scontraseña = mLogin.findViewById(R.id.contraseñaDialogo);
+        final Button botonSig = mLogin.findViewById(R.id.btn1);
+        final Button botonCan = mLogin.findViewById(R.id.btn2);
+        Login
+                .setView(mLogin)
+                .setCustomTitle(myMsgtitle);
+        final AlertDialog dialogoLogin = Login.create();
+        botonSig.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoLogin.dismiss();
+                final String emailNu = semail.getText().toString();
+                final String contraseñaNu = scontraseña.getText().toString();
+                if (!emailNu.isEmpty() && !contraseñaNu.isEmpty()) {
+                    if (!emailNu.equals(emailAn)) {
+                        mAuth.signOut();
+                        mAuth.signInWithEmailAndPassword(emailNu, contraseñaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                            @Override
+                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                if (task.isSuccessful()) {
+                                    id = mAuth.getCurrentUser().getUid();
+                                    mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            if (documentSnapshot.exists()) {
+
+                                                codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                                                comp = documentSnapshot.getString("comprobar");
+                                                empresa = documentSnapshot.getString("empresa");
+                                                nombreNu = documentSnapshot.getString("nombre");
+                                                emailConf = documentSnapshot.getString("email");
+                                                roles = documentSnapshot.getString("rol");
+                                                obcomprueba = documentSnapshot.getString("obra");
+                                                if (comp.equals("iniciada")) {
+                                                    entrada_salida = "Salida";
+                                                } else if (comp.equals("finalizada") || comp.equals("no")) {
+                                                    entrada_salida = "Entrada";
+                                                }
+                                                if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                                                    obcomprueba = documentSnapshot.getString("obra");
+                                                }
+
+                                                if (obraMark) {
+                                                    Menu.cargando(true);
+                                                    touch(true);
+                                                    final TextView myMsgtitle = new TextView(getActivity());
+                                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                    final Button botonJornada = mDos.findViewById(R.id.btn1);
+                                                    final Button botonCancelar = mDos.findViewById(R.id.btn2);
+                                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                    myMsgtitle.setTextColor(Color.BLACK);
+                                                    String obFin = null;
+                                                    if (obcomprueba != null) {
+                                                        if (obcomprueba.equals(obraMarker)) {
+                                                            myMsgtitle.setText(nombreNu + " ¿desea finalizar la jornada en la obra " + obraMarker + "?");
+                                                            obFin = obraMarker;
+                                                        } else if (!obcomprueba.equals(obraMarker)) {
+                                                            myMsgtitle.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
+                                                            obFin = obcomprueba;
+                                                        }
+                                                        botonJornada.setText("Finalizar");
+                                                    } else if (obcomprueba == null) {
+                                                        myMsgtitle.setText(nombreNu + " desea iniciar la jornada en la obra " + obraMarker);
+                                                        obFin = obraMarker;
+                                                        botonJornada.setText("Iniciar");
+                                                    }
+                                                    final AlertDialog.Builder Otro = new AlertDialog.Builder(getContext());
+                                                    Otro
+                                                            .setCustomTitle(myMsgtitle)
+                                                            .setView(mDos);
+                                                    final AlertDialog dialogoOtro = Otro.create();
+                                                    final String finalObFin = obFin;
+                                                    botonJornada.setOnClickListener(new View.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(View v) {
+                                                            dialogoOtro.dismiss();
+                                                            leerGeo(finalObFin);
+                                                        }
+                                                    });
+                                                    botonCancelar.setOnClickListener(new View.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(View v) {
+                                                            dialogoOtro.dismiss();
+                                                        }
+                                                    });
+                                                    dialogoOtro.setCanceledOnTouchOutside(false);
+                                                    dialogoOtro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                        @Override
+                                                        public void onShow(final DialogInterface dialog) {
+                                                            botonJornada.setEnabled(true);
+                                                            botonCancelar.setEnabled(true);
+                                                            Menu.cargando(false);
+                                                            touch(false);
+                                                        }
+                                                    });
+                                                    dialogoOtro.setCanceledOnTouchOutside(false);
+                                                    if (mDos.getParent() != null) {
+                                                        ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoOtro.show();
+                                                    } else {
+                                                        dialogoOtro.show();
+                                                    }
+                                                } else if (!obraMark) {
+                                                    dRegistrar();
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                    dialogoLogin.show();
+                                }
+                            }
+                        });
+                    } else if (emailNu.equals(emailAn)) {
+                        Menu.cargando(true);
+                        touch(true);
+                        semail.getText().clear();
+                        semail.setError("Introduzca el email del empleado invitado");
+                        scontraseña.getText().clear();
+
+                    }
+                } else if (emailNu.isEmpty()) {
+                    semail.setError("Introduzca el email del empleado invitado");
+                    if (contraseñaNu.isEmpty()) {
+                        scontraseña.setError("Introduzca la contraseña del empleado invitado");
+                    }
+
+                } else if (contraseñaNu.isEmpty()) {
+                    scontraseña.setError("Introduzca el email del empleado invitado");
+                    if (emailNu.isEmpty()) {
+                        semail.setError("Introduzca la contraseña del empleado invitado");
+                    }
+                }
+            }
+        });
+        botonCan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoLogin.dismiss();
+            }
+        });
+        dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+                semail.setEnabled(true);
+                scontraseña.setEnabled(true);
+                botonSig.setEnabled(true);
+                botonCan.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoLogin.setCanceledOnTouchOutside(false);
+        if (mLogin.getParent() != null) {
+            ((ViewGroup) mLogin.getParent()).removeView(mLogin);
+            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+            dialogoLogin.show();
+
+        } else {
+            dialogoLogin.show();
+        }
+    }
+
+    public void dConfirma() {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText(nombre + " confirme la operación");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null, false);
+        final AlertDialog.Builder Confirma = new AlertDialog.Builder(getContext());
+        final EditText semail = mLogin.findViewById(R.id.emailDialogo);
+        semail.setEnabled(false);
+        semail.setText(emailAn);
+        final EditText scontraseña = mLogin.findViewById(R.id.contraseñaDialogo);
+        final Button botonSig = mLogin.findViewById(R.id.btn1);
+        Confirma
+                .setView(mLogin)
+                .setCustomTitle(myMsgtitle);
+        final AlertDialog dialogoConfirma = Confirma.create();
+        botonSig.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String contraseñaAn = scontraseña.getText().toString();
+                if (!contraseñaAn.isEmpty()) {
+                    mAuth.signOut();
+                    mAuth.signInWithEmailAndPassword(emailAn, contraseñaAn).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if(task.isSuccessful()){
+                                id = mAuth.getCurrentUser().getUid();
+                                dialogoConfirma.dismiss();
+                                Intent intent = new Intent(Menu.getInstance(), Login.class);
+                                Menu.getInstance().finish();
+                                startActivity(intent);
+                            }else if(!task.isSuccessful()){
+                                Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                scontraseña.setError("Comprebe la contraseña");
+                            }
+                        }
+                    });
+                } else if (contraseñaAn.isEmpty()) {
+                    scontraseña.setError("Introduzca la contraseña");
+                }
+            }
+        });
+        dialogoConfirma.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                scontraseña.setEnabled(true);
+                botonSig.setEnabled(true);
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoConfirma.setCanceledOnTouchOutside(false);
+        if (mLogin.getParent() != null) {
+            ((ViewGroup) mLogin.getParent()).removeView(mLogin);
+            mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null, false);
+            dialogoConfirma.show();
+
+        } else {
+
+            dialogoConfirma.show();
+        }
+    }
+
+    private void leerGeo(final String obra) {
+
+        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                Menu.cargando(true);
+                touch(true);
+                dis = 50.0;
+                GeoPoint geopointGuardado = documentSnapshot.getGeoPoint("geoPoint");
+                latitudGuardada = geopointGuardado.getLatitude();
+                longitudGuardada = geopointGuardado.getLongitude();
+                timerLeergeo = new CountDownTimer(60000, 5000) {
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (Double.compare(distan, dis) <= 0) {
+                            if (entrada_salida.equals("Entrada")) {
+                                comp = "iniciada";
+                                mDb.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        mDb.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @Override
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                            @Override
+                                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                                trayecto = documentSnapshot.getString("marca temporal");
+                                                                                if (trayecto != null) {
+                                                                                    String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                            " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                            " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                    DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                    String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                    if (fechaAhora.equals(fechaGuardada)) {
+                                                                                        trayectoBo = true;
+                                                                                        DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                        String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                        trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                    }
+                                                                                }
+                                                                                distan2 = 1.2;
+                                                                                Menu.cargando(false);
+                                                                                touch(false);
+                                                                                enviajornada(obra, null);
+                                                                                cancel();
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            } else if (entrada_salida.equals("Salida")) {
+                                distan2 = 1.2;
+                                Menu.cargando(false);
+                                touch(false);
+                                compruebaObra(obra);
+                                cancel();
+                            }
+                        } else if (Double.compare(distan, 50.0) > 0) {
+                            distan2 = 1.0;
+                            Toast.makeText(getActivity(), "Localizando...", Toast.LENGTH_LONG).show();
+                            dis = dis + 50.0;
+                        }
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        latitudDetectada = geoPointLocalizayo.getLatitude();
+                        longitudDetectada = geoPointLocalizayo.getLongitude();
+                        distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
+                        if (distan2 == 1.2) {
+                            distan2 = 1.0;
+                            Menu.cargando(false);
+                            touch(false);
+                            cancel();
+                        } else if (distan2 == 1.0) {
+                            distan2 = 1.1;
+                            if (distan == null || latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
+                                if (entrada_salida.equals("Entrada")) {
+                                    comp = "iniciada";
+                                    mDb.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            mDb.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                @Override
+                                                                public void onSuccess(Void aVoid) {
+                                                                    mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                        @Override
+                                                                        public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                                                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                @Override
+                                                                                public void onSuccess(Void aVoid) {
+                                                                                    trayecto = documentSnapshot.getString("marca temporal");
+                                                                                    if (trayecto != null) {
+                                                                                        String fechaGuardada = "Iniciado el " + trayecto.charAt(12) + trayecto.charAt(13) +
+                                                                                                " del " + trayecto.charAt(19) + trayecto.charAt(20) +
+                                                                                                " de " + trayecto.charAt(25) + trayecto.charAt(26) + trayecto.charAt(27) + trayecto.charAt(28);
+                                                                                        DateFormat fechaF = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                                        String fechaAhora = "Iniciado el " + fechaF.format(Calendar.getInstance().getTime());
+                                                                                        if (fechaAhora.equals(fechaGuardada)) {
+                                                                                            trayectoBo = true;
+                                                                                            DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                                            String horaAhora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                                            trayecto = trayecto + fechaAhora.replace("Iniciado el ", " ") + " a las " + horaAhora;
+                                                                                        }
+                                                                                    }
+                                                                                    Menu.cargando(false);
+                                                                                    touch(false);
+                                                                                    if (dis >= 650) {
+                                                                                        Menu.cargando(true);
+                                                                                        touch(true);
+                                                                                        final TextView myMsgtitle = new TextView(getActivity());
+                                                                                        myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                                                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                                                        myMsgtitle.setTextColor(Color.BLACK);
+                                                                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
+                                                                                        final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
+                                                                                        final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
+                                                                                        Login
+                                                                                                .setCustomTitle(myMsgtitle)
+                                                                                                .setView(mFueraObra);
+                                                                                        final AlertDialog dialogoLogin = Login.create();
+                                                                                        botonSiguiente.setOnClickListener(new View.OnClickListener() {
+                                                                                            @Override
+                                                                                            public void onClick(View v) {
+                                                                                                final String JustTexto = sJustificar.getText().toString();
+
+                                                                                                if (!JustTexto.isEmpty()) {
+
+
+                                                                                                    map.put("Justificacion fuera de obra: ", JustTexto);
+
+                                                                                                    sJustificar.setHintTextColor(Color.GRAY);
+                                                                                                    dialogoLogin.dismiss();
+                                                                                                    enviajornada(obra, null);
+
+                                                                                                } else if (JustTexto.isEmpty()) {
+
+                                                                                                    sJustificar.setHintTextColor(Color.RED);
+
+                                                                                                }
+                                                                                            }
+                                                                                        });
+                                                                                        dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                                            @Override
+                                                                                            public void onShow(final DialogInterface dialog) {
+                                                                                                sJustificar.setEnabled(true);
+                                                                                                botonSiguiente.setEnabled(true);
+                                                                                                Menu.cargando(false);
+                                                                                                touch(false);
+                                                                                            }
+                                                                                        });
+                                                                                        dialogoLogin.setCanceledOnTouchOutside(false);
+                                                                                        if (mFueraObra.getParent() != null) {
+                                                                                            ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
+                                                                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+
+                                                                                            dialogoLogin.show();
+
+                                                                                        } else {
+
+                                                                                            dialogoLogin.show();
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                } else if (entrada_salida.equals("Salida")) {
+                                    if (dis >= 650) {
+                                        Menu.cargando(false);
+                                        touch(false);
+                                        Menu.cargando(true);
+                                        touch(true);
+                                        final TextView myMsgtitle = new TextView(getActivity());
+                                        myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                        myMsgtitle.setTextColor(Color.BLACK);
+                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
+                                        final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
+                                        final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
+                                        Login
+                                                .setCustomTitle(myMsgtitle)
+                                                .setView(mFueraObra);
+                                        final AlertDialog dialogoLogin = Login.create();
+                                        botonSiguiente.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                final String JustTexto = sJustificar.getText().toString();
+
+                                                if (!JustTexto.isEmpty()) {
+
+
+                                                    map.put("Justificacion fuera de obra: ", JustTexto);
+
+                                                    sJustificar.setHintTextColor(Color.GRAY);
+                                                    dialogoLogin.dismiss();
+                                                    compruebaObra(obra);
+
+                                                } else if (JustTexto.isEmpty()) {
+
+                                                    sJustificar.setHintTextColor(Color.RED);
+
+                                                }
+                                            }
+                                        });
+                                        dialogoLogin.setOnShowListener(new DialogInterface.OnShowListener() {
+                                            @Override
+                                            public void onShow(final DialogInterface dialog) {
+                                                sJustificar.setEnabled(true);
+                                                botonSiguiente.setEnabled(true);
+                                                Menu.cargando(false);
+                                                touch(false);
+                                            }
+                                        });
+                                        dialogoLogin.setCanceledOnTouchOutside(false);
+                                        if (mFueraObra.getParent() != null) {
+                                            ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
+                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+
+                                            dialogoLogin.show();
+
+                                        } else {
+
+                                            dialogoLogin.show();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }.start();
+            }
+        });
+    }
+
+    private void compruebaObra(final String obra) {
+        Menu.cargando(true);
+        touch(true);
+        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                final String obcomp = documentSnapshot.getString("obra");
+                if (documentSnapshot.exists()) {
+                    if (obra.equals(obcomp)) {
+                        comp = "finalizada";
+                        mDb.collection("Todas las ids").document(id).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                mDb.collection("Todas las ids").document(id).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+
+                                                                DateFormat dayFormat = new SimpleDateFormat("dd 'del' MM 'de' yyyy");
+                                                                DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+                                                                String fecha = dayFormat.format(Calendar.getInstance().getTime());
+                                                                String hora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                trayecto = "Iniciado el " + fecha + " a las " + hora + " y finalizado el ";
+                                                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("marca temporal", trayecto).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @Override
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        Menu.cargando(false);
+                                                                        touch(false);
+                                                                        enviajornada(obra, obcomp);
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        Menu.cargando(false);
+                        touch(false);
+                        Toast.makeText(getActivity(), "No has iniciado jornada en esta obra", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        getActivity().overridePendingTransition(0, 0);
+    }
+
+    private void enviajornada(final String obra, String obcomp) {
+        Menu.cargando(true);
+        touch(true);
+
+        DateFormat dfecha = new SimpleDateFormat("dd/MM/yyyy");
+        DateFormat daño = new SimpleDateFormat("yyyy");
+        DateFormat dmes = new SimpleDateFormat("MM");
+        DateFormat ddia = new SimpleDateFormat("dd");
+        final String[] fecha = {dfecha.format(Calendar.getInstance().getTime())};
+        final String ano1 = daño.format(Calendar.getInstance().getTime());
+        final String mes = dmes.format(Calendar.getInstance().getTime());
+        final String dia = ddia.format(Calendar.getInstance().getTime());
+
+        DateFormat dhora = new SimpleDateFormat("HH:mm:ss");
+        final String[] hora = {dhora.format(Calendar.getInstance().getTime())};
+
+        Calendar c = Calendar.getInstance();
+        int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
+        String mañaOtard = null;
+        if (timeOfDay >= 0 && timeOfDay < 12) {
+            mañaOtard = "Mañana";
+        } else if (timeOfDay >= 12 && timeOfDay < 16) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 16 && timeOfDay < 21) {
+            mañaOtard = "Tarde";
+        } else if (timeOfDay >= 21 && timeOfDay < 24) {
+            mañaOtard = "Noche";
+        }
+
+
+        map.put("nombre", nombreNu);
+        map.put("Entrada o Salida", entrada_salida);
+        map.put("obra", obra);
+        map.put("rol", roles);
+        map.put("fecha", fecha[0]);
+        map.put("hora", hora[0]);
+        map.put("Mañana o tarde", mañaOtard);
+        map.put("UID", id);
+        map.put("iniciado por", nombreNu);
+        if (trayectoBo && obcomp != null) {
+            trayectoBo = false;
+            map.put("Trayecto desde " + obcomp + " hasta " + obra, trayecto);
+        }
+        if (distan2 == 1.1) {
+            distan2 = 1.0;
+            map.put("Ubicacion detectada correctamente", false);
+            if (distan != null && distan > 0) {
+                map.put("Distancia hasta la obra " + obra, distan + " metros");
+            } else {
+                map.put("Distancia hasta la obra " + obra, ">" + dis + " metros");
+            }
+            if (dis >= 650) {
+
+                if (latitudDetectada != null && longitudDetectada != null) {
+
+                    map.put("Coordenadas fuera de area de trabajo", geoPointLocalizayo);
+
+                } else {
+
+                    map.put("Coordenadas fuera de area de trabajo", " no detectadas correctamente");
+
+                }
+
+            }
+
+        } else if (distan2 == 1.0 || distan2 == 1.2) {
+            map.put("Distancia hasta la obra " + obra, +distan + " metros");
+            map.put("Ubicacion detectada correctamente", true);
+        }
+        final Map<String, String> mapA = new HashMap<>();
+        final Map<String, String> mapM = new HashMap<>();
+        final Map<String, String> mapD = new HashMap<>();
+        final String finalMañaOtard = mañaOtard;
+        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                String es = null;
+                String mt = null;
+                if (entrada_salida.equals("Entrada")) {
+                    es = "E";
+                } else if (entrada_salida.equals("Salida")) {
+                    es = "S";
+                }
+                if (finalMañaOtard.equals("Mañana")) {
+                    mt = "M";
+                } else if (finalMañaOtard.equals("Tarde") || finalMañaOtard.equals("Noche")) {
+                    mt = "T";
+                }
+                String exis = documentSnapshot.getString(dia + mes + ano1);
+                if (exis != null) {
+                    exis = exis + es + mt + hora[0] + ",";
+                } else if (exis == null) {
+                    exis = es + mt + hora[0] + ",";
+                }
+                mapA.put(dia + mes + ano1, exis);
+                mDb.collection("Empresas").document(empresa).collection("Registro").document(ano1).collection(mes).document(dia).collection(hora[0]).document(nombreNu).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.contains("años")) {
+                                    String a = documentSnapshot.getString("años");
+                                    if (a.isEmpty()) {
+                                        mapA.put("años", ano1);
+                                    } else {
+                                        if (!a.contains(ano1)) {
+                                            mapA.put("años", a + ", " + ano1);
+                                        } else if (a.contains(ano1)) {
+                                            mapA.put("años", a);
+
+                                        }
+                                    }
+                                    mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").collection(ano1).document("MESES").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            if (documentSnapshot.contains("meses")) {
+                                                String m = documentSnapshot.getString("meses");
+                                                if (m.isEmpty()) {
+                                                    mapM.put("meses", mes);
+                                                } else {
+                                                    if (!m.contains(mes)) {
+                                                        mapM.put("meses", m + ", " + mes);
+                                                    } else if (m.contains(mes)) {
+                                                        mapM.put("meses", m);
+                                                    }
+                                                }
+                                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                        if (documentSnapshot.contains("dias")) {
+                                                            String d = documentSnapshot.getString("dias");
+                                                            if (d.isEmpty()) {
+                                                                mapD.put("dias", dia);
+                                                            } else {
+                                                                if (!d.contains(dia)) {
+                                                                    mapD.put("dias", d + ", " + dia);
+                                                                } else if (d.contains(dia)) {
+                                                                    mapD.put("dias", d);
+                                                                }
+                                                            }
+                                                        } else {
+                                                            mapD.put("dias", dia);
+                                                        }
+                                                    }
+                                                });
+                                            } else {
+                                                mapM.put("meses", mes);
+                                                mapD.put("dias", dia);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    mapA.put("años", ano1);
+                                    mapM.put("meses", mes);
+                                    mapD.put("dias", dia);
+                                }
+                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").set(mapA).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").collection(ano1).document("MESES").set(mapM).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").set(mapD).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).collection("Registro").document("AÑOS").collection(ano1).document("MESES").collection(mes).document("DIAS").collection(dia).document(hora[0]).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        int valorOnline = documentSnapshot.getLong("online").intValue();
+                                                                        Log.d("valor", String.valueOf(valorOnline));
+                                                                        final Map<String, Object> mapES = new HashMap<>();
+                                                                        if (entrada_salida.equals("Entrada")) {
+                                                                            if (valorOnline >= 0) {
+                                                                                valorOnline = valorOnline + 1;
+                                                                                mapES.put("online", valorOnline);
+                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                            }
+
+                                                                        } else if (entrada_salida.equals("Salida")) {
+                                                                            if (valorOnline > 0) {
+                                                                                valorOnline = valorOnline - 1;
+                                                                                mapES.put("online", valorOnline);
+                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                            }
+                                                                        }
+                                                                        DateFormat dfecha1 = new SimpleDateFormat("dd MM yyyy");
+                                                                        fecha[0] = dfecha1.format(Calendar.getInstance().getTime());
+
+                                                                        DateFormat dhora1 = new SimpleDateFormat("HH:mm:ss");
+                                                                        hora[0] = dhora1.format(Calendar.getInstance().getTime());
+
+                                                                        final Map<String, Object> mapf1 = new HashMap<>();
+                                                                        mapf1.put("Desde", nombre);
+                                                                        mapf1.put("fechaR", fecha[0]);
+                                                                        mapf1.put("horaR", hora[0]);
+                                                                        mapf1.put("obraR", obra);
+                                                                        mapf1.put("saR", entrada_salida);
+
+                                                                        mDb.collection("Todas las ids").document(id).set(mapf1, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                mapA.clear();
+                                                                                mapM.clear();
+                                                                                mapD.clear();
+                                                                                map.clear();
+                                                                                Menu.cargando(false);
+                                                                                touch(false);
+                                                                                firmar();
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private void firmar() {
+        Menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText(nombre + " debe firmar para confirmar la operación");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+        final AlertDialog.Builder Firmar = new AlertDialog.Builder(getContext());
+        final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
+        final Button botonFirm = mFirmar.findViewById(R.id.btn1);
+        final Button botonBor = mFirmar.findViewById(R.id.btn2);
+        final StorageReference[] firmaRef = new StorageReference[1];
+        final FirebaseAuth mAuth2 = FirebaseAuth.getInstance();
+        FirebaseStorage almacen2 = FirebaseStorage.getInstance();
+        final StorageReference almacenRef2 = almacen.getReferenceFromUrl("gs://pacusuarios-9035b.appspot.com");
+        final String id2 = mAuth2.getCurrentUser().getUid();
+        Firmar
+                .setCustomTitle(myMsgtitle)
+                .setView(mFirmar);
+        final AlertDialog dialogoFirmar = Firmar.create();
+        firma.setOnSignedListener(new SignaturePad.OnSignedListener() {
+            @Override
+            public void onStartSigning() {
+                botonFirm.setEnabled(true);
+                botonBor.setEnabled(true);
+            }
+
+            @Override
+            public void onSigned() {
+                botonFirm.setEnabled(true);
+                botonBor.setEnabled(true);
+            }
+
+            @Override
+            public void onClear() {
+                botonFirm.setEnabled(false);
+                botonBor.setEnabled(false);
+            }
+        });
+        botonFirm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Menu.cargando(true);
+                touch(true);
+                Bitmap firmaImagen = firma.getSignatureBitmap();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                firmaImagen.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                byte[] data = baos.toByteArray();
+                UploadTask uploadTask = firmaRef[0].putBytes(data);
+                uploadTask.addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        Menu.cargando(false);
+                        touch(false);
+                    }
+                }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("Desde", FieldValue.delete());
+                        updates.put("obraR", FieldValue.delete());
+                        updates.put("fechaR", FieldValue.delete());
+                        updates.put("horaR", FieldValue.delete());
+                        updates.put("saR", FieldValue.delete());
+                        mDb.collection("Todas las ids").document(id).set(updates, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Menu.cargando(false);
+                                touch(false);
+                                dialogoFirmar.dismiss();
+                                dConfirma();
+                            }
+                        });
+                    }
+                });
+
+            }
+        });
+        botonBor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Menu.cargando(true);
+                touch(true);
+                firma.clear();
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoFirmar.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+                mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.contains("empresa")) {
+                            if (compruebapermisos()) {
+                                if (mAuth2.getCurrentUser() != null) {
+                                    String desde = documentSnapshot.getString("Desde");
+                                    firmaRef[0] = almacenRef2
+                                            .child(documentSnapshot.getString("empresa"))
+                                            .child("Registros desde " + desde)
+                                            .child(documentSnapshot.getString("nombre"))
+                                            .child(documentSnapshot.get("obraR").toString())
+                                            .child(documentSnapshot.get("fechaR").toString())
+                                            .child(documentSnapshot.get("horaR").toString())
+                                            .child(documentSnapshot.getString("saR") +
+                                                    " de " +
+                                                    documentSnapshot.getString("nombre") +
+                                                    " en la obra " +
+                                                    documentSnapshot.get("obraR").toString() +
+                                                    " desde la cuenta de " +
+                                                    desde +
+                                                    " el dia " +
+                                                    documentSnapshot.get("fechaR").toString() +
+                                                    " a las " +
+                                                    documentSnapshot.get("fechaR").toString() +
+                                                    ".jpg");
+                                }
+                            }
+                        }
+                    }
+                });
+                Menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoFirmar.setCanceledOnTouchOutside(false);
+        if (mFirmar.getParent() != null) {
+            ((ViewGroup) mFirmar.getParent()).removeView(mFirmar);
+            mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+
+            dialogoFirmar.show();
+
+        } else {
+
+            dialogoFirmar.show();
+        }
+    }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -1634,7 +3179,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         if (v.equals(icCrear)) {
             dGeneraEmpleado();
         }
-        if(v.equals(icReactivar)){
+        if (v.equals(icReactivar)) {
 
             dReactivarEmpleados();
         }
@@ -1654,8 +3199,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     @Override
     public void onInfoWindowClick(Marker marker) {
         String tit = marker.getTitle();
-        dAdministrarEmpleados(tit);
-
+        if (jfs.contains(tit)) {
+            dAdministrarEmpleados(tit);
+        } else if (obs.contains(tit)) {
+            dLogin(true, tit);
+        }
     }
 
     @Override
@@ -1671,4 +3219,5 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         }
         return true;
     }
+
 }

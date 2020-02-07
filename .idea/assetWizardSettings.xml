@@ -36,7 +36,7 @@
                                           <PersistentState>
                                             <option name="values">
                                               <map>
-                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/notification/ic_sync_black_24dp.xml" />
+                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/action/ic_alarm_off_black_24dp.xml" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -59,9 +59,9 @@
                                   <option name="values">
                                     <map>
                                       <entry key="imageAsset" value="D:\Proyectos Java\Android Studio\PAC\app\src\main\res\layouts\Otros\drawable-xxxhdpi\ic_empleados.png" />
-                                      <entry key="outputName" value="ic_reactivar" />
+                                      <entry key="outputName" value="ic_finalizar_jornada" />
                                       <entry key="theme" value="CUSTOM" />
-                                      <entry key="themeColor" value="01407b" />
+                                      <entry key="themeColor" value="ffffff" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -188,7 +188,7 @@
                                 <PersistentState>
                                   <option name="values">
                                     <map>
-                                      <entry key="url" value="jar:file:/C:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/social/ic_share_black_24dp.xml" />
+                                      <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/action/ic_assignment_black_24dp.xml" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -199,7 +199,8 @@
                         <option name="values">
                           <map>
                             <entry key="autoMirrored" value="true" />
-                            <entry key="outputName" value="ic_compartir" />
+                            <entry key="color" value="ffffff" />
+                            <entry key="outputName" value="ic_regis_grand" />
                             <entry key="sourceFile" value="C:\Users\Juan Ángel" />
                           </map>
                         </option>

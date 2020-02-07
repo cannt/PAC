@@ -49,7 +49,7 @@
     <string name="SoliCANCE">Cancelar</string>
     <string name="ElimSolici">Eliminar solicitud</string>
     <string name="CambMot">Cambiar motivo</string>
-    <string name="sigu">siguiente</string>
+    <string name="sigu">continuar</string>
     <string name="DarDias">Asignar dia libre</string>
     <string name="title_activity_prueba">prueba</string>
     <string name="tab_menu">Menu principal</string>
@@ -57,6 +57,7 @@
     <string name="tab_gest">Dias libres</string>
     <string name="cambiar">Cambiar</string>
     <string name="nuvNom">Nuevo nombre</string>
+    <string name="confirmar">Confirmar</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

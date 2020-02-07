@@ -85,6 +85,7 @@
                     android:id="@+id/expanderView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:background="#66FFFFFF"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center|top"

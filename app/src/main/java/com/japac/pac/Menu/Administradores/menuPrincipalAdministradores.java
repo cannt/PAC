@@ -14,9 +14,11 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,6 +28,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.CountDownTimer;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -39,6 +42,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,16 +64,21 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -78,6 +87,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.japac.pac.Localizacion.LocalizacionObra;
 import com.japac.pac.Localizacion.LocalizacionUsuario;
+import com.japac.pac.Marcadores.MarcadoresEmpleados;
 import com.japac.pac.Marcadores.MarcadoresObras;
 import com.japac.pac.Menu.ViewPagers.Menu;
 import com.japac.pac.R;
@@ -91,6 +101,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static androidx.constraintlayout.widget.Constraints.TAG;
 
 
 /**
@@ -130,15 +142,18 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     firestoreNombres();
                 }
             });
-
+            listenerObs();
+            listenerJfs();
             init();
 
         }
     }
 
-    private Map<String, String> markersMap;
+    private Map<String, String> markersMap, markersMapEmpleado;
 
-    private String id, IoF, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO;
+    private CountDownTimer timerObs, timerJfs;
+
+    private String id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO;
     private FirebaseAuth mAuth;
     public static final int Permisos = 8991;
     String[] permisos = new String[]{
@@ -151,7 +166,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
 
-    private List<String> obs, jfs;
+    private ArrayList<String> obs, jfs, lM;
 
     private FloatingActionButton icCrear, gps;
 
@@ -171,8 +186,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private LocalizacionObra mLocalizacionObra;
 
-    CollectionReference geoFirestoreRef, geoFirestoreRef2;
-
     FirebaseFirestore mDb;
     FirebaseStorage almacen;
     StorageReference almacenRef;
@@ -183,7 +196,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private Marker marcadorCrea;
 
-    private boolean obraBo = false, igual = false, crearMark = false, cambiar = false, ElimJefe = false, arrastrado = false;
+    private boolean obraBo = false, igual = false, crearMark = false, cambiar = false, ElimJefe = false, arrastrado = false, readyObs = false, readyJfs = false, alreadyObs = false, alreadyJfs = false;
 
     private ArrayAdapter<String> jefeAdapter;
 
@@ -199,6 +212,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private RecyclerView recyclerView;
 
+    private CollectionReference geoFirestoreRefObs, geoFirestoreRefJfs, geoFirestoreRef2Jfs;
+
     public menuPrincipalAdministradores() {
 
     }
@@ -206,7 +221,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
+        View RootView = inflater.inflate(R.layout.fragment_menu_principal, container, false);
         if (compruebapermisos() && isServicesOK()) {
             mAuth = FirebaseAuth.getInstance();
             id = mAuth.getCurrentUser().getUid();
@@ -229,18 +244,19 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             obcomprueba = documentSnapshot.getString("obra");
                         }
                         slidingLayout2 = (SlidingUpPanelLayout) getView().findViewById(R.id.sliding_layout2);
-                        slidingLayout2.setTouchEnabled(false);
+                        slidingLayout2.setTouchEnabled(true);
                         xpand2 = (ImageView) getView().findViewById(R.id.btnXpand2);
-                        slidingLayout2.setDragView(xpand2);
+                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
                         xpand2.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
+                                ocultarTeclado();
                                 if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                                     if (Menu.getCambioDeFragment()) {
                                         setUpRecyclerView();
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                         Menu.setCambioDeFragmento(false);
-                                    }else if(!Menu.getCambioDeFragment()){
+                                    } else if (!Menu.getCambioDeFragment()) {
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                     }
                                     xpand2.setImageResource(R.drawable.ic_expand_up);
@@ -250,7 +266,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                         setUpRecyclerView();
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
                                         Menu.setCambioDeFragmento(false);
-                                    }else if(!Menu.getCambioDeFragment()){
+                                    } else if (!Menu.getCambioDeFragment()) {
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
                                     }
                                     xpand2.setImageResource(R.drawable.ic_expand_down);
@@ -259,7 +275,19 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
                             }
                         });
-                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
+                        slidingLayout2.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+                            @Override
+                            public void onPanelSlide(View panel, float slideOffset) {
+
+                            }
+
+                            @Override
+                            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                                if (previousState.equals(SlidingUpPanelLayout.PanelState.EXPANDED) && newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
+                                    slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                                }
+                            }
+                        });
                         gps = (FloatingActionButton) getView().findViewById(R.id.ic_gps);
                         icCrear = (FloatingActionButton) getView().findViewById(R.id.ic_crearObra);
                         pPt = (TextView) getView().findViewById(R.id.PrivacyPolicy);
@@ -279,7 +307,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 }
             });
         }
-        return inflater.inflate(R.layout.fragment_menu_principal, container, false);
+        return RootView;
     }
 
     private void setUpRecyclerView() {
@@ -303,7 +331,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 setCamara();
                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 GeoPoint geoPoint = adaptadorObrasLista.getItem(position).getGeoPoint();
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 3000, null);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 600, null);
             }
         });
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -337,13 +365,12 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
                     Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(true);
                     GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
 
                     mLocaliza = new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude());
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                     setCamara();
                 }
             }
@@ -352,8 +379,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void setCamara() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         double boundaryAbajo = mLocaliza.latitude - .1;
         double boundaryIzquierdo = mLocaliza.longitude - .1;
         double boundaryArriba = mLocaliza.latitude + .1;
@@ -368,21 +394,29 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             mMap.animateCamera(CameraUpdateFactory.zoomTo(15), 2000, null);
         }
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
 
+    }
+
+    private void touch(Boolean touch) {
+        if (touch) {
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        } else if (!touch) {
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        }
     }
 
     private void detalles() {
 
         if (mLocalizarUsuario == null) {
             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(true);
             mLocalizarUsuario = new LocalizacionUsuario();
             mLocalizarUsuario.setId(id);
             mLocalizarUsuario.setNombre(nombre);
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             localizacion();
 
         }
@@ -392,8 +426,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
         if (mLocalizarUsuario != null) {
             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(true);
             DocumentReference locationRef = mDb
                     .collection("Empresas")
                     .document(empresa)
@@ -403,14 +436,14 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                     centrarCamara();
                 }
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                 }
             });
         }
@@ -419,8 +452,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void init() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         mBuscar.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -431,13 +463,12 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
                     geoLocalizar();
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
 
                 }
                 return false;
             }
         });
-
         gps.setOnClickListener(menuPrincipalAdministradores.this);
         icCrear.setOnClickListener(menuPrincipalAdministradores.this);
 
@@ -446,8 +477,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void geoLocalizar() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         busquedaString = mBuscar.getText().toString();
         InputMethodManager inputManager = (InputMethodManager)
                 getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -458,7 +488,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                     if (task.getResult().exists()) {
-                        if(slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)){
+                        if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                             slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                         }
 
@@ -474,15 +504,14 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                         if (list.size() > 0) {
                             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(true);
                             final Address address = list.get(0);
                             MarkerOptions options = new MarkerOptions()
                                     .title("Crear obra")
                                     .position(new LatLng(address.getLatitude(), address.getLongitude()))
                                     .draggable(true)
                                     .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_add_obra));
-                            if(slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)){
+                            if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                             }
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(address.getLatitude(), address.getLongitude()), ZOOM_PREDETERMINADO));
@@ -528,12 +557,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                     crearObra();
                                 }
                             });
+                            mBuscar.getText().clear();
                         } else {
                             mBuscar.getText().clear();
                         }
                     }
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                 }
             });
         }
@@ -543,8 +573,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void localizacion() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
@@ -583,11 +612,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 mLocalizarUsuario.setTimestamp(null);
                             }
                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(false);
                             guardarLocalizacion();
                         } else {
                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(false);
                         }
                     }
                 });
@@ -602,33 +631,31 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void iniciarMapa() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapa);
         mapFragment.getMapAsync(menuPrincipalAdministradores.this);
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
 
     }
 
     public boolean isServicesOK() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getActivity());
 
         if (available == ConnectionResult.SUCCESS) {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             return true;
         } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(getActivity(), available, ERROR_DIALOGO_PEDIR);
             dialog.show();
         } else {
             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            touch(false);
             Toast.makeText(getActivity(), "Mapas no funciona", Toast.LENGTH_SHORT).show();
 
         }
@@ -637,8 +664,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private boolean compruebapermisos() {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
@@ -652,33 +678,37 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             return false;
         }
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
         return true;
     }
 
     private void ocultarTeclado() {
-        this.getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
     }
 
     private void firestoreObras() {
+        Log.d("FIRESTORE OBRAS", "ENTRA");
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        mMap.clear();
-        geoFirestoreRef = mDb.collection("Empresas").document(empresa).collection("Obras");
+        touch(true);
+        alreadyObs = false;
+        geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
         obs = new ArrayList<String>();
+        obs.clear();
         if (markersMap != null) {
             markersMap.clear();
         }
-        geoFirestoreRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
+                List<Task<QuerySnapshot>> tasks2 = new ArrayList<Task<QuerySnapshot>>();
                 if (task.isSuccessful()) {
                     for (QueryDocumentSnapshot document : task.getResult()) {
                         String obran = document.getString("obra");
+                        Log.d("obran", obran);
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
-                        long online = document.getLong("online").intValue();
+                        long online = document.getLong("online");
                         if (jefe1 != null) {
                             if (jefe1.equals("no")) {
                                 jefe1 = "sin jefe de obra";
@@ -686,8 +716,10 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         } else if (jefe1 == null) {
                             jefe1 = "sin jefe de obra";
                         }
-                        añadirMarcadores(geoPoint2, obran, jefe1, online);
-                        obs.add(obran);
+                        if (!obs.contains(obran)) {
+                            añadirMarcadores(geoPoint2, obran, jefe1, online);
+                            obs.add(obran);
+                        }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                         @Override
@@ -698,51 +730,279 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                     });
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                 } else if (!task.isSuccessful()) {
                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                    touch(false);
                     obs.add("SIN OBRAS");
                 }
-                if (obs.contains("SIN OBRAS")) {
-                    obs.remove("SIN OBRAS");
-                }
-                if (sobra != null) {
-                    mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                        @Override
-                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                            if (documentSnapshot.exists()) {
-                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(documentSnapshot.getGeoPoint("geoPoint").getLatitude(), documentSnapshot.getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
-                            }
-                        }
-                    });
-                }
-                sobra = null;
-                mBuscar.getText().clear();
-                busquedaString = null;
+                return Tasks.whenAllSuccess(tasks2);
+            }
 
+        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (obs.contains("SIN OBRAS")) {
+                            obs.remove("SIN OBRAS");
+                        }
+                        if (sobra != null) {
+                            mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                @Override
+                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                    if (documentSnapshot.exists()) {
+                                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(documentSnapshot.getGeoPoint("geoPoint").getLatitude(), documentSnapshot.getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
+                                    }
+                                }
+                            });
+                        }
+                        sobra = null;
+                        mBuscar.getText().clear();
+                        busquedaString = null;
+                        readyObs = true;
+                        alreadyObs = true;
+
+                    }
+                });
             }
         });
     }
 
+    private void listenerObs() {
+        firestoreObras();
+        Log.d("listenerObs", "INICIADO");
+        final int[] contador = {0};
+        timerObs = new CountDownTimer(30000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                contador[0]++;
+                Log.d("contador OBS", String.valueOf(contador[0]));
+                Log.d("TICK OBS", Long.toString(millisUntilFinished));
+                if (readyObs) {
+                    contador[0] = 30;
+                }
+                if (contador[0] == 30) {
+                    Log.d("contador OBS ENTRA", String.valueOf(contador[0]));
+                    timerObs.cancel();
+                    timerObs.onFinish();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                if (readyObs) {
+                    Log.d("readyObs", "TRUE");
+                    geoFirestoreRefObs.addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+                                Log.e(TAG, "onEvent: Listen failed", e);
+                                return;
+                            }
+                            if (queryDocumentSnapshots != null) {
+                                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                                    if (documentChange.getDocument().exists()) {
+                                        switch (documentChange.getType()) {
+                                            case ADDED:
+                                            case MODIFIED:
+                                            case REMOVED:
+                                                Log.d("listenerObs", "ENTRA");
+                                                if (alreadyObs) {
+                                                    Log.d("alreadyObs", "TRUE");
+                                                    mMap.clear();
+                                                    firestoreObras();
+                                                    firestoreNombres();
+                                                }
+                                                break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else if (!readyObs) {
+                    Log.d("readyObs", "FALSE");
+                    timerObs.start();
+                }
+            }
+        }.start();
+    }
+
+    private void firestoreNombres() {
+        Log.d("FIRESTORE NOMBRES", "ENTRA");
+        Menu.cargando(true);
+        touch(true);
+        alreadyJfs = false;
+        geoFirestoreRefJfs = mDb.collection("Empresas").document(empresa).collection("Empleado");
+        geoFirestoreRef2Jfs = mDb.collection("Empresas").document(empresa).collection("Administrador");
+        jfs = new ArrayList<String>();
+        jfs.clear();
+        geoFirestoreRef2Jfs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+            @Override
+            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
+                List<Task<QuerySnapshot>> tasks3 = new ArrayList<Task<QuerySnapshot>>();
+                if (task2.isSuccessful()) {
+                    for (QueryDocumentSnapshot document : task2.getResult()) {
+                        Log.d("emples", "ENTRA SI");
+                        String jefe = document.getString("nombre");
+                        if (!jfs.contains(jefe)) {
+                            jfs.add(jefe);
+                        }
+                    }
+                } else if (!task2.isSuccessful()) {
+                    jfs.add("sin empleados");
+                }
+                return Tasks.whenAllSuccess(tasks3);
+            }
+        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                geoFirestoreRefJfs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+                    @Override
+                    public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
+                        List<Task<QuerySnapshot>> tasks4 = new ArrayList<Task<QuerySnapshot>>();
+                        if (task1.isSuccessful()) {
+                            for (final QueryDocumentSnapshot document1 : task1.getResult()) {
+                                Log.d("emples", "ENTRA");
+                                String jefe = document1.getString("nombre");
+                                if (!jfs.contains(jefe)) {
+                                    if (jefe != null) {
+                                        jfs.add(jefe);
+                                    }
+                                }
+                            }
+                            jfs.remove(nombreAm);
+                        }
+                        return Tasks.whenAllSuccess(tasks4);
+                    }
+                }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                        Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
+                        mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+                        jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
+                        jefeAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, jfs);
+                        jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        jefeSpinner.setAdapter(jefeAdapter);
+                        lM = new ArrayList();
+                        lM.clear();
+                        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+                            @Override
+                            public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
+                                List<Task<QuerySnapshot>> tasks4 = new ArrayList<Task<QuerySnapshot>>();
+                                if (task1.isSuccessful()) {
+                                    for (final QueryDocumentSnapshot document2 : task1.getResult()) {
+                                        String jefe = document2.getString("nombre");
+                                        if (!lM.contains(jefe)) {
+                                            if (jefe != null) {
+                                                Log.d("PASA", "PASA");
+                                                lM.add(jefe);
+                                                añadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"));
+                                            } else if (jefe == null) {
+                                                Log.d("jefe", "es null");
+                                            }
+                                        }
+                                    }
+                                }
+                                return Tasks.whenAllSuccess(tasks4);
+                            }
+                        }).addOnCompleteListener(new OnCompleteListener<List<QuerySnapshot>>() {
+                            @RequiresApi(api = Build.VERSION_CODES.O)
+                            @Override
+                            public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                                readyJfs = true;
+                                alreadyJfs = true;
+                                Menu.cargando(false);
+                                touch(false);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private void listenerJfs() {
+        Log.d("listenerJfs", "INICIADO");
+        final int[] contador2 = {0};
+        firestoreNombres();
+        timerJfs = new CountDownTimer(30000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                contador2[0]++;
+                Log.d("contador JFS", String.valueOf(contador2[0]));
+                Log.d("TICK JFS", Long.toString(millisUntilFinished));
+                if (readyJfs) {
+                    contador2[0] = 30;
+                }
+                if (contador2[0] == 30) {
+                    Log.d("contador JFS ENTRA", String.valueOf(contador2[0]));
+                    timerJfs.cancel();
+                    timerJfs.onFinish();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                if (readyJfs) {
+                    Log.d("readyJfs", "TRUE");
+                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
+                            if (e != null) {
+                                Log.e(TAG, "onEvent: Listen failed", e);
+                                return;
+                            }
+                            if (queryDocumentSnapshots != null) {
+                                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                                    if (documentChange.getDocument().exists()) {
+                                        switch (documentChange.getType()) {
+                                            case ADDED:
+                                            case MODIFIED:
+                                            case REMOVED:
+                                                Log.d("listenerJfs", "ENTRA");
+                                                if (alreadyJfs) {
+                                                    Log.d("alreadyJfs", "TRUE");
+                                                    mMap.clear();
+                                                    firestoreNombres();
+                                                    firestoreObras();
+                                                }
+                                                break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else if (!readyJfs) {
+                    Log.d("readyJfs", "FALSE");
+                    timerJfs.start();
+                }
+            }
+        }.start();
+    }
+
     private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
         vectorDrawable.setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
         Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
         return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 
     private void añadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         markersMap = new HashMap<String, String>();
 
         MarkerOptions mo = new MarkerOptions()
@@ -758,51 +1018,42 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(false);
     }
 
-    private void firestoreNombres() {
+    private void añadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        geoFirestoreRef = mDb.collection("Empresas").document(empresa).collection("Empleado");
-        geoFirestoreRef2 = mDb.collection("Empresas").document(empresa).collection("Administrador");
-        jfs = new ArrayList<String>();
-        geoFirestoreRef2.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : task.getResult()) {
-                        String jefe = document.getString("nombre");
-                        jfs.add(jefe);
-                    }
-                    geoFirestoreRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                        @Override
-                        public void onComplete(@NonNull Task<QuerySnapshot> task2) {
-                            if (task2.isSuccessful()) {
-                                for (QueryDocumentSnapshot document2 : task2.getResult()) {
-                                    String jefe = document2.getString("nombre");
-                                    jfs.add(jefe);
-                                }
-                                jfs.remove(nombreAm);
-                            }
-                        }
-                    });
-                    mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-                    jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
-                    jefeAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, jfs);
-                    jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    jefeSpinner.setAdapter(jefeAdapter);
-                    Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-                } else if (!task.isSuccessful()) {
-                    jfs.add("sin empleados");
-                    Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-                }
-                firestoreObras();
-            }
-        });
+        touch(true);
+        Log.d("EMPLEADOS", "AÑADE MARCADOR");
+        markersMapEmpleado = new HashMap<String, String>();
+        String estadoDef = null;
+        String ob = obra;
+        MarkerOptions mo = new MarkerOptions()
+                .rotation(0)
+                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
+        if (obra != null) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
+            estadoDef = "online";
+            ob = obra;
+        }
+        if (obra == null) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
+            estadoDef = "offline";
+            ob = "null";
+        }
+
+        Marker mkr = mMap.addMarker(mo
+                .title(nombre)
+                .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
+        if (obra != null) {
+            mkr.setSnippet(obra);
+        }
+        MarcadoresEmpleados marcadoresEmpleados = new MarcadoresEmpleados(geoPoint1, nombre, ob, estadoDef, id);
+        markersMapEmpleado.put(marcadoresEmpleados.getTag(), mkr.getId());
+        mMap.setOnMarkerClickListener(this);
+        mkr.showInfoWindow();
+        Menu.cargando(false);
+        touch(false);
     }
 
     private void dAdmin(final String obraAd) {
@@ -819,7 +1070,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         btnAdJef.setText("Administrar jefe");
         final Button btnCance = (Button) mCuatroBtn.findViewById(R.id.Cancelar);
         btnCance.setText("Cancelar");
-        final AlertDialog.Builder obraAdministrarObras = new AlertDialog.Builder(getActivity())
+        final AlertDialog.Builder obraAdministrarObras = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mCuatroBtn);
         final AlertDialog dialogoAdministradorObras = obraAdministrarObras.create();
@@ -884,8 +1135,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void CambiarNombre(String obraAn, final String obraNu) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAn).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -962,7 +1212,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             @Override
                             public void onSuccess(Void aVoid) {
                                 Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                touch(false);
                                 firestoreNombres();
                             }
                         });
@@ -981,7 +1231,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         final EditText sNuevoNom = mDosText.findViewById(R.id.TextDos);
         final Button btnCamb = (Button) mDosText.findViewById(R.id.btn1);
         final Button btnCancelar = (Button) mDosText.findViewById(R.id.btn2);
-        final AlertDialog.Builder alerta = new AlertDialog.Builder(getActivity());
+        final AlertDialog.Builder alerta = new AlertDialog.Builder(getContext());
         alerta.setCustomTitle(myMsgtitle)
                 .setView(mDosText);
         final AlertDialog dialogoAlerta = alerta.create();
@@ -1034,7 +1284,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         final Button btnElim = (Button) mDos.findViewById(R.id.btn1);
         btnElim.setText("Eliminar");
         final Button btnCancelar = (Button) mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder obraEliminar = new AlertDialog.Builder(getActivity())
+        final AlertDialog.Builder obraEliminar = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
         final AlertDialog dialogoObraEliminar = obraEliminar.create();
@@ -1078,11 +1328,10 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
                                     Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                    touch(true);
                                     mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAd).delete();
                                     Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                    touch(false);
                                     dialogoObraEliminar.dismiss();
                                     firestoreObras();
                                     ElimJefe = false;
@@ -1090,11 +1339,10 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             });
                         } else if (jef.equals(null) || jef.equals("no")) {
                             Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(true);
                             mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAd).delete();
                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                            touch(false);
                             dialogoObraEliminar.dismiss();
                             firestoreObras();
                             ElimJefe = false;
@@ -1136,7 +1384,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         final Button btnCamb = (Button) mDos.findViewById(R.id.btn1);
         btnCamb.setText("Cambiar");
         final Button btnCancelar = (Button) mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder obraJefeExiste = new AlertDialog.Builder(getActivity())
+        final AlertDialog.Builder obraJefeExiste = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
         final AlertDialog dialogoObraJefeExiste = obraJefeExiste.create();
@@ -1183,7 +1431,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         final Button btnSiguiente = (Button) mNombres.findViewById(R.id.btn1);
         final Button btnCancelar = (Button) mNombres.findViewById(R.id.btn2);
         jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
-        final AlertDialog.Builder obraJefe = new AlertDialog.Builder(getActivity())
+        final AlertDialog.Builder obraJefe = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
         jefeAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, jfs);
         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1232,8 +1480,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void añadeJefes(final String obraAd, final String obraAdJf) {
         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        touch(true);
         if (ElimJefe) {
             jefes = obraAdJf;
         }
@@ -1275,7 +1522,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                             mDb.collection("Todas las ids").document(idNueva).update("codigo empleado", JFC);
                                             mDb.collection("Jefes").document(idNueva).set(obE);
                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                            touch(false);
                                         }
                                     }
                                 });
@@ -1310,7 +1557,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                             mDb.collection("Todas las ids").document(idNueva).update("codigo empleado", JFC);
                                             mDb.collection("Jefes").document(idNueva).set(ob1);
                                             Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                                            touch(false);
                                         }
                                     }
                                 });
@@ -1326,8 +1573,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                     if (documentSnapshot.exists()) {
                         Menu.cargando(true);
-                    getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                        touch(true);
                         final String idCam = documentSnapshot.getString("id");
                         JFC = documentSnapshot.getString("codigo empleado");
                         JFO = documentSnapshot.getString("jefe");
@@ -1356,7 +1602,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         mDb.collection("Codigos").document(codigoEmpresa).update(obraAdJf, JFC);
                         mDb.collection("Jefes").document(idCam).update("jefe", JFO);
                         Menu.cargando(false);
-                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+                        touch(false);
                     }
                 }
             });
@@ -1531,7 +1777,9 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     @Override
     public void onInfoWindowClick(Marker marker) {
         String obr = marker.getTitle();
-        dAdmin(obr);
+        if (obs.contains(obr)) {
+            dAdmin(obr);
+        }
     }
 
     @Override
