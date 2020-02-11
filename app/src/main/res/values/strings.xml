@@ -1,9 +1,6 @@
 <resources>
-    <string name="logo">logo default</string>
-    <string name="volver">volver</string>
-    <string name="localizarYo">Localizarme</string>
-    <string name="usoCrear">crear obra</string>
-    <string name="buscador">Introduzca dirección, ciudad o obra</string>
+    <string name="volver">Volver</string>
+    <string name="buscador">Introduzca dirección, ciudad u obra</string>
     <string name="buscadorEmpleados">Introduzca dirección, ciudad o empleado</string>
     <string name="app_name">PAC</string>
     <string name="regNombre">Nombre</string>
@@ -17,32 +14,18 @@
     <string name="confEmail">Confirmar Email</string>
     <string name="regContraseña">Contraseña</string>
     <string name="confContraseña">Confirmar Contraseña</string>
-    <string name="regCodigo">Codigo de empresa</string>
+    <string name="regCodigo">Código de empresa</string>
     <string name="btnRegistrar">Registrar</string>
     <string name="siTiene">¿Ya estas registrado?</string>
-    <string name="Administrador">Administrador</string>
-    <string name="Empleado">Empleado</string>
-    <string name="btnIniciarJornada">Iniciar jornada</string>
-    <string name="btnFinalizarJornada">Finalizar Jornada</string>
-    <string name="insObra">Obra</string>
-    <string name="btnCerrar">Cerrar Sesion</string>
-    <string name="btnRegistrarJornadas">Registrar Jornada</string>
-    <string name="btnEmpleados">Administrar empleados</string>
-    <string name="btnObras">Administrar obras</string>
     <string name="btnFirmar">Registrar Firma</string>
     <string name="btnBorrar">Borrar Firma</string>
-    <string name="btnPdfGenerar">Generar Registro</string>
-    <string name="politicaDePrivacidad">Politica de privacidad</string>
+    <string name="politicaDePrivacidad">Política de privacidad</string>
     <string name="justificar">Justificar</string>
-    <string name="otroEmpleado">Soy otro empleado</string>
-    <string name="btnModoCentralita">Modo Centralita</string>
-    <string name="action_compartir">Compartir</string>
     <string name="action_email">Email</string>
     <string name="action_descargar">Descargar</string>
     <string name="action_imprimir">Imprimir</string>
-    <string name="btnDiasLibres">Gestionar dias libres</string>
-    <string name="DiasPend">Dias libres penditentes de aprobación</string>
-    <string name="DiasAsig">Dias libres asignados</string>
+    <string name="DiasPend">Días libres pendientes de aprobación</string>
+    <string name="DiasAsig">Días libres asignados</string>
     <string name="SoliVACAS">vacaciones</string>
     <string name="SoliBAJA">baja laboral</string>
     <string name="SoliOTROS">otro motivo</string>
@@ -50,16 +33,20 @@
     <string name="ElimSolici">Eliminar solicitud</string>
     <string name="CambMot">Cambiar motivo</string>
     <string name="sigu">continuar</string>
-    <string name="DarDias">Asignar dia libre</string>
+    <string name="DarDias">Asignar día libre</string>
     <string name="title_activity_prueba">prueba</string>
-    <string name="tab_menu">Menu principal</string>
+    <string name="tab_menu">Menú principal</string>
     <string name="tab_admin">Empleados</string>
-    <string name="tab_gest">Dias libres</string>
+    <string name="tab_gest">Días libres</string>
     <string name="cambiar">Cambiar</string>
     <string name="nuvNom">Nuevo nombre</string>
     <string name="confirmar">Confirmar</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="ayuda_ic_inicio">Si toca este botón podrás registrar la jornada:\n\nEl icono de un reloj con un +:\n-Indica que puede iniciar una nueva jornada en una obra de la lista.\n\nEl icono de un reloj tachado:\n-Indica que ya hay una jornada iniciada y pendiente de finalizar.</string>
+    <string name="ayuda_ic_localizar">Toque este botón para centrar el mapa\nen su localización actual.</string>
+    <string name="ayuda_consultar_privacidad">Aquí puede consultar la politica de privacidad de PAC.</string>
+    <string name="ayuda_expander">Toque la flecha para expandir la lista de obras.\n(Solo se expenderá si hay obras disponibles.)</string>
+    <string name="ayuda_obras_empleados">Si toca la obra será redirigido a la localización de esta en el mapa.\n\n(además si tras ser localizada la obra, toca el cartel que aparece encima del marcador con el nombre de la obra podrá registrar una jornada en esta.)\n\nSi desliza hacia la izquierda la obra, podrá registrar la jornada en esta.\n\nSi desliza hacia la derecha la obra, podrá registrar jornada otro compañero con su permiso.</string>
+    <string name="ayuda_general_emples">Toque los botones para desplegar información util sobre su utilidad.</string>
+    <string name="ayuda_salir">Para salir del modo ayuda\nvuelva a tocar el icono de ayuda.</string>
+    <string name="ayuda_generar_registro">Al tocar este boton elija un año y un mes de ese año disponible para generar su registro horario comprendido dentro de esa fecha, se le permitira descargarlo en formato PDF, enviarlo por correo o imprimirlo.</string>
 </resources>
-

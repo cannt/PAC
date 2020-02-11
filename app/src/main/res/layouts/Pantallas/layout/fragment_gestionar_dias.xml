@@ -4,11 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Menu.Administradores.gestionarDiasAdministradores"
-    android:id="@+id/fragmentoDias">
+    tools:context=".menu.Administradores.gestionarDiasAdministradores">
 
     <LinearLayout
-        android:id="@+id/layoutMadre"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
@@ -25,7 +23,6 @@
             app:umanoShadowHeight="4dp">
 
             <RelativeLayout
-                android:id="@+id/mainLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical">
@@ -47,7 +44,6 @@
 
                     </com.squareup.timessquare.CalendarPickerView>
                 </LinearLayout>
-
 
                 <LinearLayout
                     android:id="@+id/layoutDIAS"
@@ -74,7 +70,6 @@
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/expanderView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clickable="true"
@@ -134,20 +129,6 @@
                     android:layout_marginTop="5dp"
                     android:contentDescription="@string/volver"
                     app:srcCompat="@drawable/ic_expand_up" />
-
-                <androidx.coordinatorlayout.widget.CoordinatorLayout
-                    android:id="@+id/viewSnack"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="80dp"
-                    android:layout_marginTop="5dp"
-                    android:focusable="auto"
-                    android:orientation="horizontal"
-                    android:visibility="visible"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.49"
-                    app:layout_constraintStart_toStartOf="parent"></androidx.coordinatorlayout.widget.CoordinatorLayout>
 
             </RelativeLayout>
 

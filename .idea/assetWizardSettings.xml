@@ -36,7 +36,7 @@
                                           <PersistentState>
                                             <option name="values">
                                               <map>
-                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/action/ic_alarm_off_black_24dp.xml" />
+                                                <entry key="url" value="jar:file:/D:/Program%20Files/Android/Android%20Studio/plugins/android/lib/android.jar!/images/material_design_icons/action/ic_help_outline_black_24dp.xml" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -59,7 +59,7 @@
                                   <option name="values">
                                     <map>
                                       <entry key="imageAsset" value="D:\Proyectos Java\Android Studio\PAC\app\src\main\res\layouts\Otros\drawable-xxxhdpi\ic_empleados.png" />
-                                      <entry key="outputName" value="ic_finalizar_jornada" />
+                                      <entry key="outputName" value="ic_ayuda" />
                                       <entry key="theme" value="CUSTOM" />
                                       <entry key="themeColor" value="ffffff" />
                                     </map>

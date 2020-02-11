@@ -1,6 +1,5 @@
 package com.japac.pac;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.location.Address;
@@ -8,34 +7,32 @@ import android.location.Geocoder;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.japac.pac.Marcadores.MarcadoresEmpleados;
+import com.japac.pac.marcadores.marcadoresEmpleados;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<MarcadoresEmpleados, adaptadorEmpleadosLista.holderEmpleadosLista> {
+public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<marcadoresEmpleados, adaptadorEmpleadosLista.holderEmpleadosLista> {
 
     private adaptadorEmpleadosLista.OnItemClickListener listener;
     private Context context;
 
-    public adaptadorEmpleadosLista(@NonNull FirestoreRecyclerOptions<MarcadoresEmpleados> options) {
+    public adaptadorEmpleadosLista(@NonNull FirestoreRecyclerOptions<marcadoresEmpleados> options) {
         super(options);
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull adaptadorEmpleadosLista.holderEmpleadosLista holder, int position, @NonNull MarcadoresEmpleados model) {
+    protected void onBindViewHolder(@NonNull final adaptadorEmpleadosLista.holderEmpleadosLista holder, int position, @NonNull marcadoresEmpleados model) {
         holder.textViewTitle.setText(model.getNombre());
         holder.textViewTitle.setTextSize(18);
         String obra = model.getObra();
@@ -52,7 +49,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<Marcadores
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else if(obra!=null){
+        }else {
             address = "Trabajando en " + model.getObra();
         }
         if(address!=null){
@@ -62,15 +59,82 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<Marcadores
         }
         holder.textViewOnline.setTextSize(13);
         if(model.getEstado().equals("online")){
-            holder.textViewOnline.setTextColor(Color.GREEN);
+            if(holder.textViewOnline.getAnimation()!=null){
+                if(holder.textViewOnline.getAnimation().isInitialized()){
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setTextColor(Color.parseColor("#FF00ff00"));
             holder.textViewOnline.setText("Conectado");
         }else if(model.getEstado().equals("offline")){
-            holder.textViewOnline.setTextColor(Color.RED);
+            if(holder.textViewOnline.getAnimation()!=null){
+                if(holder.textViewOnline.getAnimation().isInitialized()){
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setTextColor(Color.parseColor("#FFff0000"));
             holder.textViewOnline.setText("Desconectado");
+        }else if(model.getEstado().equals("trabajando online")){
+            if(holder.textViewOnline.getAnimation()!=null){
+                if(holder.textViewOnline.getAnimation().isInitialized()){
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setText("Trabajando");
+            holder.textViewOnline.setTextColor(Color.parseColor("#FF00ff00"));
+            Animation anim = new AlphaAnimation(0.0f, 1.0f);
+            anim.setDuration(200);
+            anim.setStartOffset(20);
+            anim.setRepeatMode(Animation.REVERSE);
+            anim.setRepeatCount(Animation.INFINITE);
+            anim.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                    holder.textViewOnline.setTextColor(Color.parseColor("#FF00ff00"));
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    holder.textViewOnline.setTextColor(Color.parseColor("#8000ff00"));                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+
+                }
+            });
+            holder.textViewOnline.startAnimation(anim);
+        }else if(model.getEstado().equals("trabajando offline")){
+            if(holder.textViewOnline.getAnimation()!=null){
+                if(holder.textViewOnline.getAnimation().isInitialized()){
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setText("Trabajando");
+            holder.textViewOnline.setTextColor(Color.parseColor("#FFff0000"));
+            Animation anim = new AlphaAnimation(0.0f, 1.0f);
+            anim.setDuration(200);
+            anim.setStartOffset(20);
+            anim.setRepeatMode(Animation.REVERSE);
+            anim.setRepeatCount(Animation.INFINITE);
+            anim.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                    holder.textViewOnline.setTextColor(Color.parseColor("#FFff0000"));
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    holder.textViewOnline.setTextColor(Color.parseColor("#80ff0000"));                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+
+                }
+            });
+            holder.textViewOnline.startAnimation(anim);
         }
-
-
-
     }
 
     @NonNull
@@ -82,12 +146,12 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<Marcadores
     }
 
     class holderEmpleadosLista extends RecyclerView.ViewHolder{
-        TextView textViewTitle;
-        TextView textViewJefe;
-        TextView textViewOnline;
+        final TextView textViewTitle;
+        final TextView textViewJefe;
+        final TextView textViewOnline;
 
 
-        public holderEmpleadosLista(@NonNull View itemView) {
+        holderEmpleadosLista(@NonNull View itemView) {
             super(itemView);
             textViewTitle = itemView.findViewById(R.id.textoObra);
             textViewJefe = itemView.findViewById(R.id.jefesObra);
@@ -98,7 +162,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<Marcadores
                 public void onClick(View v) {
                     int position = getAdapterPosition();
                     if(position != RecyclerView.NO_POSITION && listener != null){
-                        listener.onItemClick(getSnapshots().getSnapshot(position), position);
+                        listener.onItemClick(position);
                     }
                 }
             });
@@ -107,7 +171,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<Marcadores
     }
 
     public interface OnItemClickListener{
-        void onItemClick(DocumentSnapshot documentSnapshot, int position);
+        void onItemClick(int position);
     }
 
     public void setOnItemClickListener(adaptadorEmpleadosLista.OnItemClickListener listener){

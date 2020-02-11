@@ -12,20 +12,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.japac.pac.Marcadores.MarcadoresObras;
+import com.japac.pac.marcadores.marcadoresObras;
 
-public class adaptadorObrasLista extends FirestoreRecyclerAdapter<MarcadoresObras, adaptadorObrasLista.holderObrasLista> {
+public class adaptadorObrasLista extends FirestoreRecyclerAdapter<marcadoresObras, adaptadorObrasLista.holderObrasLista> {
 
     private OnItemClickListener listener;
     private ItemTouchHelper itemTouchHelper;
 
-    public adaptadorObrasLista(@NonNull FirestoreRecyclerOptions<MarcadoresObras> options) {
+    public adaptadorObrasLista(@NonNull FirestoreRecyclerOptions<marcadoresObras> options) {
         super(options);
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull holderObrasLista holder, int position, @NonNull MarcadoresObras model) {
+    protected void onBindViewHolder(@NonNull holderObrasLista holder, int position, @NonNull marcadoresObras model) {
         holder.textViewTitle.setText(model.getObra());
         String jef = model.getJefe();
         if(jef==null){
@@ -53,12 +52,12 @@ public class adaptadorObrasLista extends FirestoreRecyclerAdapter<MarcadoresObra
     }
 
     class holderObrasLista extends RecyclerView.ViewHolder{
-        TextView textViewTitle;
-        TextView textViewJefe;
-        TextView textViewOnline;
+        final TextView textViewTitle;
+        final TextView textViewJefe;
+        final TextView textViewOnline;
 
 
-        public holderObrasLista(@NonNull View itemView) {
+        holderObrasLista(@NonNull View itemView) {
             super(itemView);
             textViewTitle = itemView.findViewById(R.id.textoObra);
             textViewJefe = itemView.findViewById(R.id.jefesObra);
@@ -69,7 +68,7 @@ public class adaptadorObrasLista extends FirestoreRecyclerAdapter<MarcadoresObra
                 public void onClick(View v) {
                     int position = getAdapterPosition();
                     if(position != RecyclerView.NO_POSITION && listener != null){
-                        listener.onItemClick(getSnapshots().getSnapshot(position), position);
+                        listener.onItemClick(position);
                     }
                 }
             });
@@ -78,7 +77,7 @@ public class adaptadorObrasLista extends FirestoreRecyclerAdapter<MarcadoresObra
     }
 
     public interface OnItemClickListener{
-        void onItemClick(DocumentSnapshot documentSnapshot, int position);
+        void onItemClick(int position);
     }
 
     public void setOnItemClickListener(OnItemClickListener listener){

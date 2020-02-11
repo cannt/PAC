@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Menu.Administradores.menuPrincipalAdministradores"
-    android:id="@+id/fragmentoPrinci">
+    tools:context=".menu.Administradores.menuPrincipalAdministradores">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -26,7 +25,6 @@
                 app:umanoShadowHeight="4dp">
 
                 <RelativeLayout
-                    android:id="@+id/mainLayout"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical">
@@ -41,7 +39,7 @@
                             android:name="com.google.android.gms.maps.SupportMapFragment"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            tools:context=".Menu.MapaActivity">
+                            tools:context=".menu.MapaActivity">
 
                         </androidx.fragment.app.FragmentContainerView>
 
@@ -82,7 +80,6 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/expanderView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="#66FFFFFF"
@@ -133,7 +130,6 @@
                         android:orientation="horizontal">
 
                         <RelativeLayout
-                            android:id="@+id/layoutBus"
                             android:layout_width="match_parent"
                             android:layout_height="40dp"
                             android:layout_marginStart="41dp"
@@ -198,7 +194,7 @@
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintHorizontal_bias="0.49"
-                        app:layout_constraintStart_toStartOf="parent"></androidx.coordinatorlayout.widget.CoordinatorLayout>
+                        app:layout_constraintStart_toStartOf="parent" />
 
                 </RelativeLayout>
 
