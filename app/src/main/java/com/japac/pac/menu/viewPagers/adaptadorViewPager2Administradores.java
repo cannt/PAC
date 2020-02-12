@@ -1,4 +1,4 @@
-package com.japac.pac.menu.ViewPagers;
+package com.japac.pac.menu.viewPagers;
 
 
 
@@ -8,9 +8,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.japac.pac.menu.Administradores.gestionarDiasAdministradores;
-import com.japac.pac.menu.Administradores.gestionarEmpleados;
-import com.japac.pac.menu.Administradores.menuPrincipalAdministradores;
+import com.japac.pac.menu.administradores.gestionarDiasAdministradores;
+import com.japac.pac.menu.administradores.gestionarEmpleados;
+import com.japac.pac.menu.administradores.menuPrincipalAdministradores;
 
 public class adaptadorViewPager2Administradores extends FragmentStateAdapter {
 

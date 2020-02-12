@@ -1,4 +1,4 @@
-package com.japac.pac.menu.Administradores;
+package com.japac.pac.menu.administradores;
 
 
 import android.Manifest;
@@ -96,7 +96,6 @@ import com.google.maps.android.SphericalUtil;
 import com.japac.pac.auth.login;
 import com.japac.pac.localizacion.localizacionUsuario;
 import com.japac.pac.marcadores.marcadoresEmpleados;
-import com.japac.pac.marcadores.marcadoresObras;
 import com.japac.pac.menu.menu;
 import com.japac.pac.pdf.templatePDF;
 import com.japac.pac.R;
@@ -169,10 +168,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
 
-    private List<Marker> markersMapObras = new ArrayList<Marker>();
-    private Map<String, Integer> markersMapObras2 = new HashMap<String, Integer>();
-    private List<Marker> markersMapEmpleados = new ArrayList<Marker>();
-    private Map<String, Integer> markersMapEmpleados2 = new HashMap<String, Integer>();
+    private final List<Marker> markersMapObras = new ArrayList<>();
+    private final Map<String, Integer> markersMapObras2 = new HashMap<>();
+    private final List<Marker> markersMapEmpleados = new ArrayList<>();
+    private final Map<String, Integer> markersMapEmpleados2 = new HashMap<>();
     private final Map<String, Object> map = new HashMap<>();
 
     private String trayecto, obraselect, nombreNu, emailConf, entrada_salida, SHAREempleado, SHAREano, SHAREmes, cif, ano1, mes1, mesnu, id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, busquedaString, jefes, codigoEmpleadoChech, sa, codigo, snackbarLocalizando;
@@ -280,10 +279,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
-                        slidingLayout2 = (SlidingUpPanelLayout) Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
-                        xpand2 = (ImageView) getView().findViewById(R.id.btnXpand2);
-                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
+                        xpand2 = getView().findViewById(R.id.btnXpand2);
+                        mBuscar = getView().findViewById(R.id.input_buscar);
                         xpand2.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -325,10 +324,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 }
                             }
                         });
-                        gps = (FloatingActionButton) getView().findViewById(R.id.ic_gps);
-                        icCrear = (FloatingActionButton) getView().findViewById(R.id.ic_crearEmpleado);
-                        icReactivar = (FloatingActionButton) getView().findViewById(R.id.ic_reactivar);
-                        pPt = (TextView) getView().findViewById(R.id.PrivacyPolicy);
+                        gps = getView().findViewById(R.id.ic_gps);
+                        icCrear = getView().findViewById(R.id.ic_crearEmpleado);
+                        icReactivar = getView().findViewById(R.id.ic_reactivar);
+                        pPt = getView().findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -893,7 +892,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
                         Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-                        jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
+                        jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
                         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
@@ -953,7 +952,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 if (readyJfs) {
                     readyJfs = false;
                     final int[] cuentaEmp = {lM.size()};
-                    final ArrayList<String> Marca = new ArrayList<>();
                     Log.d("cuentaEmp INICIO", String.valueOf(cuentaEmp[0]));
                     mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
@@ -1054,9 +1052,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (obs.contains("SIN OBRAS")) {
-                            obs.remove("SIN OBRAS");
-                        }
+                        obs.remove("SIN OBRAS");
                         mBuscar.getText().clear();
                         busquedaString = null;
                         readyObs = true;
@@ -1152,7 +1148,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        marcadoresObras marcadoresObras = new marcadoresObras(geoPoint1, title, snippet, title, onl);
         markersMapObras.add(mkr);
         markersMapObras2.put(title, markersIntObras);
         mMap.setOnMarkerClickListener(this);
@@ -1277,7 +1272,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             touch(true);
                             final String nif = documentSnapshot1.getString("NIF");
                             final String naf = documentSnapshot1.getString("NAF");
-                            String idreg = documentSnapshot1.getString("id");
                             mDb
                                     .collection("Empresas")
                                     .document(empresa)
@@ -1344,7 +1338,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -1430,7 +1424,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -1697,7 +1691,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.exists()) {
                             String roll = documentSnapshot.getString(empleadoSeleccionado);
-                            String rolElima = documentSnapshot.getString(empleadoSeleccionado);
                             if (Objects.requireNonNull(roll).contains("_ELIMINADO")) {
                                 menu.cargando(true);
                                 touch(true);
@@ -2047,11 +2040,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 touch(true);
                 if (!emplesDesac.isEmpty()) {
                     mDos = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
-                    Spinner desSpinner = (Spinner) mDos.findViewById(R.id.spinnerObra);
+                    Spinner desSpinner = mDos.findViewById(R.id.spinnerObra);
                     ArrayAdapter<String> desAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, emplesDesac);
                     desAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     desSpinner.setAdapter(desAdapter);
-                    final String[] desSelec = {Objects.requireNonNull(desAdapter.getItem(0)).toString()};
+                    final String[] desSelec = {Objects.requireNonNull(desAdapter.getItem(0))};
                     desSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -2167,7 +2160,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         View mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        obraSpinner = (Spinner) mObras.findViewById(R.id.spinnerObra);
+        obraSpinner = mObras.findViewById(R.id.spinnerObra);
         ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, obs);
         obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         obraSpinner.setAdapter(obraAdapter);
@@ -2382,7 +2375,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     dialogoOtro.show();
                                                 }
 
-                                            }else{
+                                            } else {
                                                 Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
                                                 menu.cargando(false);
                                                 touch(false);
@@ -2474,12 +2467,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             if (task.isSuccessful()) {
                                 id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
                                 dialogoConfirma.dismiss();
-                                CountDownTimer timerSnack = new CountDownTimer(6000, 6000) {
+                                new CountDownTimer(6000, 6000) {
                                     @Override
                                     public void onTick(long millisUntilFinished) {
                                         menu.cargando(true);
                                         touch(true);
-                                        TextView tv = (TextView) (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                         tv.setTextSize(10);
                                         snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                         menu.snackbar.show();
@@ -2605,24 +2598,24 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         } else if (Double.compare(distan, 50.0) > 0) {
                             distan2 = 1.0;
                             dis = dis + 50.0;
-                            if(timerSnackLocaliza==null){
+                            if (timerSnackLocaliza == null) {
                                 timerSnackLocaliza = new CountDownTimer(60000, 1000) {
                                     @Override
                                     public void onTick(long millisUntilFinished) {
-                                        if(snackbarLocalizando==null){
+                                        if (snackbarLocalizando == null) {
                                             snackbarLocalizando = "Localizando";
-                                        }else if(snackbarLocalizando.equals("Localizando")){
+                                        } else if (snackbarLocalizando.equals("Localizando")) {
                                             snackbarLocalizando = "Localizando.";
-                                        }else if(snackbarLocalizando.equals("Localizando.")){
+                                        } else if (snackbarLocalizando.equals("Localizando.")) {
                                             snackbarLocalizando = "Localizando..";
-                                        }else if(snackbarLocalizando.equals("Localizando..")){
+                                        } else if (snackbarLocalizando.equals("Localizando..")) {
                                             snackbarLocalizando = "Localizando...";
-                                        }else if(snackbarLocalizando.equals("Localizando...")){
+                                        } else if (snackbarLocalizando.equals("Localizando...")) {
                                             snackbarLocalizando = "Localizando";
                                         }
                                         menu.snackbar.setText(snackbarLocalizando);
                                         menu.snackbar.setDuration(1000);
-                                        TextView tv = (TextView) (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                         tv.setTextSize(10);
                                         snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                         menu.snackbar.show();
@@ -3142,9 +3135,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         final Button botonBor = mFirmar.findViewById(R.id.btn2);
         final StorageReference[] firmaRef = new StorageReference[1];
         final FirebaseAuth mAuth2 = FirebaseAuth.getInstance();
-        FirebaseStorage almacen2 = FirebaseStorage.getInstance();
         final StorageReference almacenRef2 = almacen.getReferenceFromUrl("gs://pacusuarios-9035b.appspot.com");
-        final String id2 = Objects.requireNonNull(mAuth2.getCurrentUser()).getUid();
         Firmar
                 .setCustomTitle(myMsgtitle)
                 .setView(mFirmar);

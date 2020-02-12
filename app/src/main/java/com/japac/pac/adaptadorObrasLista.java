@@ -17,7 +17,6 @@ import com.japac.pac.marcadores.marcadoresObras;
 public class adaptadorObrasLista extends FirestoreRecyclerAdapter<marcadoresObras, adaptadorObrasLista.holderObrasLista> {
 
     private OnItemClickListener listener;
-    private ItemTouchHelper itemTouchHelper;
 
     public adaptadorObrasLista(@NonNull FirestoreRecyclerOptions<marcadoresObras> options) {
         super(options);

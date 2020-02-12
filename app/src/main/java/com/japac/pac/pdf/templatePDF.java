@@ -237,7 +237,7 @@ public class templatePDF {
     private static Bitmap removeMargins2(Bitmap bmp) {
         long dtMili = System.currentTimeMillis();
         int MTop = 0, MBot = 0, MLeft = 0, MRight = 0;
-        boolean found1 = false, found2 = false;
+        boolean found2 = false;
 
         int[] bmpIn = new int[bmp.getWidth() * bmp.getHeight()];
         int[][] bmpInt = new int[bmp.getWidth()][bmp.getHeight()];

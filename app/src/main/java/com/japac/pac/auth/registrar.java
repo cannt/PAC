@@ -63,8 +63,8 @@ public class registrar extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registrar);
-        progressBar = (ProgressBar) findViewById(R.id.progressbar);
-        view = (View) findViewById(R.id.viewGrey);
+        progressBar = findViewById(R.id.progressbar);
+        view = findViewById(R.id.viewGrey);
 
         if (compruebapermisos()) {
 
@@ -72,17 +72,17 @@ public class registrar extends AppCompatActivity {
 
             firebaseFirestore = FirebaseFirestore.getInstance();
 
-            Button entrar = (Button) findViewById(R.id.btnEntrar);
-            Button registrar = (Button) findViewById(R.id.btnRegistrar);
+            Button entrar = findViewById(R.id.btnEntrar);
+            Button registrar = findViewById(R.id.btnRegistrar);
 
-            nombre = (EditText) findViewById(R.id.regNombre);
-            email = (EditText) findViewById(R.id.regEmail);
-            confEmail = (EditText) findViewById(R.id.confEmail);
-            contrasena = (EditText) findViewById(R.id.regContraseña);
-            confContrasena = (EditText) findViewById(R.id.confContraseña);
-            codigoEmpresa = (EditText) findViewById(R.id.regCodigoEmpresa);
-            nif = (EditText) findViewById(R.id.regNif);
-            naf = (EditText) findViewById(R.id.regNaf);
+            nombre = findViewById(R.id.regNombre);
+            email = findViewById(R.id.regEmail);
+            confEmail = findViewById(R.id.confEmail);
+            contrasena = findViewById(R.id.regContraseña);
+            confContrasena = findViewById(R.id.confContraseña);
+            codigoEmpresa = findViewById(R.id.regCodigoEmpresa);
+            nif = findViewById(R.id.regNif);
+            naf = findViewById(R.id.regNaf);
 
             entrar.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -251,9 +251,9 @@ public class registrar extends AppCompatActivity {
         dialogoQuien.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(final DialogInterface dialog) {
-                Button positivoYo = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_POSITIVE);
-                Button negativoOtro = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_NEGATIVE);
-                Button neutroC = (Button) dialogoQuien.getButton(AlertDialog.BUTTON_NEUTRAL);
+                Button positivoYo = dialogoQuien.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button negativoOtro = dialogoQuien.getButton(AlertDialog.BUTTON_NEGATIVE);
+                Button neutroC = dialogoQuien.getButton(AlertDialog.BUTTON_NEUTRAL);
                 positivoYo.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

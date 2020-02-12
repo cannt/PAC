@@ -1,7 +1,6 @@
 package com.japac.pac.servicios;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -36,7 +35,6 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
-import com.google.firebase.firestore.SetOptions;
 import com.google.maps.android.SphericalUtil;
 import com.japac.pac.localizacion.localizacionUsuario;
 import com.japac.pac.menu.menu;
@@ -54,7 +52,7 @@ public class servicioLocalizacion extends Service {
     private localizacionUsuario mLocalizarUsuario;
     private String id, nombre, empresa, comprobar, obra, rol;
     private Double distancia;
-    public static servicioLocalizacion servicioLocalizacion;
+    private static servicioLocalizacion servicioLocalizacion;
     private static Boolean running = false;
     private static CountDownTimer timerFina;
 
@@ -71,7 +69,6 @@ public class servicioLocalizacion extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        final servicioLocalizacion servicioLocalizacion = this;
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (Build.VERSION.SDK_INT >= 26) {
             String CHANNEL_ID = "mi_canal_01";

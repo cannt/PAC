@@ -54,7 +54,7 @@ public class firma extends AppCompatActivity {
 
     private StorageReference almacenRef;
     private StorageReference firmaRef;
-    private StorageReference firmasImagenRef;
+
 
     private ProgressBar progressBar;
     
@@ -64,16 +64,16 @@ public class firma extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(null);
         setContentView(R.layout.activity_firma);
-        progressBar = (ProgressBar) findViewById(R.id.progressbar);
-        view = (View) findViewById(R.id.viewGrey);
+        progressBar = findViewById(R.id.progressbar);
+        view = findViewById(R.id.viewGrey);
         
         
         firebaseFirestore = FirebaseFirestore.getInstance();
 
-        btnborrar = (Button) findViewById(R.id.btnBorrarCon);
-        btnfirmar = (Button) findViewById(R.id.btnFirmarCon);
+        btnborrar = findViewById(R.id.btnBorrarCon);
+        btnfirmar = findViewById(R.id.btnFirmarCon);
 
-        firma = (SignaturePad) findViewById(R.id.firmaCon);
+        firma = findViewById(R.id.firmaCon);
         firma.setOnSignedListener(new SignaturePad.OnSignedListener() {
             @Override
             public void onStartSigning() {
@@ -169,7 +169,6 @@ public class firma extends AppCompatActivity {
                     if (compruebapermisos()) {
                         if (mAuth.getCurrentUser() != null) {
                             firmaRef = almacenRef.child(Objects.requireNonNull(documentSnapshot.getString("empresa"))).child("Firmas").child(Objects.requireNonNull(documentSnapshot.getString("nombre"))).child(id + ".jpg");
-                            firmasImagenRef = almacenRef.child("firmas/" + id + ".jpg");
                         }
                     }
                 }

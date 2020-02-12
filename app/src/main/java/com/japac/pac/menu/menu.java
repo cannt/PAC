@@ -1,7 +1,6 @@
 package com.japac.pac.menu;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
@@ -15,9 +14,7 @@ import android.os.Handler;
 import android.os.StrictMode;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -41,9 +38,8 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.japac.pac.auth.login;
-import com.japac.pac.menu.ViewPagers.adaptadorViewPager2Administradores;
-import com.japac.pac.menu.ViewPagers.adaptadorViewPager2Empleados;
+import com.japac.pac.menu.viewPagers.adaptadorViewPager2Administradores;
+import com.japac.pac.menu.viewPagers.adaptadorViewPager2Empleados;
 import com.japac.pac.pdf.myPrintDocumentAdapter;
 import com.japac.pac.pdf.fragmentoCompartir;
 import com.japac.pac.R;
@@ -109,8 +105,8 @@ public class menu extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
-        progressBar = (ProgressBar) findViewById(R.id.progressbar);
-        view = (View) findViewById(R.id.viewGrey);
+        progressBar = findViewById(R.id.progressbar);
+        view = findViewById(R.id.viewGrey);
         instance = this;
         if (compruebapermisos()) {
             cargando(true);
@@ -395,7 +391,7 @@ public class menu extends AppCompatActivity implements
                 System.exit(0);
             }
             this.doubleBackToExitPressedOnce = true;
-            showToast("Pulse atras otra vez para cerrar PAC");
+            showToast();
             new Handler().postDelayed(new Runnable() {
 
                 @Override
@@ -412,18 +408,18 @@ public class menu extends AppCompatActivity implements
         }
     }
 
-    private void showToast(String message) {
+    private void showToast() {
         if (this.toast == null) {
             // Create toast if found null, it would he the case of first call only
-            this.toast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+            this.toast = Toast.makeText(this, "Pulse atras otra vez para cerrar PAC", Toast.LENGTH_SHORT);
 
         } else if (this.toast.getView() == null) {
             // Toast not showing, so create new one
-            this.toast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+            this.toast = Toast.makeText(this, "Pulse atras otra vez para cerrar PAC", Toast.LENGTH_SHORT);
 
         } else {
             // Updating toast message is showing
-            this.toast.setText(message);
+            this.toast.setText("Pulse atras otra vez para cerrar PAC");
         }
 
         // Showing toast finally

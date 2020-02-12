@@ -1,4 +1,4 @@
-package com.japac.pac.menu.Administradores;
+package com.japac.pac.menu.administradores;
 
 
 import android.app.NotificationManager;
@@ -33,7 +33,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -53,7 +52,6 @@ import com.squareup.timessquare.CalendarPickerView;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -96,8 +94,6 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private ImageView xpand;
 
-    private ViewGroup root;
-
     public gestionarDiasAdministradores() {
         // Required empty public constructor
     }
@@ -108,21 +104,21 @@ public class gestionarDiasAdministradores extends Fragment {
                              Bundle savedInstanceState) {
         menu.cargando(true);
         touch(true);
-        root = (ViewGroup) inflater.inflate(R.layout.fragment_gestionar_dias, null, false);
+        ViewGroup root = (ViewGroup) inflater.inflate(R.layout.fragment_gestionar_dias, null, false);
         final Date hoy = new Date();
         final Calendar siguienteAno = Calendar.getInstance();
         siguienteAno.add(Calendar.YEAR, 1);
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         xpand = root.findViewById(R.id.btnXpand);
-        diasSolicTextV2 = (TextView) root.findViewById(R.id.DiasSoliList2);
-        TextView diasSolicTextV = (TextView) root.findViewById(R.id.DiasSoliList);
+        diasSolicTextV2 = root.findViewById(R.id.DiasSoliList2);
+        TextView diasSolicTextV = root.findViewById(R.id.DiasSoliList);
         diasSolicTextV.setText("Dias libres pendientes de aprobación");
         diasSolicTextV2.setText("Dias libres asignados\nDezlizar para mas detalles");
         calendarPickerView = root.findViewById(R.id.calendar_view);
         calendarPickerView2 = root.findViewById(R.id.calendar_view2);
         calendarPickerView.init(hoy, siguienteAno.getTime());
         calendarPickerView2.init(hoy, siguienteAno.getTime());
-        slidingLayout = (SlidingUpPanelLayout) root.findViewById(R.id.sliding_layout);
+        slidingLayout = root.findViewById(R.id.sliding_layout);
         slidingLayout.setDragView(diasSolicTextV2);
         diasSolicTextV2.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -271,7 +267,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         }
                                                     }
                                                     menu.snackbar.setText("El empleado " + doc.getDocument().getString("nombre") + " a solicitado un dia libre");
-                                                    TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                     tv.setTextSize(9);
                                                     snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                                     menu.snackbar.show();
@@ -317,7 +313,7 @@ public class gestionarDiasAdministradores extends Fragment {
                         } else {
                             contieneDias.size();
                             mEmpleados = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
-                            empleadosSpinner = (Spinner) mEmpleados.findViewById(R.id.spinnerObra);
+                            empleadosSpinner = mEmpleados.findViewById(R.id.spinnerObra);
                             empleadosSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                                 @Override
                                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -337,8 +333,8 @@ public class gestionarDiasAdministradores extends Fragment {
                             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                             myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
-                            final Button btnSiguient = (Button) mEmpleados.findViewById(R.id.btn1);
-                            final Button btnCance = (Button) mEmpleados.findViewById(R.id.btn2);
+                            final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
+                            final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                             AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                     .setCustomTitle(myMsgtitle)
                                     .setView(mEmpleados);
@@ -391,7 +387,7 @@ myMsgtitle.setPadding(2,2,2,2);
                             } else {
                                 contieneDias2.size();
                                 mEmpleados = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
-                                empleadosSpinner = (Spinner) mEmpleados.findViewById(R.id.spinnerObra);
+                                empleadosSpinner = mEmpleados.findViewById(R.id.spinnerObra);
                                 empleadosSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                                     @Override
                                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -411,8 +407,8 @@ myMsgtitle.setPadding(2,2,2,2);
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
-                                final Button btnSiguient = (Button) mEmpleados.findViewById(R.id.btn1);
-                                final Button btnCance = (Button) mEmpleados.findViewById(R.id.btn2);
+                                final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
+                                final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                         .setCustomTitle(myMsgtitle)
                                         .setView(mEmpleados);
@@ -467,8 +463,8 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
                                                 mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                final Button btnAsigDia = (Button) mDosBtn.findViewById(R.id.btn1);
-                                                final Button btnCancelar = (Button) mDosBtn.findViewById(R.id.btn2);
+                                                final Button btnAsigDia = mDosBtn.findViewById(R.id.btn1);
+                                                final Button btnCancelar = mDosBtn.findViewById(R.id.btn2);
                                                 AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mDosBtn);
@@ -492,10 +488,10 @@ myMsgtitle.setPadding(2,2,2,2);
                                                         final String datefull = formato.format(date);
                                                         titulo.setText("¿Porque motivo deseas darle el dia " + datefull + " libre a " + contieneDias3.get(0) + "?");
                                                         mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                                                        final Button btnVaca = (Button) mCambMot.findViewById(R.id.Vacas);
-                                                        final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
-                                                        final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
-                                                        final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
+                                                        final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
+                                                        final Button btnBaja = mCambMot.findViewById(R.id.Baja);
+                                                        final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                                                        final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
                                                         AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
                                                                 .setView(mCambMot);
@@ -525,7 +521,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                 mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
                                                                 final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                 final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
-                                                                final Button btnJusti = (Button) mJustificar.findViewById(R.id.btn1);
+                                                                final Button btnJusti = mJustificar.findViewById(R.id.btn1);
                                                                 Login
                                                                         .setTitle("Justifique el motivo")
                                                                         .setView(mJustificar);
@@ -616,7 +612,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                             } else {
                                                 contieneDias3.size();
                                                 mEmpleados = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
-                                                empleadosSpinner = (Spinner) mEmpleados.findViewById(R.id.spinnerObra);
+                                                empleadosSpinner = mEmpleados.findViewById(R.id.spinnerObra);
                                                 empleadosSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                                                     @Override
                                                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -636,8 +632,8 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
-                                                final Button btnSiguiente = (Button) mEmpleados.findViewById(R.id.btn1);
-                                                final Button btnCancelar = (Button) mEmpleados.findViewById(R.id.btn2);
+                                                final Button btnSiguiente = mEmpleados.findViewById(R.id.btn1);
+                                                final Button btnCancelar = mEmpleados.findViewById(R.id.btn2);
                                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mEmpleados);
@@ -661,10 +657,10 @@ myMsgtitle.setPadding(2,2,2,2);
                                                         final String datefull = formato.format(date);
                                                         titulo.setText("¿Porque motivo deseas darle el dia " + datefull + " libre a " + empleSelec + "?");
                                                         mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                                                        final Button btnVaca = (Button) mCambMot.findViewById(R.id.Vacas);
-                                                        final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
-                                                        final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
-                                                        final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
+                                                        final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
+                                                        final Button btnBaja = mCambMot.findViewById(R.id.Baja);
+                                                        final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                                                        final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
                                                         AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
                                                                 .setView(mCambMot);
@@ -695,7 +691,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                 mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
                                                                 final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                 final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
-                                                                final Button btnJust = (Button) mJustificar.findViewById(R.id.btn1);
+                                                                final Button btnJust = mJustificar.findViewById(R.id.btn1);
                                                                 Login
                                                                         .setTitle("Justifique el motivo")
                                                                         .setView(mJustificar);
@@ -784,7 +780,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                             }
                                         } else {
                                             menu.snackbar.setText("No tienes ningun empleado registrado");
-                                            TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                            TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                             tv.setTextSize(12);
                                             snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                             menu.snackbar.show();
@@ -811,7 +807,7 @@ myMsgtitle.setPadding(2,2,2,2);
                 String aceptD = documentSnapshot.getString("Dias libres");
                 final Map<String, Object> mapSolis = new HashMap<>();
                 if (tip != null) {
-                    final List<String> diasSotLista = Arrays.asList(tip.split("\\s*;\\s*"));
+                    final String[] diasSotLista = tip.split("\\s*;\\s*");
                     final List<String> dias2 = new ArrayList<>();
                     for (String ds : diasSotLista) {
                         if (!ds.contains(fecha)) {
@@ -864,7 +860,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                     }
                                                 }
                                                 menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
-                                                TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                 tv.setTextSize(12);
                                                 tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
                                                 snackbarDS.configSnackbar(getContext(),  menu.snackbar);
@@ -891,7 +887,7 @@ myMsgtitle.setPadding(2,2,2,2);
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
                 String motiv2 = documentSnapshot.getString("Dias libres solicitados");
-                final List<String> listaMotiv = Arrays.asList(Objects.requireNonNull(motiv2).split("\\s*;\\s*"));
+                final String[] listaMotiv = Objects.requireNonNull(motiv2).split("\\s*;\\s*");
                 for (String mot : listaMotiv) {
                     if (mot.contains(fechaText)) {
                         if (mot.contains("V")) {
@@ -922,11 +918,11 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
-        final Button btnAceptar = (Button) mTresBtn.findViewById(R.id.btn1);
+        final Button btnAceptar = mTresBtn.findViewById(R.id.btn1);
         btnAceptar.setText("Aceptar");
-        final Button btnRechazar = (Button) mTresBtn.findViewById(R.id.btn2);
+        final Button btnRechazar = mTresBtn.findViewById(R.id.btn2);
         btnRechazar.setText("Rechazar");
-        final Button btnCance = (Button) mTresBtn.findViewById(R.id.Cancelar);
+        final Button btnCance = mTresBtn.findViewById(R.id.Cancelar);
         AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle)
                 .setView(mTresBtn);
@@ -950,7 +946,7 @@ myMsgtitle.setPadding(2,2,2,2);
                     public void onSuccess(final DocumentSnapshot documentSnapshot) {
                         String tip = documentSnapshot.getString("Dias libres solicitados");
                         String fin = null;
-                        final List<String> diasSotLista = Arrays.asList(Objects.requireNonNull(tip).split("\\s*;\\s*"));
+                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
                         final List<String> dias2 = new ArrayList<>();
                         for (String ds : diasSotLista) {
                             if (!ds.contains(fech)) {
@@ -981,7 +977,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         menu.snackbar.setText("El dia " + fech + " ha sido rechazado");
-                                                        TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                         tv.setTextSize(12);
                                                         snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                                         menu.snackbar.show();
@@ -1014,7 +1010,7 @@ myMsgtitle.setPadding(2,2,2,2);
                         String fin = null;
                         String aceptD = documentSnapshot.getString("Dias libres");
                         String acept = null;
-                        final List<String> diasSotLista = Arrays.asList(Objects.requireNonNull(tip).split("\\s*;\\s*"));
+                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
                         final List<String> dias2 = new ArrayList<>();
                         for (String ds : diasSotLista) {
                             if (!ds.contains(fech)) {
@@ -1064,7 +1060,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                 }
                                                             }
                                                             menu.snackbar.setText("El dia " + fech + " ha sido aceptado");
-                                                            TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                            TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                             tv.setTextSize(12);
                                                             snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                                             menu.snackbar.show();
@@ -1111,7 +1107,7 @@ myMsgtitle.setPadding(2,2,2,2);
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 motiv = documentSnapshot.getString("Dias libres");
-                final List<String> listaMotiv = Arrays.asList(Objects.requireNonNull(motiv).split("\\s*;\\s*"));
+                final String[] listaMotiv = Objects.requireNonNull(motiv).split("\\s*;\\s*");
                 for (String mot : listaMotiv) {
                     if (mot.contains(date)) {
                         if (mot.contains("V")) {
@@ -1132,10 +1128,10 @@ myMsgtitle.setPadding(2,2,2,2);
     private void dialogoYaDia(final String nombre3, final String date, final String motivo) {
 
         mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
-        final Button btnEliminar = (Button) mTresBtn.findViewById(R.id.btn1);
+        final Button btnEliminar = mTresBtn.findViewById(R.id.btn1);
         btnEliminar.setText("Eliminar dia libre");
-        final Button btnCambMot = (Button) mTresBtn.findViewById(R.id.btn2);
-        final Button btnCance = (Button) mTresBtn.findViewById(R.id.Cancelar);
+        final Button btnCambMot = mTresBtn.findViewById(R.id.btn2);
+        final Button btnCance = mTresBtn.findViewById(R.id.Cancelar);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText(nombre3 + " tiene el dia " + date + " libre por " + motivo);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1164,10 +1160,10 @@ myMsgtitle.setPadding(2,2,2,2);
                 titulo.setTextColor(Color.BLACK);
                 titulo.setText("Seleccione el nuevo motivo para el dia " + date + " libre de " + nombre3);
                 mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                final Button btnVaca = (Button) mCambMot.findViewById(R.id.Vacas);
-                final Button btnBaja = (Button) mCambMot.findViewById(R.id.Baja);
-                final Button btnOtros = (Button) mCambMot.findViewById(R.id.Otros);
-                final Button btnCance = (Button) mCambMot.findViewById(R.id.Cancelar);
+                final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
+                final Button btnBaja = mCambMot.findViewById(R.id.Baja);
+                final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
                 AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                         .setCustomTitle(titulo)
                         .setView(mCambMot);
@@ -1196,7 +1192,7 @@ myMsgtitle.setPadding(2,2,2,2);
                         mJustificar = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
                         final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                         final EditText sJustificar = mJustificar.findViewById(R.id.justificaDialogo);
-                        final Button btnJust = (Button) mJustificar.findViewById(R.id.btn1);
+                        final Button btnJust = mJustificar.findViewById(R.id.btn1);
                         Login
                                 .setTitle("Justifique el motivo")
                                 .setView(mJustificar);
@@ -1314,7 +1310,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                             }
                                                                         }
                                                                         menu.snackbar.setText("Dia libre eliminado correctamente");
-                                                                        TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                                         tv.setTextSize(12);
                                                                         snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                                                         menu.snackbar.show();
@@ -1363,7 +1359,7 @@ myMsgtitle.setPadding(2,2,2,2);
         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre4).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
-                final List<String> listaMotiv = Arrays.asList(Objects.requireNonNull(documentSnapshot.getString("Dias libres")).split("\\s*;\\s*"));
+                final String[] listaMotiv = Objects.requireNonNull(documentSnapshot.getString("Dias libres")).split("\\s*;\\s*");
                 for (final String m : listaMotiv) {
                     if (m.contains(fecha)) {
                         firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("Dias libres", Objects.requireNonNull(documentSnapshot.getString("Dias libres")).replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -1406,7 +1402,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                             }
                                                         }
                                                         menu.snackbar.setText("Motivo del dia libre " + fecha + " actualizado");
-                                                        TextView tv = (TextView) ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                         tv.setTextSize(10);
                                                         snackbarDS.configSnackbar(getContext(),  menu.snackbar);
                                                         menu.snackbar.show();
@@ -1468,14 +1464,13 @@ myMsgtitle.setPadding(2,2,2,2);
                     if (doc.getString("Dias libres solicitados") != null) {
                         collectionDates.clear();
                         calendarPickerView.clearHighlightedDates();
-                        final List<String> diasSoliLista = Arrays.asList(Objects.requireNonNull(doc.getString("Dias libres solicitados")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*"));
+                        final String[] diasSoliLista = Objects.requireNonNull(doc.getString("Dias libres solicitados")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
                         for (String ds : diasSoliLista) {
                             if (ds != null) {
                                 try {
                                     Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(ds);
                                     Date currentTime = Calendar.getInstance().getTime();
                                     SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-                                    String hoyFech = fmt.format(new Date());
                                     final String dateS = fmt.format(Objects.requireNonNull(date1));
                                     if (date1.before(currentTime)) {
                                         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -1485,7 +1480,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                     String tip = documentSnapshot.getString("Dias libres solicitados");
                                                     String fin = null;
                                                     final Map<String, String> mapD = new HashMap<>();
-                                                    final List<String> diasSotLista = Arrays.asList(Objects.requireNonNull(tip).split("\\s*;\\s*"));
+                                                    final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
                                                     final List<String> dias2 = new ArrayList<>();
                                                     for (String ds : diasSotLista) {
                                                         if (!ds.contains(dateS)) {
@@ -1544,7 +1539,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                 if (doc.getString("Dias libres") != null) {
                                     try {
                                         String diasnomot = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("B", "").replaceAll("O", "").replaceAll("V", "");
-                                        final List<String> contieneDiasString = Arrays.asList(diasnomot.split("\\s*;\\s*"));
+                                        final String[] contieneDiasString = diasnomot.split("\\s*;\\s*");
                                         for (String di : contieneDiasString) {
                                             contieneDias.add(formato.parse(di));
 
@@ -1624,7 +1619,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 calendarPickerView2.clearHighlightedDates();
                                                 for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                                                     if (doc.getString("Dias libres") != null) {
-                                                        final List<String> diasAceptLista = Arrays.asList(Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*"));
+                                                        final String[] diasAceptLista = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
                                                         List<Date> listaDates = new ArrayList<>();
                                                         for (String ds : diasAceptLista) {
                                                             try {

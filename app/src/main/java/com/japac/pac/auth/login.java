@@ -81,7 +81,7 @@ public class login extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseFirestore firebaseFirestore;
 
-    private String semail = "", scontrasena = "", codigoEmpleado, sroles;
+    private String semail = "", scontrasena = "";
 
     private ProgressBar progressBar;
 
@@ -93,10 +93,10 @@ public class login extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        progressBar = (ProgressBar) findViewById(R.id.progressbar);
-        view = (View) findViewById(R.id.viewGrey);
-        entrar = (Button) findViewById(R.id.btnEntrar);
-        registrar = (Button) findViewById(R.id.btnRegistrar);
+        progressBar = findViewById(R.id.progressbar);
+        view = findViewById(R.id.viewGrey);
+        entrar = findViewById(R.id.btnEntrar);
+        registrar = findViewById(R.id.btnRegistrar);
         final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
         cargando(true);
         if (compruebapermisos() && isServicesOK()) {
@@ -114,7 +114,6 @@ public class login extends AppCompatActivity {
                                 LocationServices.getFusedLocationProviderClient(login.this)
                                         .removeLocationUpdates(this);
                                 if (locationResult != null && locationResult.getLocations().size() > 0) {
-                                    Log.d("location", "SUCCESS");
                                     mAuth = FirebaseAuth.getInstance();
                                     firebaseFirestore = FirebaseFirestore.getInstance();
                                     FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
@@ -122,9 +121,9 @@ public class login extends AppCompatActivity {
                                             .build();
                                     firebaseFirestore.setFirestoreSettings(settings);
 
-                                    email = (EditText) findViewById(R.id.logEmail);
-                                    contrasena = (EditText) findViewById(R.id.logContraseña);
-                                    pPt = (TextView) findViewById(R.id.PrivacyPolicy);
+                                    email = findViewById(R.id.logEmail);
+                                    contrasena = findViewById(R.id.logContraseña);
+                                    pPt = findViewById(R.id.PrivacyPolicy);
 
                                     usuario();
 
@@ -188,9 +187,9 @@ public class login extends AppCompatActivity {
                 myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
                 View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                final Button btnCont = (Button) mDosBtn.findViewById(R.id.btn1);
+                final Button btnCont = mDosBtn.findViewById(R.id.btn1);
                 btnCont.setText("Continuar");
-                final Button btnSal = (Button) mDosBtn.findViewById(R.id.btn2);
+                final Button btnSal = mDosBtn.findViewById(R.id.btn2);
                 btnSal.setText("Salir");
                 final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
                         .setCustomTitle(myMsgtitle)
@@ -288,6 +287,7 @@ myMsgtitle.setPadding(2,2,2,2);
             return true;
         } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(login.this, available, ERROR_DIALOGO_PEDIR);
+            dialog.show();
         } else {
             Toast.makeText(this, "Mapas no funciona", Toast.LENGTH_SHORT).show();
 

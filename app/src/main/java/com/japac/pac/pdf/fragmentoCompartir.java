@@ -14,15 +14,7 @@ import com.japac.pac.R;
 public class fragmentoCompartir extends BottomSheetDialogFragment
         implements View.OnClickListener {
 
-
-
-    public static final String TAG = "ActionBottomDialog";
-
     private ItemClickListener mListener;
-
-    public static fragmentoCompartir newInstance() {
-        return new fragmentoCompartir();
-    }
 
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,

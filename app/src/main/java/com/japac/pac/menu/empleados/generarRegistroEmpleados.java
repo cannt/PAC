@@ -1,15 +1,12 @@
-package com.japac.pac.menu.Empleados;
+package com.japac.pac.menu.empleados;
 
 import android.annotation.SuppressLint;
 import android.content.DialogInterface;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 
@@ -36,7 +33,6 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -138,7 +134,7 @@ public class generarRegistroEmpleados extends Fragment {
                     if (documentSnapshot.contains("obra")) {
                         obcomprueba = documentSnapshot.getString("obra");
                     }
-                    icAyuda = (FloatingActionButton) RootView.findViewById(R.id.ic_ayuda);
+                    icAyuda = RootView.findViewById(R.id.ic_ayuda);
                     icAyuda.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -172,7 +168,7 @@ public class generarRegistroEmpleados extends Fragment {
                             }
                         }
                     });
-                    botonReg = (FloatingActionButton) RootView.findViewById(R.id.ic_regis);
+                    botonReg = RootView.findViewById(R.id.ic_regis);
                     botonReg.setScaleType(ImageView.ScaleType.CENTER);
                     botonReg.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -238,7 +234,6 @@ public class generarRegistroEmpleados extends Fragment {
                         if (documentSnapshot1.exists()) {
                             final String nif = documentSnapshot1.getString("NIF");
                             final String naf = documentSnapshot1.getString("NAF");
-                            String idreg = documentSnapshot1.getString("id");
                             mDb
                                     .collection("Empresas")
                                     .document(empresa)
@@ -333,7 +328,7 @@ public class generarRegistroEmpleados extends Fragment {
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -428,7 +423,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        anoMesSpinner = (Spinner) mAnoMes.findViewById(R.id.spinnerObra);
+        anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {

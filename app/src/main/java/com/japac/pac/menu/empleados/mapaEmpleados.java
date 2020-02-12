@@ -1,4 +1,4 @@
-package com.japac.pac.menu.Empleados;
+package com.japac.pac.menu.empleados;
 
 import android.Manifest;
 import android.app.Dialog;
@@ -9,7 +9,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
@@ -123,7 +122,6 @@ import static androidx.constraintlayout.widget.Constraints.TAG;
 
 public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         View.OnClickListener,
-        AdapterView.OnItemSelectedListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnInfoWindowClickListener {
 
@@ -161,8 +159,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         }
     }
 
-    private Map<String, Integer> markersMap2 = new HashMap<String, Integer>();
-    private List<Marker> markersMap = new ArrayList<Marker>();
+    private final Map<String, Integer> markersMap2 = new HashMap<>();
+    private final List<Marker> markersMap = new ArrayList<>();
 
     private final Map<String, Object> map = new HashMap<>();
 
@@ -266,7 +264,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
             mDb = FirebaseFirestore.getInstance();
             almacen = FirebaseStorage.getInstance();
-            StorageReference almacenRef = almacen.getReference();
             mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -282,10 +279,10 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
-                        slidingLayout2 = (SlidingUpPanelLayout) Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
-                        xpand2 = (ImageView) getView().findViewById(R.id.btnXpand2);
-                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
+                        xpand2 = getView().findViewById(R.id.btnXpand2);
+                        mBuscar = getView().findViewById(R.id.input_buscar);
                         xpand2.setOnClickListener(mapaEmpleados.this);
                         slidingLayout2.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
                             @Override
@@ -308,15 +305,15 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 }
                             }
                         });
-                        gps = (FloatingActionButton) getView().findViewById(R.id.ic_gps);
-                        icInicio = (FloatingActionButton) getView().findViewById(R.id.ic_inicia);
-                        icAyuda = (FloatingActionButton) getView().findViewById(R.id.ic_ayuda);
+                        gps = getView().findViewById(R.id.ic_gps);
+                        icInicio = getView().findViewById(R.id.ic_inicia);
+                        icAyuda = getView().findViewById(R.id.ic_ayuda);
                         if (comp.equals("iniciada")) {
                             icInicio.setImageResource(R.drawable.ic_finalizar_jornada);
                         } else if (comp.equals("finalizada") || comp.equals("no")) {
                             icInicio.setImageResource(R.drawable.ic_inicio_jornada);
                         }
-                        pPt = (TextView) getView().findViewById(R.id.PrivacyPolicy);
+                        pPt = getView().findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -530,7 +527,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         View mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        obraSpinner = (Spinner) mObras.findViewById(R.id.spinnerObra);
+        obraSpinner = mObras.findViewById(R.id.spinnerObra);
         ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, obs);
         obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         obraSpinner.setAdapter(obraAdapter);
@@ -845,12 +842,12 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
                                 otro = false;
                                 dialogoConfirma.dismiss();
-                                CountDownTimer timerSnack = new CountDownTimer(6000, 6000) {
+                                new CountDownTimer(6000, 6000) {
                                     @Override
                                     public void onTick(long millisUntilFinished) {
                                         menu.cargando(true);
                                         touch(true);
-                                        TextView tv = (TextView) (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                         tv.setTextSize(10);
                                         snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                         menu.snackbar.show();
@@ -993,7 +990,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                         }
                                         menu.snackbar.setText(snackbarLocalizando);
                                         menu.snackbar.setDuration(1000);
-                                        TextView tv = (TextView) (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                         tv.setTextSize(10);
                                         snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                         menu.snackbar.show();
@@ -1497,7 +1494,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     actualizaDatos();
                                                                     menu.cargando(false);
                                                                     touch(false);
-                                                                    TextView tv = (TextView) (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                                     tv.setTextSize(10);
                                                                     snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                                                     menu.snackbar.show();
@@ -1534,9 +1531,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         final Button botonBor = mFirmar.findViewById(R.id.btn2);
         final StorageReference[] firmaRef = new StorageReference[1];
         final FirebaseAuth mAuth2 = FirebaseAuth.getInstance();
-        FirebaseStorage almacen2 = FirebaseStorage.getInstance();
         final StorageReference almacenRef2 = almacen.getReferenceFromUrl("gs://pacusuarios-9035b.appspot.com");
-        final String id2 = Objects.requireNonNull(mAuth2.getCurrentUser()).getUid();
         Firmar
                 .setCustomTitle(myMsgtitle)
                 .setView(mFirmar);
@@ -2168,9 +2163,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (obs.contains("SIN OBRAS")) {
-                            obs.remove("SIN OBRAS");
-                        }
+                        obs.remove("SIN OBRAS");
                         mBuscar.getText().clear();
                         busquedaString = null;
                         readyObs = true;
@@ -2322,7 +2315,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
                         Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-                        jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
+                        jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
                         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
@@ -2418,7 +2411,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        marcadoresObras marcadoresObras = new marcadoresObras(geoPoint1, title, snippet, title, onl);
         markersMap.add(mkr);
         markersMap2.put(title, markersInt);
         mMap.setOnInfoWindowClickListener(this);
@@ -2572,16 +2564,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
 
         }
-    }
-
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        String jefes = parent.getItemAtPosition(position).toString();
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
     }
 
     @Override

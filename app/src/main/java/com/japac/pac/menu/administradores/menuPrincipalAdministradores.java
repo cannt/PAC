@@ -1,4 +1,4 @@
-package com.japac.pac.menu.Administradores;
+package com.japac.pac.menu.administradores;
 
 import android.Manifest;
 import android.app.Dialog;
@@ -70,7 +70,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
@@ -83,7 +82,6 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import com.japac.pac.localizacion.localizacionObra;
 import com.japac.pac.localizacion.localizacionUsuario;
 import com.japac.pac.marcadores.marcadoresEmpleados;
@@ -94,14 +92,11 @@ import com.japac.pac.adaptadorObrasLista;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import java.io.IOException;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Signed;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
@@ -149,8 +144,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         }
     }
 
-    private Map<String, Integer> markersMap2 = new HashMap<String, Integer>();
-    private List<Marker> markersMap = new ArrayList<Marker>();
+    private final Map<String, Integer> markersMap2 = new HashMap<>();
+    private final List<Marker> markersMap = new ArrayList<>();
 
     private int markersInt = 0;
 
@@ -224,7 +219,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
             mDb = FirebaseFirestore.getInstance();
             FirebaseStorage almacen = FirebaseStorage.getInstance();
-            StorageReference almacenRef = almacen.getReference();
             mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -240,10 +234,10 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
-                        slidingLayout2 = (SlidingUpPanelLayout) Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
-                        xpand2 = (ImageView) getView().findViewById(R.id.btnXpand2);
-                        mBuscar = (EditText) getView().findViewById(R.id.input_buscar);
+                        xpand2 = getView().findViewById(R.id.btnXpand2);
+                        mBuscar = getView().findViewById(R.id.input_buscar);
                         xpand2.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -285,9 +279,9 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 }
                             }
                         });
-                        gps = (FloatingActionButton) getView().findViewById(R.id.ic_gps);
-                        icCrear = (FloatingActionButton) getView().findViewById(R.id.ic_crearObra);
-                        pPt = (TextView) getView().findViewById(R.id.PrivacyPolicy);
+                        gps = getView().findViewById(R.id.ic_gps);
+                        icCrear = getView().findViewById(R.id.ic_crearObra);
+                        pPt = getView().findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -749,9 +743,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (obs.contains("SIN OBRAS")) {
-                            obs.remove("SIN OBRAS");
-                        }
+                        obs.remove("SIN OBRAS");
                         if (sobra != null) {
                             mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
@@ -888,7 +880,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
                         Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-                        jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
+                        jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
                         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
@@ -1013,7 +1005,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        marcadoresObras marcadoresObras = new marcadoresObras(geoPoint1, title, snippet, title, onl);
         markersMap.add(mkr);
         markersMap2.put(title, markersInt);
         mMap.setOnInfoWindowClickListener(this);
@@ -1066,13 +1057,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         View mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-        final Button btnCam = (Button) mCuatroBtn.findViewById(R.id.Vacas);
+        final Button btnCam = mCuatroBtn.findViewById(R.id.Vacas);
         btnCam.setText("Cambiar nombre");
-        final Button btnElim = (Button) mCuatroBtn.findViewById(R.id.Baja);
+        final Button btnElim = mCuatroBtn.findViewById(R.id.Baja);
         btnElim.setText("Eliminar obra");
-        final Button btnAdJef = (Button) mCuatroBtn.findViewById(R.id.Otros);
+        final Button btnAdJef = mCuatroBtn.findViewById(R.id.Otros);
         btnAdJef.setText("Administrar jefe");
-        final Button btnCance = (Button) mCuatroBtn.findViewById(R.id.Cancelar);
+        final Button btnCance = mCuatroBtn.findViewById(R.id.Cancelar);
         btnCance.setText("Cancelar");
         final AlertDialog.Builder obraAdministrarObras = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle)
@@ -1234,8 +1225,8 @@ myMsgtitle.setPadding(2,2,2,2);
 myMsgtitle.setPadding(2,2,2,2);
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText sNuevoNom = mDosText.findViewById(R.id.TextDos);
-        final Button btnCamb = (Button) mDosText.findViewById(R.id.btn1);
-        final Button btnCancelar = (Button) mDosText.findViewById(R.id.btn2);
+        final Button btnCamb = mDosText.findViewById(R.id.btn1);
+        final Button btnCancelar = mDosText.findViewById(R.id.btn2);
         final AlertDialog.Builder alerta = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
         alerta.setCustomTitle(myMsgtitle)
                 .setView(mDosText);
@@ -1287,9 +1278,9 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-        final Button btnElim = (Button) mDos.findViewById(R.id.btn1);
+        final Button btnElim = mDos.findViewById(R.id.btn1);
         btnElim.setText("Eliminar");
-        final Button btnCancelar = (Button) mDos.findViewById(R.id.btn2);
+        final Button btnCancelar = mDos.findViewById(R.id.btn2);
         final AlertDialog.Builder obraEliminar = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
@@ -1389,9 +1380,9 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-        final Button btnCamb = (Button) mDos.findViewById(R.id.btn1);
+        final Button btnCamb = mDos.findViewById(R.id.btn1);
         btnCamb.setText("Cambiar");
-        final Button btnCancelar = (Button) mDos.findViewById(R.id.btn2);
+        final Button btnCancelar = mDos.findViewById(R.id.btn2);
         final AlertDialog.Builder obraJefeExiste = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
@@ -1437,9 +1428,9 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
-        final Button btnSiguiente = (Button) mNombres.findViewById(R.id.btn1);
-        final Button btnCancelar = (Button) mNombres.findViewById(R.id.btn2);
-        jefeSpinner = (Spinner) mNombres.findViewById(R.id.spinnerObra);
+        final Button btnSiguiente = mNombres.findViewById(R.id.btn1);
+        final Button btnCancelar = mNombres.findViewById(R.id.btn2);
+        jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
         final AlertDialog.Builder obraJefe = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle);
         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
@@ -1513,7 +1504,6 @@ myMsgtitle.setPadding(2,2,2,2);
                                         if (documentSnapshot.exists()) {
 
                                             final String obr = documentSnapshot.getString("jefe");
-                                            final String em = documentSnapshot.getString("email");
                                             if (!ElimJefe) {
                                                 JFC = cE + "," + obraAd;
                                                 JFO = obr + "," + obraAd;
@@ -1547,7 +1537,6 @@ myMsgtitle.setPadding(2,2,2,2);
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
-                                            final String em = documentSnapshot.getString("email");
                                             if (!ElimJefe) {
                                                 JFO = obraAd;
                                                 JFC = cE + "JeF/" + obraAd;
@@ -1631,9 +1620,9 @@ myMsgtitle.setPadding(2,2,2,2);
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText obra = mDosText.findViewById(R.id.TextDos);
         obra.setHint("Nombre de la obra");
-        final Button btnCrear = (Button) mDosText.findViewById(R.id.btn1);
+        final Button btnCrear = mDosText.findViewById(R.id.btn1);
         btnCrear.setText("Crear");
-        final Button btnCancelar = (Button) mDosText.findViewById(R.id.btn2);
+        final Button btnCancelar = mDosText.findViewById(R.id.btn2);
         obraCrear
                 .setCustomTitle(myMsgtitle)
                 .setView(mDosText);
@@ -1651,7 +1640,6 @@ myMsgtitle.setPadding(2,2,2,2);
                             mLocalizacionObra = new localizacionObra();
                             for (QueryDocumentSnapshot documentSnapshot : Objects.requireNonNull(task.getResult())) {
                                 ob = documentSnapshot.getString("obra");
-                                GeoPoint geo = documentSnapshot.getGeoPoint("geoPoint");
                                 if (ob.equalsIgnoreCase(sobra)) {
                                     jf = documentSnapshot.getString("jefe");
                                     igual = true;
@@ -1709,9 +1697,9 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-        final Button btnAct = (Button) mDos.findViewById(R.id.btn1);
+        final Button btnAct = mDos.findViewById(R.id.btn1);
         btnAct.setText("Actualizar");
-        final Button btnCancelar = (Button) mDos.findViewById(R.id.btn2);
+        final Button btnCancelar = mDos.findViewById(R.id.btn2);
         final AlertDialog.Builder obraExiste = new AlertDialog.Builder(icCrear.getContext());
         obraExiste
                 .setCustomTitle(myMsgtitle)
