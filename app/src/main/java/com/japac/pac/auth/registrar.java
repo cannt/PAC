@@ -12,25 +12,39 @@ import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.gcacace.signaturepad.views.SignaturePad;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.japac.pac.R;
+import com.japac.pac.menu.menu;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +69,14 @@ public class registrar extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
 
+    private FirebaseStorage almacen;
+    private StorageReference almacenRef;
+
+    private StorageReference firmaRef;
+
     private ProgressBar progressBar;
+
+    private View mFirmar;
 
     private View view;
 
@@ -347,8 +368,7 @@ public class registrar extends AppCompatActivity {
                                                             Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getCurrentFocus()).getWindowToken(),
                                                                     InputMethodManager.HIDE_NOT_ALWAYS);
                                                             cargando(false);
-                                                            startActivity(new Intent(registrar.this, firma.class));
-                                                            finish();
+                                                            firmar();
                                                         }
                                                     });
 
@@ -368,6 +388,116 @@ public class registrar extends AppCompatActivity {
         });
 
 
+    }
+
+    private void firmar() {
+        cargando(true);
+        final TextView myMsgtitle = new TextView(registrar.this);
+        myMsgtitle.setText(snombre + " debe firmar para confirmar la operación");
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        myMsgtitle.setPadding(2, 2, 2, 2);
+        mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+        final AlertDialog.Builder Firmar = new AlertDialog.Builder(Objects.requireNonNull(this));
+        final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
+        final Button botonFirm = mFirmar.findViewById(R.id.btn1);
+        final Button botonBor = mFirmar.findViewById(R.id.btn2);
+        Firmar
+                .setCustomTitle(myMsgtitle)
+                .setView(mFirmar);
+        final AlertDialog dialogoFirmar = Firmar.create();
+        firma.setOnSignedListener(new SignaturePad.OnSignedListener() {
+            @Override
+            public void onStartSigning() {
+                botonFirm.setEnabled(true);
+                botonBor.setEnabled(true);
+            }
+
+            @Override
+            public void onSigned() {
+                botonFirm.setEnabled(true);
+                botonBor.setEnabled(true);
+            }
+
+            @Override
+            public void onClear() {
+                botonFirm.setEnabled(false);
+                botonBor.setEnabled(false);
+            }
+        });
+        botonFirm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cargando(true);
+                Bitmap firmaImagen = firma.getSignatureBitmap();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                firmaImagen.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                byte[] data = baos.toByteArray();
+                UploadTask uploadTask = firmaRef.putBytes(data);
+                uploadTask.addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        cargando(false);
+                    }
+                }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        cargando(false);
+                        startActivity(new Intent(registrar.this, login.class));
+                        finish();
+                        finishAfterTransition();
+                    }
+                });
+
+            }
+        });
+        botonBor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cargando(true);
+                firma.clear();
+               cargando(false);
+            }
+        });
+        dialogoFirmar.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+                almacen = FirebaseStorage.getInstance();
+                almacenRef = almacen.getReference();
+                mAuth = FirebaseAuth.getInstance();
+                FirebaseStorage almacen = FirebaseStorage.getInstance();
+                almacenRef = almacen.getReferenceFromUrl("gs://pacusuarios-9035b.appspot.com");
+                mAuth.signInWithEmailAndPassword(semail,scontrasena).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    @Override
+                    public void onSuccess(AuthResult authResult) {
+                        firebaseFirestore.collection("Todas las ids").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.contains("empresa")) {
+                                    if (compruebapermisos()) {
+                                        if (mAuth.getCurrentUser() != null) {
+                                            firmaRef = almacenRef.child(Objects.requireNonNull(documentSnapshot.getString("empresa"))).child("Firmas").child(Objects.requireNonNull(documentSnapshot.getString("nombre"))).child(mAuth.getCurrentUser().getUid() + ".jpg");
+                                            cargando(false);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        dialogoFirmar.setCanceledOnTouchOutside(false);
+        if (mFirmar.getParent() != null) {
+            ((ViewGroup) mFirmar.getParent()).removeView(mFirmar);
+            mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+
+            dialogoFirmar.show();
+
+        } else {
+
+            dialogoFirmar.show();
+        }
     }
 
     @Override

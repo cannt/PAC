@@ -1824,22 +1824,23 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Generar empleado");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         final AlertDialog.Builder empleadoGen = new AlertDialog.Builder(icCrear.getContext());
-        View mCrearEmpleadoDialogo = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
-        nom = mCrearEmpleadoDialogo.findViewById(R.id.TextDos);
-        final Button botonCrear = mCrearEmpleadoDialogo.findViewById(R.id.btn1);
+        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
+        nom = mDos.findViewById(R.id.TextDos);
+        final Button botonCrear = mDos.findViewById(R.id.btn1);
         botonCrear.setText("Siguiente");
-        final Button botonCancelar = mCrearEmpleadoDialogo.findViewById(R.id.btn2);
+        final Button botonCancelar = mDos.findViewById(R.id.btn2);
         empleadoGen
-                .setView(mCrearEmpleadoDialogo)
+                .setView(mDos)
                 .setCustomTitle(myMsgtitle);
         final AlertDialog dialogoEmpleadoGen = empleadoGen.create();
         botonCrear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String letras1 = codigoRandom(4);
+                String letras1 = codigoRandom(4) + "E";
                 String letras3 = codigoRandom(5) + codigoEmpleado.substring(codigoEmpleado.length() - 3);
                 String snombre = nom.getText().toString();
                 if (!snombre.isEmpty()) {

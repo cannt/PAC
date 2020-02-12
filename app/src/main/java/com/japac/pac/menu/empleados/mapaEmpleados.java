@@ -204,6 +204,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private View mFueraObra;
     private View viewGreyNormal;
     private View viewGreyExpande;
+    private View mFirmar;
 
     private ImageView alertaAyuda;
 
@@ -1524,7 +1525,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
-        View mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+        mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
         final AlertDialog.Builder Firmar = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
         final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
         final Button botonFirm = mFirmar.findViewById(R.id.btn1);

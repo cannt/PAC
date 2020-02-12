@@ -29,7 +29,6 @@
             android:name=".menu.menu"
             android:label="@string/title_activity_prueba"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".auth.firma" />
         <activity android:name=".auth.registrar" />
         <activity android:name=".auth.login">
             <intent-filter>
