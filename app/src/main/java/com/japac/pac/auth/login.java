@@ -77,6 +77,8 @@ public class login extends AppCompatActivity {
 
     private Button entrar, registrar;
 
+    private View mDosBtn;
+
     private FirebaseAuth mAuth;
     private FirebaseFirestore firebaseFirestore;
 
@@ -183,7 +185,7 @@ public class login extends AppCompatActivity {
                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                 myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
-                View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                 final Button btnCont = mDosBtn.findViewById(R.id.btn1);
                 btnCont.setText("Continuar");
                 final Button btnSal = mDosBtn.findViewById(R.id.btn2);
