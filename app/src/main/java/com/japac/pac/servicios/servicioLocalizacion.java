@@ -14,7 +14,6 @@ import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -162,7 +161,6 @@ public class servicioLocalizacion extends Service {
                                                         if (distancia != null) {
                                                             if (Objects.requireNonNull(task.getResult()).exists()) {
                                                                 if (Double.compare(distancia, 200.0) >= 0) {
-                                                                    Log.d("distancia", String.valueOf(distancia));
                                                                     final Map<String, Object> mapGeo = new HashMap<>();
                                                                     mapGeo.put("geoPoint", geoPoint);
                                                                     mapGeo.put("nombre", nombre);
@@ -176,7 +174,6 @@ public class servicioLocalizacion extends Service {
 
                                                                 }
                                                             } else {
-                                                                Log.d("distancia canceled", String.valueOf(distancia));
                                                                 final Map<String, Object> mapGeo = new HashMap<>();
                                                                 mapGeo.put("geoPoint", geoPoint);
                                                                 mapGeo.put("nombre", nombre);
@@ -211,13 +208,11 @@ public class servicioLocalizacion extends Service {
             @Override
             public void onTick(long millisUntilFinished) {
                 running = true;
-                Log.d("tick", running.toString());
             }
 
             @Override
             public void onFinish() {
                 running = false;
-                Log.d("onFinish", running.toString());
                 servicioLocalizacion.stopSelf();
                 menu.finishTask();
             }
@@ -225,20 +220,13 @@ public class servicioLocalizacion extends Service {
     }
 
     public static void finaliza(Boolean fina) {
-        Log.d("finaliza", fina.toString());
         if (!running && fina) {
-            Log.d("timerFina", running.toString());
-            Log.d("fina", fina.toString());
             setTimer();
             timerFina.start();
         } else if (running && !fina) {
-            Log.d("timerFina", running.toString());
-            Log.d("fina", fina.toString());
             timerFina.cancel();
             running = false;
         }
-        Log.d("timerFina 2", running.toString());
-        Log.d("fina 2", fina.toString());
 
     }
 }

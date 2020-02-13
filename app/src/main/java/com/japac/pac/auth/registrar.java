@@ -25,7 +25,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -35,14 +34,13 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.japac.pac.R;
 import com.japac.pac.menu.menu;
+import com.japac.pac.servicios.snackbarDS;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -244,9 +242,6 @@ public class registrar extends AppCompatActivity {
             roles = "Empleado";
         } else if (cod.charAt(4) == 'a') {
             roles = "Administrador";
-        } else {
-            Toast.makeText(registrar.this, "ROL NO VALIDO", Toast.LENGTH_SHORT).show();
-            cargando(false);
         }
     }
 
@@ -257,7 +252,11 @@ public class registrar extends AppCompatActivity {
         } else {
             codigoEmpleadoCheck();
             cargando(false);
-            Toast.makeText(registrar.this, "EL CODIGO NO COINCIDE", Toast.LENGTH_SHORT).show();
+            menu.snackbar.setText("El codigo " + cod + " no coincide con ninguna empresa");
+            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            tv.setTextSize(10);
+            snackbarDS.configSnackbar(registrar.this, menu.snackbar);
+            menu.snackbar.show();
 
         }
     }
@@ -381,7 +380,11 @@ public class registrar extends AppCompatActivity {
                         }
                     });
                 } else {
-                    Toast.makeText(registrar.this, "Este email ya esta en uso", Toast.LENGTH_SHORT).show();
+                    menu.snackbar.setText("Este email ya esta en uso");
+                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    tv.setTextSize(10);
+                    snackbarDS.configSnackbar(registrar.this, menu.snackbar);
+                    menu.snackbar.show();
                     cargando(false);
                 }
             }

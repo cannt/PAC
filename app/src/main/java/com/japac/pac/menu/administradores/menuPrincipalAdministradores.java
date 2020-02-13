@@ -44,7 +44,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.common.ConnectionResult;
@@ -89,6 +88,7 @@ import com.japac.pac.marcadores.marcadoresObras;
 import com.japac.pac.menu.menu;
 import com.japac.pac.R;
 import com.japac.pac.adaptadorObrasLista;
+import com.japac.pac.servicios.snackbarDS;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import java.io.IOException;
@@ -113,7 +113,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Toast.makeText(getActivity(), "Mapa listo", Toast.LENGTH_SHORT).show();
+        menu.snackbar.setText("Mapa listo");
+        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+        tv.setTextSize(10);
+        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+        menu.snackbar.show();
         mMap = googleMap;
 
         if (compruebapermisos()) {
@@ -492,7 +496,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         try {
                             list = geocoder.getFromLocationName(busquedaString, 1);
                         } catch (IOException e) {
-                            Toast.makeText(getActivity(), "No se a podido encontrar", Toast.LENGTH_SHORT).show();
+                            menu.snackbar.setText("No se a podido encontrar");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(10);
+                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                            menu.snackbar.show();
                         }
                         if (list.size() > 0) {
                             menu.cargando(true);
@@ -647,7 +655,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         } else {
             menu.cargando(false);
             touch(false);
-            Toast.makeText(getActivity(), "Mapas no funciona", Toast.LENGTH_SHORT).show();
+            menu.snackbar.setText("Mapas no funciona");
+            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            tv.setTextSize(10);
+            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+            menu.snackbar.show();
 
         }
         return false;
@@ -679,7 +691,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     }
 
     private void firestoreObras() {
-        Log.d("FIRESTORE OBRAS", "ENTRA");
         menu.cargando(true);
         touch(true);
         alreadyObs = false;
@@ -702,7 +713,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 if (task.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
                         String obran = document.getString("obra");
-                        Log.d("obran", Objects.requireNonNull(obran));
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
                         long online = document.getLong("online");
@@ -768,19 +778,15 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void listenerObs() {
         firestoreObras();
-        Log.d("listenerObs", "INICIADO");
         final int[] contador = {0};
         timerObs = new CountDownTimer(30000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 contador[0]++;
-                Log.d("contador OBS", String.valueOf(contador[0]));
-                Log.d("TICK OBS", Long.toString(millisUntilFinished));
                 if (readyObs) {
                     contador[0] = 30;
                 }
                 if (contador[0] == 30) {
-                    Log.d("contador OBS ENTRA", String.valueOf(contador[0]));
                     timerObs.cancel();
                     timerObs.onFinish();
                 }
@@ -789,7 +795,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             @Override
             public void onFinish() {
                 if (readyObs) {
-                    Log.d("readyObs", "TRUE");
                     geoFirestoreRefObs.addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
@@ -804,9 +809,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                             case ADDED:
                                             case MODIFIED:
                                             case REMOVED:
-                                                Log.d("listenerObs", "ENTRA");
                                                 if (alreadyObs) {
-                                                    Log.d("alreadyObs", "TRUE");
                                                     mMap.clear();
                                                     firestoreObras();
                                                     firestoreNombres();
@@ -819,7 +822,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                     });
                 } else {
-                    Log.d("readyObs", "FALSE");
                     timerObs.start();
                 }
             }
@@ -827,7 +829,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     }
 
     private void firestoreNombres() {
-        Log.d("FIRESTORE NOMBRES", "ENTRA");
         menu.cargando(true);
         touch(true);
         alreadyJfs = false;
@@ -841,7 +842,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
-                        Log.d("emples", "ENTRA SI");
                         String jefe = document.getString("nombre");
                         if (!jfs.contains(jefe)) {
                             jfs.add(jefe);
@@ -862,7 +862,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                         if (task1.isSuccessful()) {
                             for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
-                                Log.d("emples", "ENTRA");
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null) {
@@ -878,7 +877,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                        Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
                         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
@@ -895,11 +893,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                         String jefe = document2.getString("nombre");
                                         if (!lM.contains(jefe)) {
                                             if (jefe != null) {
-                                                Log.d("PASA", "PASA");
                                                 lM.add(jefe);
                                                 anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"));
-                                            } else {
-                                                Log.d("jefe", "es null");
                                             }
                                         }
                                     }
@@ -923,20 +918,16 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     }
 
     private void listenerJfs() {
-        Log.d("listenerJfs", "INICIADO");
         final int[] contador2 = {0};
         firestoreNombres();
         timerJfs = new CountDownTimer(30000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 contador2[0]++;
-                Log.d("contador JFS", String.valueOf(contador2[0]));
-                Log.d("TICK JFS", Long.toString(millisUntilFinished));
                 if (readyJfs) {
                     contador2[0] = 30;
                 }
                 if (contador2[0] == 30) {
-                    Log.d("contador JFS ENTRA", String.valueOf(contador2[0]));
                     timerJfs.cancel();
                     timerJfs.onFinish();
                 }
@@ -945,7 +936,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             @Override
             public void onFinish() {
                 if (readyJfs) {
-                    Log.d("readyJfs", "TRUE");
                     mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
@@ -960,9 +950,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                             case ADDED:
                                             case MODIFIED:
                                             case REMOVED:
-                                                Log.d("listenerJfs", "ENTRA");
                                                 if (alreadyJfs) {
-                                                    Log.d("alreadyJfs", "TRUE");
                                                     mMap.clear();
                                                     firestoreNombres();
                                                     firestoreObras();
@@ -975,7 +963,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                     });
                 } else {
-                    Log.d("readyJfs", "FALSE");
                     timerJfs.start();
                 }
             }
@@ -1018,7 +1005,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void anadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
         menu.cargando(true);
         touch(true);
-        Log.d("EMPLEADOS", "AÑADE MARCADOR");
         Map<String, String> markersMapEmpleado = new HashMap<>();
         String estadoDef = null;
         String ob = obra;
@@ -1444,7 +1430,11 @@ myMsgtitle.setPadding(2,2,2,2);
             @Override
             public void onClick(View v) {
                 if (jefes.equals(obraAdJf)) {
-                    Toast.makeText(getActivity(), obraAdJf + " ya es el jefe de la obra " + obraAd, Toast.LENGTH_LONG).show();
+                    menu.snackbar.setText(obraAdJf + " ya es el jefe de la obra " + obraAd);
+                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    tv.setTextSize(10);
+                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                    menu.snackbar.show();
                     localizacion();
                     dialogoObraJefe.dismiss();
                 } else {

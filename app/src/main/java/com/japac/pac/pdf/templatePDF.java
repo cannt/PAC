@@ -261,7 +261,6 @@ public class templatePDF {
             // looking for MTop
             for (int wP = 0; wP < bmpInt.length; wP++) {
                 if (bmpInt[wP][hP] != Color.WHITE) {
-                    Log.e("MTop 2", "Pixel found @" + hP);
                     MTop = hP;
                     found2 = true;
                     break;
@@ -274,7 +273,6 @@ public class templatePDF {
             // looking for MBot
             for (int[] ints : bmpInt) {
                 if (ints[hP] != Color.WHITE) {
-                    Log.e("MBot 2", "Pixel found @" + hP);
                     MBot = bmp.getHeight() - hP;
                     found2 = true;
                     break;
@@ -287,7 +285,6 @@ public class templatePDF {
             // looking for MLeft
             for (int hP = 0; hP < bmpInt[0].length; hP++) {
                 if (bmpInt[wP][hP] != Color.WHITE) {
-                    Log.e("MLeft 2", "Pixel found @" + wP);
                     MLeft = wP;
                     found2 = true;
                     break;
@@ -300,7 +297,6 @@ public class templatePDF {
             // looking for MRight
             for (int hP = 0; hP < bmpInt[0].length; hP++) {
                 if (bmpInt[wP][hP] != Color.WHITE) {
-                    Log.e("MRight 2", "Pixel found @" + wP);
                     MRight = bmp.getWidth() - wP;
                     found2 = true;
                     break;
@@ -314,11 +310,6 @@ public class templatePDF {
                 - MRight - MLeft;
 
         Bitmap bmp2 = Bitmap.createBitmap(bmp, MLeft, MTop, sizeX, sizeY);
-        dtMili = (System.currentTimeMillis() - dtMili);
-        Log.e("Margin   2",
-                "Time needed " + dtMili + "mSec\nh:" + bmp.getWidth() + "w:"
-                        + bmp.getHeight() + "\narray x:" + bmpInt.length + "y:"
-                        + bmpInt[0].length);
         return bmp2;
     }
 

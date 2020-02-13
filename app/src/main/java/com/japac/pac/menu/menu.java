@@ -16,7 +16,7 @@ import android.print.PrintAttributes;
 import android.print.PrintManager;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.Toast;
+import android.widget.TextView;
 
 
 import androidx.annotation.NonNull;
@@ -44,6 +44,7 @@ import com.japac.pac.pdf.myPrintDocumentAdapter;
 import com.japac.pac.pdf.fragmentoCompartir;
 import com.japac.pac.R;
 import com.japac.pac.servicios.servicioLocalizacion;
+import com.japac.pac.servicios.snackbarDS;
 
 import java.io.File;
 import java.text.Normalizer;
@@ -88,8 +89,6 @@ public class menu extends AppCompatActivity implements
     private Boolean doubleBackToExitPressedOnce = false;
 
     private static boolean cambio = false;
-
-    private Toast toast = null;
 
     public static Snackbar snackbar;
 
@@ -391,7 +390,7 @@ public class menu extends AppCompatActivity implements
                 System.exit(0);
             }
             this.doubleBackToExitPressedOnce = true;
-            showToast();
+            showSnack();
             new Handler().postDelayed(new Runnable() {
 
                 @Override
@@ -402,28 +401,18 @@ public class menu extends AppCompatActivity implements
         }
     }
 
-    private void killToast() {
-        if (this.toast != null) {
-            this.toast.cancel();
+    private void killSnack() {
+        if (menu.snackbar.isShown()) {
+           menu.snackbar.dismiss();
         }
     }
 
-    private void showToast() {
-        if (this.toast == null) {
-            // Create toast if found null, it would he the case of first call only
-            this.toast = Toast.makeText(this, "Pulse atras otra vez para cerrar PAC", Toast.LENGTH_SHORT);
-
-        } else if (this.toast.getView() == null) {
-            // Toast not showing, so create new one
-            this.toast = Toast.makeText(this, "Pulse atras otra vez para cerrar PAC", Toast.LENGTH_SHORT);
-
-        } else {
-            // Updating toast message is showing
-            this.toast.setText("Pulse atras otra vez para cerrar PAC");
-        }
-
-        // Showing toast finally
-        this.toast.show();
+    private void showSnack() {
+        menu.snackbar.setText("Pulse atras otra vez para cerrar PAC");
+        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+        tv.setTextSize(10);
+        snackbarDS.configSnackbar(this, menu.snackbar);
+        menu.snackbar.show();
     }
 
     @Override
@@ -437,7 +426,7 @@ public class menu extends AppCompatActivity implements
     @Override
     protected void onPause() {
         super.onPause();
-        killToast();
+        killSnack();
         servicioLocalizacion.finaliza(true);
         estado("offline");
     }

@@ -25,7 +25,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -43,6 +42,7 @@ import com.google.firebase.storage.StorageReference;
 import com.japac.pac.menu.menu;
 import com.japac.pac.pdf.templatePDF;
 import com.japac.pac.R;
+import com.japac.pac.servicios.snackbarDS;
 
 import java.io.File;
 import java.io.IOException;
@@ -309,7 +309,11 @@ public class generarRegistroEmpleados extends Fragment {
                                     }
                                     menu.cargando(false);
                                     touch(false);
-                                    Toast.makeText(getContext(), "El empleado " + nombre + " no a registrado ninguna jornada todavia", Toast.LENGTH_LONG).show();
+                                    menu.snackbar.setText("El empleado " + nombre + " no a registrado ninguna jornada todavia");
+                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                    menu.snackbar.show();
                                 }
                             });
                         }

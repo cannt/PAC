@@ -13,7 +13,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
-import android.util.Log;
+import android.os.CountDownTimer;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,7 +26,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -126,10 +125,14 @@ public class gestionarDiasAdministradores extends Fragment {
                 if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.COLLAPSED) {
                     if (menu.getCambioDeFragment()) {
                         actualizarCalendarioAd();
-                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        if(hayDias){
+                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        }
                         menu.setCambioDeFragmento(false);
                     } else {
-                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        if(hayDias){
+                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        }
                     }
                 }
                 if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED) {
@@ -174,10 +177,14 @@ public class gestionarDiasAdministradores extends Fragment {
                 } else if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                     if (menu.getCambioDeFragment()) {
                         actualizarCalendarioAd();
-                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        if(hayDias){
+                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        }
                         menu.setCambioDeFragmento(false);
                     } else {
-                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        if(hayDias){
+                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                        }
                     }
                     xpand.setImageResource(R.drawable.ic_expand_down);
                 }
@@ -192,13 +199,28 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
                 if (!hayDias) {
+                    new CountDownTimer(2000, 100) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            diasSolicTextV2.setTextColor(Color.RED);
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            diasSolicTextV2.setTextColor(Color.WHITE);
+                        }
+                    }.start();
                     xpand.setVisibility(View.INVISIBLE);
                     xpand.setClickable(false);
                     diasSolicTextV2.setText("No hay dias libres asignados por ahora");
+                    if(!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                    }
                 } else {
                     if (xpand.getVisibility() == View.INVISIBLE) {
                         xpand.setVisibility(View.VISIBLE);
                         xpand.setClickable(true);
+                        diasSolicTextV2.setText("Dias libres asignados");
                     }
                     if (newState == SlidingUpPanelLayout.PanelState.ANCHORED) {
                         diasSolicTextV2.setText("Dias libres asignados");
@@ -220,10 +242,14 @@ public class gestionarDiasAdministradores extends Fragment {
                     if (newState.equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                         if (menu.getCambioDeFragment()) {
                             actualizarCalendarioAd();
-                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                            if (hayDias) {
+                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                            }
                             menu.setCambioDeFragmento(false);
                         } else {
-                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                            if (hayDias) {
+                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                            }
                         }
                     }
                 }
@@ -853,10 +879,14 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                     if (menu.getCambioDeFragment()) {
                                                         actualizarCalendarioAd();
-                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                        if(hayDias){
+                                                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                        }
                                                         menu.setCambioDeFragmento(false);
                                                     } else {
-                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                        if(hayDias){
+                                                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                        }
                                                     }
                                                 }
                                                 menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
@@ -1053,10 +1083,14 @@ myMsgtitle.setPadding(2,2,2,2);
                                                             if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                                 if (menu.getCambioDeFragment()) {
                                                                     actualizarCalendarioAd();
-                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                    if(hayDias){
+                                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                    }
                                                                     menu.setCambioDeFragmento(false);
                                                                 } else {
-                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                    if(hayDias){
+                                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                    }
                                                                 }
                                                             }
                                                             menu.snackbar.setText("El dia " + fech + " ha sido aceptado");
@@ -1303,10 +1337,14 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                                             if (menu.getCambioDeFragment()) {
                                                                                 actualizarCalendarioAd();
-                                                                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                                if(hayDias){
+                                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                                }
                                                                                 menu.setCambioDeFragmento(false);
                                                                             } else {
-                                                                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                                if(hayDias){
+                                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                                }
                                                                             }
                                                                         }
                                                                         menu.snackbar.setText("Dia libre eliminado correctamente");
@@ -1395,10 +1433,14 @@ myMsgtitle.setPadding(2,2,2,2);
                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                             if (menu.getCambioDeFragment()) {
                                                                 actualizarCalendarioAd();
-                                                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                if(hayDias){
+                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                }
                                                                 menu.setCambioDeFragmento(false);
                                                             } else {
-                                                                slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                if(hayDias){
+                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                }
                                                             }
                                                         }
                                                         menu.snackbar.setText("Motivo del dia libre " + fecha + " actualizado");
@@ -1425,7 +1467,6 @@ myMsgtitle.setPadding(2,2,2,2);
     }
 
     private void actualizarCalendarioAd() {
-        Log.d("actualizarCalendarioAd", "entra");
         menu.cargando(true);
         touch(true);
         final Date hoy = new Date();
@@ -1442,7 +1483,11 @@ myMsgtitle.setPadding(2,2,2,2);
                     Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateS);
                     Date currentTime = Calendar.getInstance().getTime();
                     if (Objects.requireNonNull(date1).before(currentTime)) {
-                        Toast.makeText(getActivity(), "Este dia ya ha pasado, seleccione un dia futuro", Toast.LENGTH_SHORT).show();
+                        menu.snackbar.setText("Este dia ya ha pasado, seleccione un dia futuro");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
                     } else {
                         dialogoLibresAd(date);
                     }
@@ -1573,7 +1618,11 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateS);
                                                 Date currentTime = Calendar.getInstance().getTime();
                                                 if (Objects.requireNonNull(date1).before(currentTime)) {
-                                                    Toast.makeText(getActivity(), "Este dia ya ha pasado, seleccione un dia futuro", Toast.LENGTH_SHORT).show();
+                                                    menu.snackbar.setText("Este dia ya ha pasado, seleccione un dia futuro");
+                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    tv.setTextSize(10);
+                                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                    menu.snackbar.show();
                                                 } else {
                                                     dialogoLibresAd(date);
                                                 }
@@ -1593,10 +1642,14 @@ myMsgtitle.setPadding(2,2,2,2);
                                             if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.COLLAPSED) {
                                                 if (menu.getCambioDeFragment()) {
                                                     actualizarCalendarioAd();
-                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                    if(hayDias){
+                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                    }
                                                     menu.setCambioDeFragmento(false);
                                                 } else {
-                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                    if(hayDias){
+                                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                    }
                                                 }
                                             }
                                             if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED) {
@@ -1654,6 +1707,9 @@ myMsgtitle.setPadding(2,2,2,2);
                                     calendarPickerView2.init(hoy, siguienteAno.getTime());
                                     hayDias = false;
                                     diasSolicTextV2.setText("No hay dias libres asignados por ahora");
+                                    if(!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+                                        slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                                    }
                                 }
                                 menu.cargando(false);
                                 touch(false);

@@ -46,7 +46,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.github.gcacace.signaturepad.views.SignaturePad;
@@ -127,7 +126,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Toast.makeText(getActivity(), "Mapa listo", Toast.LENGTH_SHORT).show();
+        menu.snackbar.setText("Mapa listo");
+        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+        tv.setTextSize(10);
+        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+        menu.snackbar.show();
         mMap = googleMap;
 
         if (compruebapermisos()) {
@@ -567,7 +570,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 dialogoRegistro.dismiss();
                 if (botonJornada.getText().equals("Iniciar")) {
                     if (comp.equals("iniciada")) {
-                        Toast.makeText(getActivity(), "Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero", Toast.LENGTH_LONG).show();
+                        menu.snackbar.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
                         botonJornada.setText("Finalizar");
                         botonJornada.setTextColor(Color.RED);
                         obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
@@ -577,7 +584,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     }
                 } else if (botonJornada.getText().equals("Finalizar")) {
                     if (comp.contentEquals("finalizada") || comp.contentEquals("no")) {
-                        Toast.makeText(getActivity(), "Debes iniciar primero una jornada", Toast.LENGTH_SHORT).show();
+                        menu.snackbar.setText("Debes iniciar primero una jornada");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
                         botonJornada.setText("Iniciar");
                         botonJornada.setTextColor(Color.RED);
                     } else if (comp.contentEquals("iniciada")) {
@@ -754,14 +765,22 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                     dRegistrar();
                                                 }
                                             }else{
-                                                Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                                menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                tv.setTextSize(10);
+                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                menu.snackbar.show();
                                                 menu.cargando(false);
                                                 touch(false);
                                             }
                                         }
                                     });
                                 } else {
-                                    Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                    menu.snackbar.show();
                                     dialogoLogin.show();
                                 }
                             }
@@ -864,7 +883,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                     }
                                 }.start();
                             } else if (!task.isSuccessful()) {
-                                Toast.makeText(getActivity(), "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                                menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                tv.setTextSize(10);
+                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                menu.snackbar.show();
                                 scontrasena.setError("Compruebe la contraseña");
                             }
                         }
@@ -1250,7 +1273,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     } else {
                         menu.cargando(false);
                         touch(false);
-                        Toast.makeText(getActivity(), "No has iniciado jornada en esta obra", Toast.LENGTH_SHORT).show();
+                        menu.snackbar.setText("No has iniciado jornada en esta obra");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
                     }
                 }
                 menu.cargando(false);
@@ -1438,7 +1465,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                 int valorOnline = Objects.requireNonNull(documentSnapshot.getLong("online")).intValue();
-                                                                Log.d("valor", String.valueOf(valorOnline));
                                                                 final Map<String, Object> mapES = new HashMap<>();
                                                                 if (entrada_salida.equals("Entrada")) {
 
@@ -1661,25 +1687,29 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if (task.isSuccessful()) {
-                    Log.d("task", "success");
                     if (!task.getResult().isEmpty()) {
-                        Log.d("result", "no empty");
                         xpand2.setOnClickListener(mapaEmpleados.this);
                     } else if (task.getResult().isEmpty()) {
-                        Log.d("result", "empty");
                         xpand2.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                Toast.makeText(getActivity(), "No se ha registrado ninguna obra por el momento", Toast.LENGTH_LONG).show();
+                                menu.snackbar.setText("No se ha registrado ninguna obra por el momento");
+                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                tv.setTextSize(10);
+                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                menu.snackbar.show();
                             }
                         });
                     }
                 } else if (!task.isSuccessful()) {
-                    Log.d("task", "no success");
                     xpand2.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            Toast.makeText(getActivity(), "No se ha registrado ninguna obra por el momento", Toast.LENGTH_LONG).show();
+                            menu.snackbar.setText("No se ha registrado ninguna obra por el momento");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(10);
+                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                            menu.snackbar.show();
                         }
                     });
                 }
@@ -1971,7 +2001,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         try {
                             list = geocoder.getFromLocationName(busquedaString, 1);
                         } catch (IOException e) {
-                            Toast.makeText(getActivity(), "No se a podido encontrar", Toast.LENGTH_SHORT).show();
+                            menu.snackbar.setText("No se a podido encontrar");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(10);
+                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                            menu.snackbar.show();
                         }
                         if (list.size() > 0) {
                             menu.cargando(true);
@@ -2068,7 +2102,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         } else {
             menu.cargando(false);
             touch(false);
-            Toast.makeText(getActivity(), "Mapas no funciona", Toast.LENGTH_SHORT).show();
+            menu.snackbar.setText("Mapas no funciona");
+            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            tv.setTextSize(10);
+            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+            menu.snackbar.show();
 
         }
         return false;
@@ -2100,7 +2138,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void firestoreObras() {
-        Log.d("FIRESTORE OBRAS", "ENTRA");
         menu.cargando(true);
         touch(true);
         alreadyObs = false;
@@ -2123,7 +2160,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 if (task.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
                         String obran = document.getString("obra");
-                        Log.d("obran", Objects.requireNonNull(obran));
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
                         long online = document.getLong("online");
@@ -2173,25 +2209,29 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                             @Override
                             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                 if (task.isSuccessful()) {
-                                    Log.d("task", "success");
                                     if (!task.getResult().isEmpty()) {
-                                        Log.d("result", "no empty");
                                         xpand2.setOnClickListener(mapaEmpleados.this);
                                     } else if (task.getResult().isEmpty()) {
-                                        Log.d("result", "empty");
                                         xpand2.setOnClickListener(new View.OnClickListener() {
                                             @Override
                                             public void onClick(View v) {
-                                                Toast.makeText(getActivity(), "No se ha registrado ninguna obra por el momento", Toast.LENGTH_LONG).show();
+                                                menu.snackbar.setText("No se ha registrado ninguna obra por el momento");
+                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                tv.setTextSize(10);
+                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                menu.snackbar.show();
                                             }
                                         });
                                     }
                                 } else if (!task.isSuccessful()) {
-                                    Log.d("task", "no success");
                                     xpand2.setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
-                                            Toast.makeText(getActivity(), "No se ha registrado ninguna obra por el momento", Toast.LENGTH_LONG).show();
+                                            menu.snackbar.setText("No se ha registrado ninguna obra por el momento");
+                                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                            tv.setTextSize(10);
+                                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                            menu.snackbar.show();
                                         }
                                     });
                                 }
@@ -2205,19 +2245,15 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void listenerObs() {
         firestoreObras();
-        Log.d("listenerObs", "INICIADO");
         final int[] contador = {0};
         timerObs = new CountDownTimer(30000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 contador[0]++;
-                Log.d("contador OBS", String.valueOf(contador[0]));
-                Log.d("TICK OBS", Long.toString(millisUntilFinished));
                 if (readyObs) {
                     contador[0] = 30;
                 }
                 if (contador[0] == 30) {
-                    Log.d("contador OBS ENTRA", String.valueOf(contador[0]));
                     timerObs.cancel();
                     timerObs.onFinish();
                 }
@@ -2226,7 +2262,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onFinish() {
                 if (readyObs) {
-                    Log.d("readyObs", "TRUE");
                     geoFirestoreRefObs.addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
@@ -2241,9 +2276,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                             case ADDED:
                                             case MODIFIED:
                                             case REMOVED:
-                                                Log.d("listenerObs", "ENTRA");
                                                 if (alreadyObs) {
-                                                    Log.d("alreadyObs", "TRUE");
                                                     mMap.clear();
                                                     firestoreObras();
                                                 }
@@ -2255,7 +2288,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                     });
                 } else {
-                    Log.d("readyObs", "FALSE");
                     timerObs.start();
                 }
             }
@@ -2263,7 +2295,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void firestoreNombres() {
-        Log.d("FIRESTORE NOMBRES", "ENTRA");
         menu.cargando(true);
         touch(true);
         alreadyJfs = false;
@@ -2277,7 +2308,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
-                        Log.d("emples", "ENTRA SI");
                         String jefe = document.getString("nombre");
                         if (!jfs.contains(jefe)) {
                             jfs.add(jefe);
@@ -2298,7 +2328,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                         if (task1.isSuccessful()) {
                             for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
-                                Log.d("emples", "ENTRA");
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null) {
@@ -2314,7 +2343,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                        Log.d("SIZE LISTA JFS", String.valueOf(jfs.size()));
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
                         jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
@@ -2331,20 +2359,16 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void listenerJfs() {
-        Log.d("listenerJfs", "INICIADO");
         final int[] contador2 = {0};
         firestoreNombres();
         timerJfs = new CountDownTimer(30000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 contador2[0]++;
-                Log.d("contador JFS", String.valueOf(contador2[0]));
-                Log.d("TICK JFS", Long.toString(millisUntilFinished));
                 if (readyJfs) {
                     contador2[0] = 30;
                 }
                 if (contador2[0] == 30) {
-                    Log.d("contador JFS ENTRA", String.valueOf(contador2[0]));
                     timerJfs.cancel();
                     timerJfs.onFinish();
                 }
@@ -2353,7 +2377,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onFinish() {
                 if (readyJfs) {
-                    Log.d("readyJfs", "TRUE");
                     mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
@@ -2368,9 +2391,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                             case ADDED:
                                             case MODIFIED:
                                             case REMOVED:
-                                                Log.d("listenerJfs", "ENTRA");
                                                 if (alreadyJfs) {
-                                                    Log.d("alreadyJfs", "TRUE");
                                                     firestoreNombres();
                                                 }
                                                 break;
@@ -2381,7 +2402,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                     });
                 } else {
-                    Log.d("readyJfs", "FALSE");
                     timerJfs.start();
                 }
             }

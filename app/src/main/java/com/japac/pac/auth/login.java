@@ -20,7 +20,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +28,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -49,6 +47,7 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.japac.pac.R;
 import com.japac.pac.servicios.servicioLocalizacion;
 import com.japac.pac.menu.menu;
+import com.japac.pac.servicios.snackbarDS;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -140,7 +139,6 @@ public class login extends AppCompatActivity {
                                     registrar.setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
-                                            Log.d("registrar", "clica");
                                             registro();
 
                                         }
@@ -149,7 +147,6 @@ public class login extends AppCompatActivity {
                                     entrar.setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View view) {
-                                            Log.d("entrar", "clica");
                                             cargando(true);
                                             semail = email.getText().toString();
                                             scontrasena = contrasena.getText().toString();
@@ -289,7 +286,11 @@ myMsgtitle.setPadding(2,2,2,2);
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(login.this, available, ERROR_DIALOGO_PEDIR);
             dialog.show();
         } else {
-            Toast.makeText(this, "Mapas no funciona", Toast.LENGTH_SHORT).show();
+            menu.snackbar.setText("Mapas no funciona");
+            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            tv.setTextSize(10);
+            snackbarDS.configSnackbar(this, menu.snackbar);
+            menu.snackbar.show();
 
         }
         return false;
@@ -319,7 +320,11 @@ myMsgtitle.setPadding(2,2,2,2);
                 if (task.isSuccessful()) {
                     menuRoles();
                 } else {
-                    Toast.makeText(login.this, "No se pudo iniciar sesion, compruebe los datos", Toast.LENGTH_SHORT).show();
+                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    tv.setTextSize(10);
+                    snackbarDS.configSnackbar(login.this, menu.snackbar);
+                    menu.snackbar.show();
                     cargando(false);
                 }
 
