@@ -15,7 +15,6 @@ import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.os.Looper;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -25,22 +24,16 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
-import com.google.maps.android.SphericalUtil;
 import com.japac.pac.localizacion.localizacionUsuario;
 import com.japac.pac.menu.menu;
 
-import java.text.Normalizer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class servicioLocalizacion extends Service {
@@ -49,14 +42,30 @@ public class servicioLocalizacion extends Service {
     private final static long FASTEST_INTERVAL = 2000;
     private FirebaseFirestore mDb;
     private localizacionUsuario mLocalizarUsuario;
-    private String id, nombre, empresa, comprobar, obra, rol;
+    private String id;
+    private static String nombre;
+    private static String empresa;
+    private String comprobar;
+    private String obra;
+    private static String rol;
     private Double distancia;
     private static servicioLocalizacion servicioLocalizacion;
     private static Boolean running = false;
     private static CountDownTimer timerFina;
+    private static String estado;
+    private Boolean des;
 
     public servicioLocalizacion() {
         servicioLocalizacion = this;
+    }
+
+    public static void setEstado(String estado) {
+        com.japac.pac.servicios.servicioLocalizacion.estado = estado;
+        if(empresa!=null && nombre!=null){
+            FirebaseFirestore.getInstance()
+                    .collection("Empresas")
+                    .document(empresa).collection("Localizaciones " + rol).document(nombre).update("estado", estado);
+        }
     }
 
     @Nullable
@@ -137,64 +146,20 @@ public class servicioLocalizacion extends Service {
                         mLocalizarUsuario.setNombre(nombre);
                         mLocalizarUsuario.setTimestamp(null);
                         mLocalizarUsuario.setObra(documentSnapshot0.getString("obra"));
+                        mLocalizarUsuario.setEstado(estado);
+                        if(rol.equals("Empleado")){
+                            des = documentSnapshot0.getBoolean("desactivado");
+                            mLocalizarUsuario.setDesactivado(des);
+                        }
                         comprobar = documentSnapshot0.getString("comprobar");
                         obra = documentSnapshot0.getString("obra");
                         final DocumentReference locationRef = FirebaseFirestore.getInstance()
                                 .collection("Empresas")
-                                .document(empresa).collection("Localizaciones").document(nombre);
-                        locationRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                            @Override
-                            public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
-                                if (task.isSuccessful()) {
-                                    GeoPoint geoPointAn = Objects.requireNonNull(task.getResult()).getGeoPoint("geoPoint");
-                                    if (geoPoint != null && geoPointAn != null) {
-                                        distancia = SphericalUtil.computeDistanceBetween(new LatLng(geoPointAn.getLatitude(), geoPointAn.getLongitude()), new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()));
-                                    }
-                                    locationRef.set(mLocalizarUsuario).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                        @Override
-                                        public void onSuccess(Void aVoid) {
-                                            final String norm = Normalizer.normalize(nombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                            if (rol.equals("Empleado")) {
-                                                mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").document(norm).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                                        if (distancia != null) {
-                                                            if (Objects.requireNonNull(task.getResult()).exists()) {
-                                                                if (Double.compare(distancia, 200.0) >= 0) {
-                                                                    final Map<String, Object> mapGeo = new HashMap<>();
-                                                                    mapGeo.put("geoPoint", geoPoint);
-                                                                    mapGeo.put("nombre", nombre);
-                                                                    if (obra == null) {
-                                                                        mapGeo.put("obra", null);
-                                                                    } else {
-                                                                        mapGeo.put("obra", obra);
-                                                                    }
-                                                                    String norm = Normalizer.normalize(nombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                                                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").document(norm).set(mapGeo);
-
-                                                                }
-                                                            } else {
-                                                                final Map<String, Object> mapGeo = new HashMap<>();
-                                                                mapGeo.put("geoPoint", geoPoint);
-                                                                mapGeo.put("nombre", nombre);
-                                                                if (obra == null) {
-                                                                    mapGeo.put("obra", null);
-                                                                } else {
-                                                                    mapGeo.put("obra", obra);
-                                                                }
-                                                                mapGeo.put("id", id);
-                                                                String norm = Normalizer.normalize(nombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                                                mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").document(norm).set(mapGeo);
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    });
-                                }
-                            }
-                        });
+                                .document(empresa).collection("Localizaciones " + rol).document(nombre);
+                        locationRef.set(mLocalizarUsuario);
+                        if(rol.equals("Administrador")){
+                            locationRef.update("desactivado", FieldValue.delete());
+                        }
                     }
                 }
             });
@@ -204,7 +169,7 @@ public class servicioLocalizacion extends Service {
     }
 
     private static void setTimer() {
-        timerFina = new CountDownTimer(60000, 1000) {
+        timerFina = new CountDownTimer(300000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 running = true;
@@ -212,9 +177,18 @@ public class servicioLocalizacion extends Service {
 
             @Override
             public void onFinish() {
-                running = false;
-                servicioLocalizacion.stopSelf();
-                menu.finishTask();
+                if(empresa!=null && nombre!=null){
+                    FirebaseFirestore.getInstance()
+                            .collection("Empresas")
+                            .document(empresa).collection("Localizaciones " + rol).document(nombre).update("estado", "offline full").addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            running = false;
+                            servicioLocalizacion.stopSelf();
+                            menu.finishTask();
+                        }
+                    });
+                }
             }
         };
     }

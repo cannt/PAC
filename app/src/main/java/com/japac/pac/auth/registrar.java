@@ -31,6 +31,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -39,7 +40,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.japac.pac.R;
-import com.japac.pac.menu.menu;
 import com.japac.pac.servicios.snackbarDS;
 
 import java.io.ByteArrayOutputStream;
@@ -74,7 +74,9 @@ public class registrar extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
-    private View mFirmar;
+    private View mFirmar, mTresBtn;
+
+    private Snackbar snackbar;
 
     private View view;
 
@@ -102,7 +104,8 @@ public class registrar extends AppCompatActivity {
             codigoEmpresa = findViewById(R.id.regCodigoEmpresa);
             nif = findViewById(R.id.regNif);
             naf = findViewById(R.id.regNaf);
-
+            snackbar = Snackbar.make(findViewById(R.id.viewSnack), "Bienvenido", 5000)
+                    .setActionTextColor(Color.WHITE);
             entrar.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -252,60 +255,76 @@ public class registrar extends AppCompatActivity {
         } else {
             codigoEmpleadoCheck();
             cargando(false);
-            menu.snackbar.setText("El codigo " + cod + " no coincide con ninguna empresa");
-            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            snackbar.setText("El codigo " + cod + " no coincide con ninguna empresa");
+            TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
             tv.setTextSize(10);
-            snackbarDS.configSnackbar(registrar.this, menu.snackbar);
-            menu.snackbar.show();
+            snackbarDS.configSnackbar(registrar.this, snackbar);
+            snackbar.show();
 
         }
     }
 
     private void privacyPolicy() {
+        final TextView titulo2 = new TextView(this);
+        titulo2.setText("Politica de privacidad");
+        titulo2.setGravity(Gravity.CENTER_HORIZONTAL);
+        mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+        final Button btnRechazar = mTresBtn.findViewById(R.id.btn1);
+        btnRechazar.setText("Rechazar");
+        final Button btnAcept = mTresBtn.findViewById(R.id.btn2);
+        btnAcept.setText("Aceptar");
+        final Button btnLeer = mTresBtn.findViewById(R.id.Cancelar);
+        btnLeer.setText("Leer");
         final AlertDialog.Builder pP = new AlertDialog.Builder(registrar.this);
-        pP.setMessage("Politica de privacidad")
-                .setPositiveButton("Aceptar", null)
-                .setNegativeButton("Leer", null)
-                .setNeutralButton("Cancelar", null);
+        pP
+                .setView(mTresBtn)
+                .setCustomTitle(titulo2);
         final AlertDialog dialogoQuien = pP.create();
+        btnAcept.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                registrarUsuario();
+                dialogoQuien.dismiss();
+
+            }
+        });
+
+        btnLeer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url));
+                startActivity(i);
+
+            }
+        });
+
+        btnRechazar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+                System.exit(0);
+                dialogoQuien.dismiss();
+            }
+        });
         dialogoQuien.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(final DialogInterface dialog) {
-                Button positivoYo = dialogoQuien.getButton(AlertDialog.BUTTON_POSITIVE);
-                Button negativoOtro = dialogoQuien.getButton(AlertDialog.BUTTON_NEGATIVE);
-                Button neutroC = dialogoQuien.getButton(AlertDialog.BUTTON_NEUTRAL);
-                positivoYo.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        registrarUsuario();
-                        dialogoQuien.dismiss();
+                btnAcept.setEnabled(true);
+                btnLeer.setEnabled(true);
+                btnRechazar.setEnabled(true);
 
-                    }
-                });
-
-                negativoOtro.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-
-                    }
-                });
-
-                neutroC.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        finish();
-                        System.exit(0);
-                        dialogoQuien.dismiss();
-                    }
-                });
             }
         });
         dialogoQuien.setCanceledOnTouchOutside(false);
-        dialogoQuien.show();
+        if (mTresBtn.getParent() != null) {
+            ((ViewGroup) mTresBtn.getParent()).removeView(mTresBtn);
+            mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+            dialogoQuien.show();
+        } else {
+            dialogoQuien.show();
+        }
     }
 
     private void registrarUsuario() {
@@ -324,10 +343,11 @@ public class registrar extends AppCompatActivity {
                     map.put("codigo empleado", cod);
                     map.put("comprobar", "no");
                     map.put("id", id);
-                    map.put("notificacion", false);
                     map.put("NIF", snif);
                     map.put("NAF", snaf);
-                    map.put("DESACTIVADO", false);
+                    if(roles.equals("Empleado")){
+                        map.put("desactivado", false);
+                    }
                     map.put("Dias libres", null);
                     map.put("Dias libres solicitados", null);
                     if (roles.equals("Administrador")) {
@@ -335,44 +355,35 @@ public class registrar extends AppCompatActivity {
                     } else if (roles.equals("Empleado")) {
                         map.put("jefe", "no");
                     }
-                    final Map<String, String> mapF = new HashMap<>();
-                    mapF.put("años", "");
-                    mapF.put("meses", "");
-                    mapF.put("dias", "");
                     firebaseFirestore.collection("Todas las ids").document(id).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
                             firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(snombre).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    firebaseFirestore.collection("Empresas").document(empresas).collection(roles).document(snombre).collection("Registro").document("años,meses,dias").set(mapF).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    final Map<String, Object> mapDias = new HashMap<>();
+                                    mapDias.put("Dias libres", null);
+                                    mapDias.put("Dias libres solicitados", null);
+                                    mapDias.put("Nombre", snombre);
+                                    firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres solicitados").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            final Map<String, Object> mapDias = new HashMap<>();
-                                            mapDias.put("Dias libres", null);
-                                            mapDias.put("Dias libres solicitados", null);
-                                            mapDias.put("Nombre", snombre);
-                                            firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres solicitados").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            mapDias.put("aceptado", false);
+                                            mapDias.put("asignado", false);
+                                            mapDias.put("rechazado", false);
+                                            mapDias.put("eliminado", false);
+                                            firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
-                                                    mapDias.put("aceptado", false);
-                                                    mapDias.put("asignado", false);
-                                                    mapDias.put("rechazado", false);
-                                                    mapDias.put("eliminado", false);
-                                                    firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                        @Override
-                                                        public void onSuccess(Void aVoid) {
-                                                            InputMethodManager inputManager = (InputMethodManager)
-                                                                    getSystemService(Context.INPUT_METHOD_SERVICE);
-                                                            Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getCurrentFocus()).getWindowToken(),
-                                                                    InputMethodManager.HIDE_NOT_ALWAYS);
-                                                            cargando(false);
-                                                            firmar();
-                                                        }
-                                                    });
-
+                                                    InputMethodManager inputManager = (InputMethodManager)
+                                                            getSystemService(Context.INPUT_METHOD_SERVICE);
+                                                    Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getCurrentFocus()).getWindowToken(),
+                                                            InputMethodManager.HIDE_NOT_ALWAYS);
+                                                    cargando(false);
+                                                    firmar();
                                                 }
                                             });
+
                                         }
                                     });
                                 }
@@ -380,11 +391,11 @@ public class registrar extends AppCompatActivity {
                         }
                     });
                 } else {
-                    menu.snackbar.setText("Este email ya esta en uso");
-                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    snackbar.setText("Este email ya esta en uso");
+                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                     tv.setTextSize(10);
-                    snackbarDS.configSnackbar(registrar.this, menu.snackbar);
-                    menu.snackbar.show();
+                    snackbarDS.configSnackbar(registrar.this, snackbar);
+                    snackbar.show();
                     cargando(false);
                 }
             }
@@ -459,7 +470,7 @@ public class registrar extends AppCompatActivity {
             public void onClick(View v) {
                 cargando(true);
                 firma.clear();
-               cargando(false);
+                cargando(false);
             }
         });
         dialogoFirmar.setOnShowListener(new DialogInterface.OnShowListener() {
@@ -470,7 +481,7 @@ public class registrar extends AppCompatActivity {
                 mAuth = FirebaseAuth.getInstance();
                 FirebaseStorage almacen = FirebaseStorage.getInstance();
                 almacenRef = almacen.getReferenceFromUrl("gs://pacusuarios-9035b.appspot.com");
-                mAuth.signInWithEmailAndPassword(semail,scontrasena).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                mAuth.signInWithEmailAndPassword(semail, scontrasena).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(AuthResult authResult) {
                         firebaseFirestore.collection("Todas las ids").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -518,7 +529,7 @@ public class registrar extends AppCompatActivity {
             return;
         }
     }
-    
+
     private void cargando(Boolean carg) {
 
         if (carg) {

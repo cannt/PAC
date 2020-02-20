@@ -1,6 +1,7 @@
 package com.japac.pac.menu.empleados;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -96,6 +97,7 @@ import com.japac.pac.marcadores.marcadoresObras;
 import com.japac.pac.menu.menu;
 import com.japac.pac.R;
 import com.japac.pac.adaptadorObrasLista;
+import com.japac.pac.servicios.servicioLocalizacion;
 import com.japac.pac.servicios.snackbarDS;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
@@ -111,6 +113,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import static android.content.Context.ACTIVITY_SERVICE;
 import static android.view.View.VISIBLE;
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
@@ -151,8 +154,40 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
-                    firestoreNombres();
-                    firestoreObras();
+                    if (pulseMap == 0) {
+                        pulseMap = 1;
+                        menu.snackbar.setText("Vuelva a tocar el mapa para actualizar la información");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
+                        timerMap = new CountDownTimer(5000, 1000) {
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                            }
+
+                            @Override
+                            public void onFinish() {
+                                if (pulseMap == 0) {
+                                    menu.snackbar.dismiss();
+                                    mMap.clear();
+                                    firestoreNombres();
+                                    firestoreObras();
+                                    menu.snackbar.setText("Actualizando informacion del mapa");
+                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                    menu.snackbar.show();
+                                } else {
+                                    pulseMap = 0;
+                                }
+                            }
+                        }.start();
+                    } else if (pulseMap == 1) {
+                        pulseMap = 0;
+                        timerMap.cancel();
+                        timerMap.onFinish();
+                    }
                 }
             });
             listenerObs();
@@ -162,12 +197,14 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         }
     }
 
-    private final Map<String, Integer> markersMap2 = new HashMap<>();
-    private final List<Marker> markersMap = new ArrayList<>();
+    private int pulseMap = 0;
+
+    private final Map<String, Marker> markersMapObra = new HashMap<>();
+    private final Map<GeoPoint, String> markersMapObras2 = new HashMap<>();
 
     private final Map<String, Object> map = new HashMap<>();
 
-    private CountDownTimer timerObs, timerJfs, timerLeergeo, timerSnackLocaliza;
+    private CountDownTimer timerObs, timerJfs, timerLeergeo, timerSnackLocaliza, timerMap;
 
     private String trayecto;
     private String obraselect;
@@ -197,7 +234,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
 
-    private ArrayList<String> obs, jfs;
+    private ArrayList<String> obs = new ArrayList<>(), jfs = new ArrayList<>(), emailList;
 
     private FloatingActionButton icInicio, gps, icAyuda;
 
@@ -253,7 +290,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private CollectionReference geoFirestoreRefObs;
     private CollectionReference geoFirestoreRefJfs;
 
-    private int markersInt = 0;
+    private int mayor = 0;
 
     public mapaEmpleados() {
 
@@ -440,7 +477,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     botonCancelar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            if(otro){
+                            if (otro) {
                                 dConfirma();
                             }
                             dialogoYo.dismiss();
@@ -613,12 +650,34 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             public void onShow(DialogInterface dialog) {
                 if (comp.equals("iniciada")) {
                     botonJornada.setText("Finalizar");
-                    obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
+                    obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba), true);
                     obraselect = obraSpinner.getItemAtPosition(leeObras(obraSpinner, obcomprueba)).toString();
                     obraSpinner.setEnabled(false);
                     botonJornada.setEnabled(true);
                     botonCancelar.setEnabled(true);
                 } else if (comp.equals("finalizada") || comp.equals("no")) {
+                    GeoPoint geoPointReferencia;
+                    Double distanciaReferencia = null;
+                    Double distanciaReferencia2 = null;
+                    mayor = 0;
+                    latitudDetectada = geoPointLocalizayo.getLatitude();
+                    longitudDetectada = geoPointLocalizayo.getLongitude();
+                    for (int ob = 0; ob < adaptadorObrasLista.getItemCount(); ob++) {
+                        geoPointReferencia = adaptadorObrasLista.getItem(ob).getGeoPoint();
+                        if (distanciaReferencia == null) {
+                            distanciaReferencia = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(geoPointReferencia.getLatitude(), geoPointReferencia.getLongitude()));
+                        } else {
+                            distanciaReferencia2 = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(geoPointReferencia.getLatitude(), geoPointReferencia.getLongitude()));
+                        }
+                        if (distanciaReferencia != null && distanciaReferencia2 != null) {
+                            if (distanciaReferencia2 < distanciaReferencia) {
+                                mayor = ob;
+                                distanciaReferencia = distanciaReferencia2;
+                            }
+                        }
+                    }
+                    obraSpinner.setSelection(leeObras(obraSpinner, adaptadorObrasLista.getItem(mayor).getObra()), true);
+                    mayor = 0;
                     botonJornada.setText("Iniciar");
                     obraSpinner.setEnabled(true);
                     botonJornada.setEnabled(true);
@@ -665,126 +724,137 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 final String contrasenaNu = scontrasena.getText().toString();
                 if (!emailNu.isEmpty() && !contrasenaNu.isEmpty()) {
                     if (!emailNu.equals(emailAn)) {
-                        mAuth.signOut();
-                        mAuth.signInWithEmailAndPassword(emailNu, contrasenaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                            @Override
-                            public void onComplete(@NonNull Task<AuthResult> task) {
-                                menu.cargando(true);
-                                touch(true);
-                                if (task.isSuccessful()) {
-                                    id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
-                                    mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                        @Override
-                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                            if (documentSnapshot.exists()) {
-                                                codigoEmpresa = documentSnapshot.getString("codigo empresa");
-                                                comp = documentSnapshot.getString("comprobar");
-                                                empresa = documentSnapshot.getString("empresa");
-                                                nombre = documentSnapshot.getString("nombre");
-                                                emailConf = documentSnapshot.getString("email");
-                                                roles = documentSnapshot.getString("rol");
-                                                obcomprueba = documentSnapshot.getString("obra");
-                                                if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                        if (emailList.contains(emailNu)) {
+                            mAuth.signOut();
+                            mAuth.signInWithEmailAndPassword(emailNu, contrasenaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                    menu.cargando(true);
+                                    touch(true);
+                                    if (task.isSuccessful()) {
+                                        id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.exists()) {
+                                                    codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                                                    comp = documentSnapshot.getString("comprobar");
+                                                    empresa = documentSnapshot.getString("empresa");
+                                                    nombre = documentSnapshot.getString("nombre");
+                                                    emailConf = documentSnapshot.getString("email");
+                                                    roles = documentSnapshot.getString("rol");
                                                     obcomprueba = documentSnapshot.getString("obra");
-                                                }
-                                                otro = true;
-                                                menu.cargando(false);
-                                                touch(false);
-                                                if (obraMark) {
-                                                    menu.cargando(true);
-                                                    touch(true);
-                                                    final TextView myMsgtitle = new TextView(getActivity());
-                                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                    final Button botonJornada = mDos.findViewById(R.id.btn1);
-                                                    final Button botonCancelar = mDos.findViewById(R.id.btn2);
-                                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                                                    myMsgtitle.setTextColor(Color.BLACK);
-                                                    myMsgtitle.setPadding(2, 2, 2, 2);
-                                                    String obFin = null;
-                                                    if (obcomprueba != null) {
-                                                        if (obcomprueba.equals(obraMarker)) {
-                                                            myMsgtitle.setText(nombre + " ¿desea finalizar la jornada en la obra " + obraMarker + "?");
-                                                            obFin = obraMarker;
-                                                        } else {
-                                                            myMsgtitle.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
-                                                            obFin = obcomprueba;
-                                                        }
-                                                        botonJornada.setText("Finalizar");
-                                                    } else {
-                                                        myMsgtitle.setText(nombre + " ¿desea iniciar la jornada en la obra " + obraMarker +"?");
-                                                        obFin = obraMarker;
-                                                        botonJornada.setText("Iniciar");
+                                                    if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                                                        obcomprueba = documentSnapshot.getString("obra");
                                                     }
-                                                    final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
-                                                    Otro
-                                                            .setCustomTitle(myMsgtitle)
-                                                            .setView(mDos);
-                                                    final AlertDialog dialogoOtro = Otro.create();
-                                                    final String finalObFin = obFin;
-                                                    botonJornada.setOnClickListener(new View.OnClickListener() {
-                                                        @Override
-                                                        public void onClick(View v) {
-                                                            if (comp.equals("iniciada")) {
-                                                                entrada_salida = "Salida";
-                                                            } else if (comp.equals("finalizada") || comp.equals("no")) {
-                                                                entrada_salida = "Entrada";
-                                                            }
-                                                            dialogoOtro.dismiss();
-                                                            leerGeo(finalObFin);
-                                                        }
-                                                    });
-                                                    botonCancelar.setOnClickListener(new View.OnClickListener() {
-                                                        @Override
-                                                        public void onClick(View v) {
-                                                            if(otro){
-                                                                dConfirma();
-                                                            }
-                                                            dialogoOtro.dismiss();
-                                                        }
-                                                    });
-                                                    dialogoOtro.setCanceledOnTouchOutside(false);
-                                                    dialogoOtro.setOnShowListener(new DialogInterface.OnShowListener() {
-                                                        @Override
-                                                        public void onShow(final DialogInterface dialog) {
-                                                            dialogoLogin.dismiss();
-                                                            botonJornada.setEnabled(true);
-                                                            botonCancelar.setEnabled(true);
-                                                            menu.cargando(false);
-                                                            touch(false);
-                                                        }
-                                                    });
-                                                    dialogoOtro.setCanceledOnTouchOutside(false);
-                                                    if (mDos.getParent() != null) {
-                                                        ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                                    otro = true;
+                                                    menu.cargando(false);
+                                                    touch(false);
+                                                    if (obraMark) {
+                                                        menu.cargando(true);
+                                                        touch(true);
+                                                        final TextView myMsgtitle = new TextView(getActivity());
                                                         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                        dialogoOtro.show();
+                                                        final Button botonJornada = mDos.findViewById(R.id.btn1);
+                                                        final Button botonCancelar = mDos.findViewById(R.id.btn2);
+                                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                        myMsgtitle.setTextColor(Color.BLACK);
+                                                        myMsgtitle.setPadding(2, 2, 2, 2);
+                                                        String obFin = null;
+                                                        if (obcomprueba != null) {
+                                                            if (obcomprueba.equals(obraMarker)) {
+                                                                myMsgtitle.setText(nombre + " ¿desea finalizar la jornada en la obra " + obraMarker + "?");
+                                                                obFin = obraMarker;
+                                                            } else {
+                                                                myMsgtitle.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
+                                                                obFin = obcomprueba;
+                                                            }
+                                                            botonJornada.setText("Finalizar");
+                                                        } else {
+                                                            myMsgtitle.setText(nombre + " ¿desea iniciar la jornada en la obra " + obraMarker + "?");
+                                                            obFin = obraMarker;
+                                                            botonJornada.setText("Iniciar");
+                                                        }
+                                                        final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                                        Otro
+                                                                .setCustomTitle(myMsgtitle)
+                                                                .setView(mDos);
+                                                        final AlertDialog dialogoOtro = Otro.create();
+                                                        final String finalObFin = obFin;
+                                                        botonJornada.setOnClickListener(new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View v) {
+                                                                if (comp.equals("iniciada")) {
+                                                                    entrada_salida = "Salida";
+                                                                } else if (comp.equals("finalizada") || comp.equals("no")) {
+                                                                    entrada_salida = "Entrada";
+                                                                }
+                                                                dialogoOtro.dismiss();
+                                                                leerGeo(finalObFin);
+                                                            }
+                                                        });
+                                                        botonCancelar.setOnClickListener(new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View v) {
+                                                                if (otro) {
+                                                                    dConfirma();
+                                                                }
+                                                                dialogoOtro.dismiss();
+                                                            }
+                                                        });
+                                                        dialogoOtro.setCanceledOnTouchOutside(false);
+                                                        dialogoOtro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                            @Override
+                                                            public void onShow(final DialogInterface dialog) {
+                                                                dialogoLogin.dismiss();
+                                                                botonJornada.setEnabled(true);
+                                                                botonCancelar.setEnabled(true);
+                                                                menu.cargando(false);
+                                                                touch(false);
+                                                            }
+                                                        });
+                                                        dialogoOtro.setCanceledOnTouchOutside(false);
+                                                        if (mDos.getParent() != null) {
+                                                            ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                            dialogoOtro.show();
+                                                        } else {
+                                                            dialogoOtro.show();
+                                                        }
                                                     } else {
-                                                        dialogoOtro.show();
+                                                        dialogoLogin.dismiss();
+                                                        dRegistrar();
                                                     }
                                                 } else {
-                                                    dRegistrar();
+                                                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    tv.setTextSize(10);
+                                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                    menu.snackbar.show();
+                                                    menu.cargando(false);
+                                                    touch(false);
                                                 }
-                                            }else{
-                                                menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
-                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                                tv.setTextSize(10);
-                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                                menu.snackbar.show();
-                                                menu.cargando(false);
-                                                touch(false);
                                             }
-                                        }
-                                    });
-                                } else {
-                                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
-                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                    tv.setTextSize(10);
-                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                    menu.snackbar.show();
-                                    dialogoLogin.show();
+                                        });
+                                    } else {
+                                        menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        tv.setTextSize(10);
+                                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                        menu.snackbar.show();
+                                        dialogoLogin.show();
+                                    }
                                 }
-                            }
-                        });
+                            });
+
+                        } else {
+                            menu.snackbar.setText("Usuario desactivado");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(10);
+                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                            menu.snackbar.show();
+                            menu.snackbar.show();
+                        }
                     } else {
                         semail.getText().clear();
                         semail.setError("Introduzca el email del empleado invitado");
@@ -944,7 +1014,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                         mDb.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         mDb.collection("Empresas").document(empresa).collection(roles).document(nombre).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -997,19 +1067,19 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         } else if (Double.compare(distan, 50.0) > 0) {
                             distan2 = 1.0;
                             dis = dis + 50.0;
-                            if(timerSnackLocaliza==null){
+                            if (timerSnackLocaliza == null) {
                                 timerSnackLocaliza = new CountDownTimer(60000, 1000) {
                                     @Override
                                     public void onTick(long millisUntilFinished) {
-                                        if(snackbarLocalizando==null){
+                                        if (snackbarLocalizando == null) {
                                             snackbarLocalizando = "Localizando";
-                                        }else if(snackbarLocalizando.equals("Localizando")){
-                                            snackbarLocalizando = "Localizando.";
-                                        }else if(snackbarLocalizando.equals("Localizando.")){
-                                            snackbarLocalizando = "Localizando..";
-                                        }else if(snackbarLocalizando.equals("Localizando..")){
-                                            snackbarLocalizando = "Localizando...";
-                                        }else if(snackbarLocalizando.equals("Localizando...")){
+                                        } else if (snackbarLocalizando.equals("Localizando")) {
+                                            snackbarLocalizando = ".Localizando.";
+                                        } else if (snackbarLocalizando.equals(".Localizando.")) {
+                                            snackbarLocalizando = "..Localizando..";
+                                        } else if (snackbarLocalizando.equals("..Localizando..")) {
+                                            snackbarLocalizando = "...Localizando...";
+                                        } else if (snackbarLocalizando.equals("...Localizando...")) {
                                             snackbarLocalizando = "Localizando";
                                         }
                                         menu.snackbar.setText(snackbarLocalizando);
@@ -1059,7 +1129,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     mDb.collection("Empresas").document(empresa).collection(roles).document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                         @Override
                                                                         public void onSuccess(final DocumentSnapshot documentSnapshot) {
-                                                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                 @Override
                                                                                 public void onSuccess(Void aVoid) {
                                                                                     trayecto = documentSnapshot.getString("marca temporal");
@@ -1243,7 +1313,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                 mDb.collection("Empresas").document(empresa).collection(roles).document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
 
@@ -1471,7 +1541,12 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     if (valorOnline >= 0) {
                                                                         valorOnline = valorOnline + 1;
                                                                         mapES.put("online", valorOnline);
-                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", obra);
+                                                                            }
+                                                                        });
                                                                     }
                                                                     menu.snackbar.setText("Jornada iniciada en " + obra + " correctamente");
 
@@ -1480,7 +1555,12 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     if (valorOnline > 0) {
                                                                         valorOnline = valorOnline - 1;
                                                                         mapES.put("online", valorOnline);
-                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", null);
+                                                                            }
+                                                                        });
                                                                     }
                                                                     menu.snackbar.setText("Jornada finalizada en " + obra + " correctamente");
                                                                 }
@@ -1526,7 +1606,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                                                                     menu.snackbar.show();
                                                                 }
-                                                                menu.estado("online");
+                                                                servicioLocalizacion.setEstado("online");
                                                             }
                                                         });
                                                     }
@@ -1728,7 +1808,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adaptadorObrasLista);
         adaptadorObrasLista.startListening();
-
         adaptadorObrasLista.setOnItemClickListener(new adaptadorObrasLista.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
@@ -1743,7 +1822,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 setCamara();
                 GeoPoint geoPoint = adaptadorObrasLista.getItem(position).getGeoPoint();
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 600, null);
-                markersMap.get(markersMap2.get(adaptadorObrasLista.getItem(position).getObra())).showInfoWindow();
+                markersMapObra.get(markersMapObras2.get(adaptadorObrasLista.getItem(position).getGeoPoint())).showInfoWindow();
             }
         });
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -1800,7 +1879,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     botonCancelar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            if(otro){
+                            if (otro) {
                                 dConfirma();
                             }
                             dialogoYo.dismiss();
@@ -1849,7 +1928,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void centrarCamara() {
 
-        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
@@ -1905,6 +1984,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             mLocalizarUsuario = new localizacionUsuario();
             mLocalizarUsuario.setId(id);
             mLocalizarUsuario.setNombre(nombre);
+            mLocalizarUsuario.setEstado("online");
+            mLocalizarUsuario.setDesactivado(false);
             menu.cargando(false);
             touch(false);
             localizacion();
@@ -1920,7 +2001,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             DocumentReference locationRef = mDb
                     .collection("Empresas")
                     .document(empresa)
-                    .collection("Localizaciones")
+                    .collection("Localizaciones Empleado")
                     .document(nombre);
             locationRef.set(mLocalizarUsuario).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
@@ -2067,7 +2148,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                     }
                 });
-                firestoreNombres();
             }
         } catch (SecurityException ignored) {
 
@@ -2142,16 +2222,14 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         alreadyObs = false;
         geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
-        obs = new ArrayList<>();
-        obs.clear();
-        if (markersMap != null) {
-            markersMap.clear();
+        if (obs != null) {
+            obs.clear();
         }
-        if (markersMap2 != null) {
-            markersMap2.clear();
+        if (markersMapObra != null) {
+            markersMapObra.clear();
         }
-        if (markersInt != 0) {
-            markersInt = 0;
+        if (markersMapObras2 != null) {
+            markersMapObras2.clear();
         }
         geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
@@ -2172,7 +2250,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                         if (!obs.contains(obran)) {
                             anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
-                            obs.add(obran);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -2275,10 +2352,30 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
+                                                if (alreadyObs) {
+                                                    String obAn = documentChange.getDocument().getString("obra antigua");
+                                                    if (obAn != null) {
+                                                        Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra antigua"));
+                                                        if (marker != null) {
+                                                            marker.remove();
+                                                            markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                            markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                            obs.remove(documentChange.getDocument().getString("obra"));
+                                                            geoFirestoreRefObs.document(documentChange.getDocument().getString("obra")).update("obra antigua", FieldValue.delete());
+                                                        }
+                                                    }
+                                                    anadirMarcadores(documentChange.getDocument().getGeoPoint("geoPoint"), documentChange.getDocument().getString("obra"), documentChange.getDocument().getString("jefe"), documentChange.getDocument().getLong("online"));
+                                                }
+                                                break;
                                             case REMOVED:
                                                 if (alreadyObs) {
-                                                    mMap.clear();
-                                                    firestoreObras();
+                                                    Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra"));
+                                                    if (marker != null) {
+                                                        marker.remove();
+                                                        markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                        obs.remove(documentChange.getDocument().getString("obra"));
+                                                        markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                    }
                                                 }
                                                 break;
                                         }
@@ -2301,6 +2398,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         geoFirestoreRefJfs = mDb.collection("Empresas").document(empresa).collection("Empleado");
         CollectionReference geoFirestoreRef2Jfs = mDb.collection("Empresas").document(empresa).collection("Administrador");
         jfs = new ArrayList<>();
+        emailList = new ArrayList<>();
+        emailList.clear();
         jfs.clear();
         geoFirestoreRef2Jfs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
@@ -2309,7 +2408,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 if (task2.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
                         String jefe = document.getString("nombre");
-                        if (!jfs.contains(jefe)) {
+                        if (!jfs.contains(jefe) && !document.getBoolean("desactivado")) {
                             jfs.add(jefe);
                         }
                     }
@@ -2330,11 +2429,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                             for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
-                                    if (jefe != null) {
+                                    if (jefe != null && !document1.getBoolean("desactivado")) {
+                                        emailList.add(document1.getString("email"));
                                         jfs.add(jefe);
                                     }
                                 }
                             }
+                            emailList.remove(emailAn);
                             jfs.remove(nombre);
                         }
                         return Tasks.whenAllSuccess(tasks4);
@@ -2377,7 +2478,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onFinish() {
                 if (readyJfs) {
-                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
                             if (e != null) {
@@ -2385,14 +2486,23 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 return;
                             }
                             if (queryDocumentSnapshots != null) {
-                                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                                for (final DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
                                     if (documentChange.getDocument().exists()) {
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
                                             case REMOVED:
                                                 if (alreadyJfs) {
-                                                    firestoreNombres();
+                                                    if (documentChange.getDocument().getString("nombre").equals(nombre)) {
+                                                        if (documentChange.getDocument().getBoolean("desactivado") != null) {
+                                                            if (documentChange.getDocument().getBoolean("desactivado")) {
+                                                                mAuth.signOut();
+                                                                ((ActivityManager) getContext().getSystemService(ACTIVITY_SERVICE))
+                                                                        .clearApplicationUserData();
+                                                                menu.finishTask();
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 break;
                                         }
@@ -2408,12 +2518,12 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         }.start();
     }
 
-    private BitmapDescriptor bitmapDescriptorFromVector(Context context) {
+    private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId) {
         menu.cargando(true);
         touch(true);
-        Drawable vectorDrawable = ContextCompat.getDrawable(context, R.drawable.ic_marcador_casa);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
-        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
         menu.cargando(false);
@@ -2424,20 +2534,26 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private void anadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
         menu.cargando(true);
         touch(true);
-
+        Marker marker = markersMapObra.get(title);
+        if (marker != null) {
+            marker.remove();
+            markersMapObra.remove(title);
+            markersMapObras2.remove(title);
+            obs.remove(title);
+        }
         MarkerOptions mo = new MarkerOptions()
                 .rotation(0)
-                .icon(bitmapDescriptorFromVector(getContext()));
+                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_casa));
         Marker mkr = mMap.addMarker(mo
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        markersMap.add(mkr);
-        markersMap2.put(title, markersInt);
+        markersMapObra.put(title, mkr);
+        markersMapObras2.put(geoPoint1, title);
+        obs.add(title);
         mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
-        markersInt = markersInt + 1;
         menu.cargando(false);
         touch(false);
     }
@@ -2590,7 +2706,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     @Override
     public void onInfoWindowClick(Marker marker) {
         String obr = marker.getTitle();
-        if (obs.contains(obr)) {
+        if (markersMapObra.get(obr) != null) {
             dQuien(true, obr);
         }
     }

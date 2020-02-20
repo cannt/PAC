@@ -74,6 +74,7 @@ import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
@@ -83,7 +84,6 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.japac.pac.localizacion.localizacionObra;
 import com.japac.pac.localizacion.localizacionUsuario;
-import com.japac.pac.marcadores.marcadoresEmpleados;
 import com.japac.pac.marcadores.marcadoresObras;
 import com.japac.pac.menu.menu;
 import com.japac.pac.R;
@@ -138,22 +138,56 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
-                    firestoreNombres();
+                    if (pulseMap == 0) {
+                        pulseMap = 1;
+                        menu.snackbar.setText("Vuelva a tocar el mapa para actualizar la información");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
+                        timerMap = new CountDownTimer(5000, 1000) {
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                            }
+
+                            @Override
+                            public void onFinish() {
+                                if (pulseMap == 0) {
+                                    menu.snackbar.dismiss();
+                                    mMap.clear();
+                                    firestoreNombres();
+                                    firestoreObras();
+                                    menu.snackbar.setText("Actualizando informacion del mapa");
+                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                    menu.snackbar.show();
+                                } else {
+                                    pulseMap = 0;
+                                }
+                            }
+                        }.start();
+                    } else if (pulseMap == 1) {
+                        pulseMap = 0;
+                        timerMap.cancel();
+                        timerMap.onFinish();
+                    }
                 }
             });
             listenerObs();
             listenerJfs();
             init();
-
         }
     }
 
-    private final Map<String, Integer> markersMap2 = new HashMap<>();
-    private final List<Marker> markersMap = new ArrayList<>();
+    private int pulseMap = 0;
 
-    private int markersInt = 0;
+    private final Map<String, Marker> markersMapObra = new HashMap<>();
+    private final Map<GeoPoint, String> markersMapObras2 = new HashMap<>();
 
-    private CountDownTimer timerObs, timerJfs;
+    private final Map<String, Marker> markersMapEmpleado = new HashMap<>();
+
+    private CountDownTimer timerObs, timerJfs, timerMap;
 
     private String id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO;
     private static final int Permisos = 8991;
@@ -167,7 +201,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
 
-    private ArrayList<String> obs, jfs, lM;
+    private ArrayList<String> obs = new ArrayList<>(), jfs = new ArrayList<>(), lM;
 
     private FloatingActionButton icCrear, gps;
 
@@ -319,7 +353,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adaptadorObrasLista);
         adaptadorObrasLista.startListening();
-
         adaptadorObrasLista.setOnItemClickListener(new adaptadorObrasLista.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
@@ -327,7 +360,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                 GeoPoint geoPoint = adaptadorObrasLista.getItem(position).getGeoPoint();
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude()), (float) Math.floor(mMap.getCameraPosition().zoom + 1)), 600, null);
-                markersMap.get(markersMap2.get(adaptadorObrasLista.getItem(position).getObra())).showInfoWindow();
+                markersMapObra.get(markersMapObras2.get(adaptadorObrasLista.getItem(position).getGeoPoint())).showInfoWindow();
             }
         });
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -356,7 +389,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void centrarCamara() {
 
-        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        mDb.collection("Empresas").document(empresa).collection("Localizaciones Administrador").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
@@ -426,7 +459,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             DocumentReference locationRef = mDb
                     .collection("Empresas")
                     .document(empresa)
-                    .collection("Localizaciones")
+                    .collection("Localizaciones Administrador")
                     .document(nombre);
             locationRef.set(mLocalizarUsuario).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
@@ -620,7 +653,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                     }
                 });
-                firestoreNombres();
             }
         } catch (SecurityException ignored) {
 
@@ -695,16 +727,14 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         touch(true);
         alreadyObs = false;
         geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
-        obs = new ArrayList<>();
-        obs.clear();
-        if (markersMap != null) {
-            markersMap.clear();
+        if (obs != null) {
+            obs.clear();
         }
-        if(markersMap2!=null){
-            markersMap2.clear();
+        if (markersMapObra != null) {
+            markersMapObra.clear();
         }
-        if(markersInt!=0){
-            markersInt = 0;
+        if (markersMapObras2 != null) {
+            markersMapObras2.clear();
         }
         geoFirestoreRefObs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
@@ -725,7 +755,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         }
                         if (!obs.contains(obran)) {
                             anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
-                            obs.add(obran);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -741,7 +770,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 } else if (!task.isSuccessful()) {
                     menu.cargando(false);
                     touch(false);
-                    obs.add("SIN OBRAS");
                 }
                 return Tasks.whenAllSuccess(tasks2);
             }
@@ -753,7 +781,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        obs.remove("SIN OBRAS");
                         if (sobra != null) {
                             mDb.collection("Empresas").document(empresa).collection("Obras").document(sobra.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
@@ -808,11 +835,30 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
+                                                if (alreadyObs) {
+                                                    String obAn = documentChange.getDocument().getString("obra antigua");
+                                                    if (obAn != null) {
+                                                        Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra antigua"));
+                                                        if (marker != null) {
+                                                            marker.remove();
+                                                            markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                            markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                            obs.remove(documentChange.getDocument().getString("obra"));
+                                                            geoFirestoreRefObs.document(documentChange.getDocument().getString("obra")).update("obra antigua", FieldValue.delete());
+                                                        }
+                                                    }
+                                                    anadirMarcadores(documentChange.getDocument().getGeoPoint("geoPoint"), documentChange.getDocument().getString("obra"), documentChange.getDocument().getString("jefe"), documentChange.getDocument().getLong("online"));
+                                                }
+                                                break;
                                             case REMOVED:
                                                 if (alreadyObs) {
-                                                    mMap.clear();
-                                                    firestoreObras();
-                                                    firestoreNombres();
+                                                    Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra"));
+                                                    if (marker != null) {
+                                                        marker.remove();
+                                                        markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                        obs.remove(documentChange.getDocument().getString("obra"));
+                                                        markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                    }
                                                 }
                                                 break;
                                         }
@@ -832,10 +878,14 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         menu.cargando(true);
         touch(true);
         alreadyJfs = false;
+        if (markersMapEmpleado != null) {
+            markersMapEmpleado.clear();
+        }
         geoFirestoreRefJfs = mDb.collection("Empresas").document(empresa).collection("Empleado");
         CollectionReference geoFirestoreRef2Jfs = mDb.collection("Empresas").document(empresa).collection("Administrador");
-        jfs = new ArrayList<>();
-        jfs.clear();
+        if (jfs != null) {
+            jfs.clear();
+        }
         geoFirestoreRef2Jfs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
@@ -847,8 +897,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             jfs.add(jefe);
                         }
                     }
-                } else if (!task2.isSuccessful()) {
-                    jfs.add("sin empleados");
                 }
                 return Tasks.whenAllSuccess(tasks3);
             }
@@ -865,7 +913,9 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null) {
-                                        jfs.add(jefe);
+                                        if (!document1.getBoolean("desactivado")) {
+                                            jfs.add(jefe);
+                                        }
                                     }
                                 }
                             }
@@ -884,7 +934,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         jefeSpinner.setAdapter(jefeAdapter);
                         lM = new ArrayList();
                         lM.clear();
-                        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+                        mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
                             @Override
                             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
                                 List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
@@ -894,7 +944,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                         if (!lM.contains(jefe)) {
                                             if (jefe != null) {
                                                 lM.add(jefe);
-                                                anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"));
+                                                if (document2.getBoolean("desactivado") != null) {
+                                                    if (!document2.getBoolean("desactivado")) {
+                                                        anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"), document2.getString("estado"));
+                                                    }
+                                                } else {
+                                                    anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"), document2.getString("estado"));
+                                                }
                                             }
                                         }
                                     }
@@ -936,7 +992,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             @Override
             public void onFinish() {
                 if (readyJfs) {
-                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
                             if (e != null) {
@@ -949,13 +1005,23 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
-                                            case REMOVED:
                                                 if (alreadyJfs) {
-                                                    mMap.clear();
-                                                    firestoreNombres();
-                                                    firestoreObras();
+                                                    if (documentChange.getDocument().getBoolean("desactivado") != null) {
+                                                        if (!documentChange.getDocument().getBoolean("desactivado")) {
+                                                            String obN = documentChange.getDocument().getString("obra");
+                                                            anadirMarcadoresEmpleados(documentChange.getDocument().getGeoPoint("geoPoint"), documentChange.getDocument().getString("nombre"), obN, documentChange.getDocument().getString("id"), documentChange.getDocument().getString("estado"));
+                                                        } else if (documentChange.getDocument().getBoolean("desactivado")) {
+                                                            Marker marker = markersMapEmpleado.get(documentChange.getDocument().getString("nombre"));
+                                                            if (marker != null) {
+                                                                marker.remove();
+                                                                markersMapEmpleado.remove(documentChange.getDocument().getString("nombre"));
+                                                                jfs.remove(documentChange.getDocument().getString("nombre"));
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 break;
+                                            case REMOVED:
                                         }
                                     }
                                 }
@@ -973,8 +1039,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         menu.cargando(true);
         touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
-        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
         menu.cargando(false);
@@ -985,6 +1051,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void anadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
         menu.cargando(true);
         touch(true);
+        Marker marker = markersMapObra.get(title);
+        if (marker != null) {
+            marker.remove();
+            markersMapObra.remove(title);
+            markersMapObras2.remove(title);
+            obs.remove(title);
+        }
         MarkerOptions mo = new MarkerOptions()
                 .rotation(0)
                 .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_casa));
@@ -992,44 +1065,50 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        markersMap.add(mkr);
-        markersMap2.put(title, markersInt);
+        markersMapObra.put(title, mkr);
+        markersMapObras2.put(geoPoint1, title);
+        obs.add(title);
         mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
-        markersInt = markersInt + 1;
         menu.cargando(false);
         touch(false);
     }
 
-    private void anadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
+    private void anadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id, String estado) {
         menu.cargando(true);
         touch(true);
-        Map<String, String> markersMapEmpleado = new HashMap<>();
-        String estadoDef = null;
-        String ob = obra;
+        Marker marker = markersMapEmpleado.get(nombre);
+        if (marker != null) {
+            marker.remove();
+            markersMapEmpleado.remove(nombre);
+            jfs.remove(nombre);
+        }
         MarkerOptions mo = new MarkerOptions()
                 .rotation(0)
                 .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
         if (obra != null) {
+            obra = "Trabajando en " + obra;
+        }
+        if (estado.equals("online")) {
             mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
-            estadoDef = "online";
-            ob = obra;
-        }
-        if (obra == null) {
+        } else if (estado.equals("offline")) {
             mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
-            estadoDef = "offline";
-            ob = "null";
+        } else if (estado.equals("offline full")) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
+        } else {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
         }
-
         Marker mkr = mMap.addMarker(mo
                 .title(nombre)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
         if (obra != null) {
             mkr.setSnippet(obra);
         }
-        marcadoresEmpleados marcadoresEmpleados = new marcadoresEmpleados(geoPoint1, nombre, ob, estadoDef, id);
-        markersMapEmpleado.put(marcadoresEmpleados.getTag(), mkr.getId());
+        markersMapEmpleado.put(nombre, mkr);
+        if (!jfs.contains(nombre)) {
+            jfs.add(nombre);
+        }
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
         menu.cargando(false);
@@ -1041,7 +1120,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         myMsgtitle.setText("menu de administracion de la obra " + obraAd);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         View mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
         final Button btnCam = mCuatroBtn.findViewById(R.id.Vacas);
         btnCam.setText("Cambiar nombre");
@@ -1192,9 +1271,13 @@ myMsgtitle.setPadding(2,2,2,2);
                         mDb.collection("Empresas").document(empresa).collection("Obras").document(obraNu).set(mLocalizacionObra).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                menu.cargando(false);
-                                touch(false);
-                                firestoreNombres();
+                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obraNu).update("obra antigua", obraAn).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        menu.cargando(false);
+                                        touch(false);
+                                    }
+                                });
                             }
                         });
                     }
@@ -1208,7 +1291,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("Nuevo nombre para la obra " + obraAn);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText sNuevoNom = mDosText.findViewById(R.id.TextDos);
         final Button btnCamb = mDosText.findViewById(R.id.btn1);
@@ -1262,7 +1345,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("¿Seguro que quiere eliminar la obra " + obraAd + "?");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnElim = mDos.findViewById(R.id.btn1);
         btnElim.setText("Eliminar");
@@ -1317,7 +1400,6 @@ myMsgtitle.setPadding(2,2,2,2);
                                     menu.cargando(false);
                                     touch(false);
                                     dialogoObraEliminar.dismiss();
-                                    firestoreObras();
                                     ElimJefe = false;
                                 }
                             });
@@ -1328,7 +1410,6 @@ myMsgtitle.setPadding(2,2,2,2);
                             menu.cargando(false);
                             touch(false);
                             dialogoObraEliminar.dismiss();
-                            firestoreObras();
                             ElimJefe = false;
                         }
                     }
@@ -1364,7 +1445,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("El jefe de obra de " + obraAd + " es " + obraAdJf + "\n¿Desea cambiarlo?");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnCamb = mDos.findViewById(R.id.btn1);
         btnCamb.setText("Cambiar");
@@ -1412,7 +1493,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("Seleccione el nuevo jefe para la obra " + obraAd);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         final Button btnSiguiente = mNombres.findViewById(R.id.btn1);
         final Button btnCancelar = mNombres.findViewById(R.id.btn2);
@@ -1461,7 +1542,6 @@ myMsgtitle.setPadding(2,2,2,2);
         dialogoObraJefe.setCanceledOnTouchOutside(false);
         if (mNombres.getParent() != null) {
             ((ViewGroup) mNombres.getParent()).removeView(mNombres);
-            firestoreNombres();
             dialogoObraJefe.show();
         } else {
             dialogoObraJefe.show();
@@ -1499,7 +1579,6 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 JFO = obr + "," + obraAd;
                                             } else {
                                                 mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAd).delete();
-                                                firestoreObras();
                                                 ElimJefe = false;
                                             }
                                             final Map<String, Object> obE = new HashMap<>();
@@ -1532,7 +1611,6 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 JFC = cE + "JeF/" + obraAd;
                                             } else {
                                                 mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAd).delete();
-                                                firestoreObras();
                                                 ElimJefe = false;
                                             }
                                             final Map<String, Object> ob1 = new HashMap<>();
@@ -1596,7 +1674,6 @@ myMsgtitle.setPadding(2,2,2,2);
             });
             cambiar = false;
         }
-        firestoreNombres();
     }
 
 
@@ -1605,7 +1682,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("¿Que nombre tendra la obra?");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         final AlertDialog.Builder obraCrear = new AlertDialog.Builder(icCrear.getContext());
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText obra = mDosText.findViewById(R.id.TextDos);
@@ -1685,7 +1762,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText("La obra " + ob + " ya existe\n¿Desea actualizar la localizacion de " + ob + "?");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnAct = mDos.findViewById(R.id.btn1);
         btnAct.setText("Actualizar");
@@ -1761,7 +1838,7 @@ myMsgtitle.setPadding(2,2,2,2);
     @Override
     public void onInfoWindowClick(Marker marker) {
         String obr = marker.getTitle();
-        if (obs.contains(obr)) {
+        if (markersMapObra.get(obr) != null) {
             dAdmin(obr);
         }
     }

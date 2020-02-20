@@ -62,6 +62,20 @@
                         android:visibility="visible" />
 
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/ic_regis"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_alignParentTop="true"
+                        android:layout_marginStart="15dp"
+                        android:layout_marginTop="15dp"
+                        android:background="#01407B"
+                        android:backgroundTint="#01407B"
+                        android:src="@drawable/ic_regis_grand"
+                        app:borderWidth="0dp"
+                        app:fabSize="mini" />
+
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/ic_gps"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -99,7 +113,7 @@
                             android:layout_height="match_parent">
 
                             <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/recyclerview"
+                                android:id="@+id/recyclerviewEm"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent" />
 
@@ -109,7 +123,6 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="bottom|start"
                                 android:layout_marginStart="16dp"
-                                android:layout_marginTop="16dp"
                                 android:layout_marginEnd="16dp"
                                 android:layout_marginBottom="16dp"
                                 android:background="#FFFFFF"
@@ -124,12 +137,26 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="bottom|end"
                                 android:layout_marginStart="16dp"
-                                android:layout_marginTop="16dp"
-                                android:layout_marginEnd="16dp"
+                                android:layout_marginEnd="62dp"
                                 android:layout_marginBottom="16dp"
                                 android:background="#FFFFFF"
                                 android:backgroundTint="#FFFFFF"
                                 android:src="@drawable/ic_crearempleado"
+                                app:borderWidth="0dp"
+                                app:fabSize="mini" />
+
+                            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                                android:id="@+id/ic_verCodigos"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom|end"
+                                android:layout_marginStart="16dp"
+                                android:layout_marginEnd="16dp"
+                                android:layout_marginBottom="16dp"
+                                android:layout_below="@+id/ic_gps"
+                                android:background="#FFFFFF"
+                                android:backgroundTint="#FFFFFF"
+                                android:src="@drawable/ic_codigos"
                                 app:borderWidth="0dp"
                                 app:fabSize="mini" />
 

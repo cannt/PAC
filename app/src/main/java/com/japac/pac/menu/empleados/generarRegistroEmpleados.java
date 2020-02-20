@@ -246,54 +246,73 @@ public class generarRegistroEmpleados extends Fragment {
                                         @Override
                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
                                             String ans = documentSnapshot2.getString("años");
-                                            final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
-                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                                @Override
-                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                    final String idEm = documentSnapshot.getString("id");
-                                                    try {
+                                            if(ans!=null){
+                                                final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
+                                                mDb.collection("Empresas").document(empresa).collection("Empleado").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                        final String idEm = documentSnapshot.getString("id");
+                                                        try {
 
-                                                        localFile = File.createTempFile("firma", "jpg");
-                                                        almacenRef.child(empresa + "/Firmas/" + nombre + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
-                                                            @Override
-                                                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-                                                                menu.cargando(false);
-                                                                touch(false);
-                                                                elegirFechasAnos(ansL, nombre, nif, naf, idEm);
-                                                            }
-                                                        }).addOnFailureListener(new OnFailureListener() {
-                                                            @Override
-                                                            public void onFailure(@NonNull Exception exception) {
-                                                                if(timerBtn!=null){
-                                                                    timerBtn.cancel();
-                                                                    ViewCompat.animate(botonReg)
-                                                                            .rotation(0.0F)
-                                                                            .withLayer()
-                                                                            .setDuration(300)
-                                                                            .setInterpolator(new OvershootInterpolator(10.0F))
-                                                                            .start();
+                                                            localFile = File.createTempFile("firma", "jpg");
+                                                            almacenRef.child(empresa + "/Firmas/" + nombre + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                                                @Override
+                                                                public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                                                    menu.cargando(false);
+                                                                    touch(false);
+                                                                    elegirFechasAnos(ansL, nombre, nif, naf, idEm);
                                                                 }
-                                                                menu.cargando(false);
-                                                                touch(false);
+                                                            }).addOnFailureListener(new OnFailureListener() {
+                                                                @Override
+                                                                public void onFailure(@NonNull Exception exception) {
+                                                                    if(timerBtn!=null){
+                                                                        timerBtn.cancel();
+                                                                        ViewCompat.animate(botonReg)
+                                                                                .rotation(0.0F)
+                                                                                .withLayer()
+                                                                                .setDuration(300)
+                                                                                .setInterpolator(new OvershootInterpolator(10.0F))
+                                                                                .start();
+                                                                    }
+                                                                    menu.cargando(false);
+                                                                    touch(false);
+                                                                }
+                                                            });
+                                                        } catch (IOException e) {
+                                                            if(timerBtn!=null){
+                                                                timerBtn.cancel();
+                                                                ViewCompat.animate(botonReg)
+                                                                        .rotation(0.0F)
+                                                                        .withLayer()
+                                                                        .setDuration(300)
+                                                                        .setInterpolator(new OvershootInterpolator(10.0F))
+                                                                        .start();
                                                             }
-                                                        });
-                                                    } catch (IOException e) {
-                                                        if(timerBtn!=null){
-                                                            timerBtn.cancel();
-                                                            ViewCompat.animate(botonReg)
-                                                                    .rotation(0.0F)
-                                                                    .withLayer()
-                                                                    .setDuration(300)
-                                                                    .setInterpolator(new OvershootInterpolator(10.0F))
-                                                                    .start();
+                                                            e.printStackTrace();
+                                                            menu.cargando(false);
+                                                            touch(false);
                                                         }
-                                                        e.printStackTrace();
-                                                        menu.cargando(false);
-                                                        touch(false);
-                                                    }
 
+                                                    }
+                                                });
+                                            }else{
+                                                if(timerBtn!=null){
+                                                    timerBtn.cancel();
+                                                    ViewCompat.animate(botonReg)
+                                                            .rotation(0.0F)
+                                                            .withLayer()
+                                                            .setDuration(300)
+                                                            .setInterpolator(new OvershootInterpolator(10.0F))
+                                                            .start();
                                                 }
-                                            });
+                                                menu.cargando(false);
+                                                touch(false);
+                                                menu.snackbar.setText("El empleado " + nombre + " no a registrado ninguna jornada todavia");
+                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                tv.setTextSize(10);
+                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                menu.snackbar.show();
+                                            }
                                         }
                                     }).addOnFailureListener(new OnFailureListener() {
                                 @Override

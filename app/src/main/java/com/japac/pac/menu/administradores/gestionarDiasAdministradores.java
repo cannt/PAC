@@ -125,12 +125,12 @@ public class gestionarDiasAdministradores extends Fragment {
                 if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.COLLAPSED) {
                     if (menu.getCambioDeFragment()) {
                         actualizarCalendarioAd();
-                        if(hayDias){
+                        if (hayDias) {
                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                         }
                         menu.setCambioDeFragmento(false);
                     } else {
-                        if(hayDias){
+                        if (hayDias) {
                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                         }
                     }
@@ -177,12 +177,12 @@ public class gestionarDiasAdministradores extends Fragment {
                 } else if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                     if (menu.getCambioDeFragment()) {
                         actualizarCalendarioAd();
-                        if(hayDias){
+                        if (hayDias) {
                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                         }
                         menu.setCambioDeFragmento(false);
                     } else {
-                        if(hayDias){
+                        if (hayDias) {
                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                         }
                     }
@@ -213,7 +213,7 @@ public class gestionarDiasAdministradores extends Fragment {
                     xpand.setVisibility(View.INVISIBLE);
                     xpand.setClickable(false);
                     diasSolicTextV2.setText("No hay dias libres asignados por ahora");
-                    if(!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+                    if (!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                     }
                 } else {
@@ -293,9 +293,9 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         }
                                                     }
                                                     menu.snackbar.setText("El empleado " + doc.getDocument().getString("nombre") + " a solicitado un dia libre");
-                                                    TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                     tv.setTextSize(9);
-                                                    snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                    snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                     menu.snackbar.show();
                                                 }
                                             });
@@ -329,7 +329,9 @@ public class gestionarDiasAdministradores extends Fragment {
                         String diasS = document.getString("Dias libres");
                         if (diasS != null) {
                             if (diasS.contains(datefull)) {
-                                contieneDias.add(document.getString("nombre"));
+                                if (!document.getBoolean("desactivado")) {
+                                    contieneDias.add(document.getString("nombre"));
+                                }
                             }
                         }
                     }
@@ -358,7 +360,7 @@ public class gestionarDiasAdministradores extends Fragment {
                             myMsgtitle.setText("Dia " + datefull + " libre " + "actualmente asignado a los siguientes empleados" + contieneDias.get(0) + "\nSeleccione uno de la lista para gestionarlo");
                             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                             myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+                            myMsgtitle.setPadding(2, 2, 2, 2);
                             final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
                             final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                             AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -403,7 +405,9 @@ myMsgtitle.setPadding(2,2,2,2);
                             String diasS = document.getString("Dias libres solicitados");
                             if (diasS != null) {
                                 if (diasS.contains(datefull)) {
-                                    contieneDias2.add(document.getString("nombre"));
+                                    if (!document.getBoolean("desactivado")) {
+                                        contieneDias2.add(document.getString("nombre"));
+                                    }
                                 }
                             }
                         }
@@ -432,7 +436,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                 myMsgtitle.setText("Empleados que quieren el dia " + datefull + " libre\nSeleccione uno de la lista para consultar sus motivos");
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+                                myMsgtitle.setPadding(2, 2, 2, 2);
                                 final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
                                 final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -479,7 +483,9 @@ myMsgtitle.setPadding(2,2,2,2);
                                     final ArrayList<String> contieneDias3 = new ArrayList<>();
                                     if (task.isSuccessful()) {
                                         for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
-                                            contieneDias3.add(document.getString("nombre"));
+                                            if (!document.getBoolean("desactivado")) {
+                                                contieneDias3.add(document.getString("nombre"));
+                                            }
                                         }
                                         if (!contieneDias3.isEmpty()) {
                                             if (contieneDias3.size() == 1) {
@@ -487,7 +493,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 myMsgtitle.setText("¿Desea darle el dia " + datefull + " libre a " + contieneDias3.get(0) + "?");
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+                                                myMsgtitle.setPadding(2, 2, 2, 2);
                                                 mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                                                 final Button btnAsigDia = mDosBtn.findViewById(R.id.btn1);
                                                 final Button btnCancelar = mDosBtn.findViewById(R.id.btn2);
@@ -657,7 +663,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 myMsgtitle.setText("¿Desea asignar el dia " + datefull + " libre? \nSeleccione un empleado de la lista primero");
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+                                                myMsgtitle.setPadding(2, 2, 2, 2);
                                                 final Button btnSiguiente = mEmpleados.findViewById(R.id.btn1);
                                                 final Button btnCancelar = mEmpleados.findViewById(R.id.btn2);
                                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -806,9 +812,9 @@ myMsgtitle.setPadding(2,2,2,2);
                                             }
                                         } else {
                                             menu.snackbar.setText("No tienes ningun empleado registrado");
-                                            TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                             tv.setTextSize(12);
-                                            snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                            snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                             menu.snackbar.show();
                                         }
                                     }
@@ -879,21 +885,21 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                     if (menu.getCambioDeFragment()) {
                                                         actualizarCalendarioAd();
-                                                        if(hayDias){
+                                                        if (hayDias) {
                                                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                         }
                                                         menu.setCambioDeFragmento(false);
                                                     } else {
-                                                        if(hayDias){
+                                                        if (hayDias) {
                                                             slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                         }
                                                     }
                                                 }
                                                 menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
-                                                TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                 tv.setTextSize(12);
                                                 tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                                                snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                 menu.snackbar.show();
                                                 menu.cargando(false);
                                                 touch(false);
@@ -946,7 +952,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText(nom + " quiere el dia " + fech + " libre por " + mot);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
         final Button btnAceptar = mTresBtn.findViewById(R.id.btn1);
         btnAceptar.setText("Aceptar");
@@ -1007,9 +1013,9 @@ myMsgtitle.setPadding(2,2,2,2);
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         menu.snackbar.setText("El dia " + fech + " ha sido rechazado");
-                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                         tv.setTextSize(12);
-                                                        snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                         menu.snackbar.show();
                                                         menu.cargando(false);
                                                         touch(false);
@@ -1083,20 +1089,20 @@ myMsgtitle.setPadding(2,2,2,2);
                                                             if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                                 if (menu.getCambioDeFragment()) {
                                                                     actualizarCalendarioAd();
-                                                                    if(hayDias){
+                                                                    if (hayDias) {
                                                                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                     }
                                                                     menu.setCambioDeFragmento(false);
                                                                 } else {
-                                                                    if(hayDias){
+                                                                    if (hayDias) {
                                                                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                     }
                                                                 }
                                                             }
                                                             menu.snackbar.setText("El dia " + fech + " ha sido aceptado");
-                                                            TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                             tv.setTextSize(12);
-                                                            snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                            snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                             menu.snackbar.show();
 
                                                             menu.cargando(false);
@@ -1170,7 +1176,7 @@ myMsgtitle.setPadding(2,2,2,2);
         myMsgtitle.setText(nombre3 + " tiene el dia " + date + " libre por " + motivo);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
+        myMsgtitle.setPadding(2, 2, 2, 2);
         AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
                 .setCustomTitle(myMsgtitle)
                 .setView(mTresBtn);
@@ -1337,20 +1343,20 @@ myMsgtitle.setPadding(2,2,2,2);
                                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                                             if (menu.getCambioDeFragment()) {
                                                                                 actualizarCalendarioAd();
-                                                                                if(hayDias){
+                                                                                if (hayDias) {
                                                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                                 }
                                                                                 menu.setCambioDeFragmento(false);
                                                                             } else {
-                                                                                if(hayDias){
+                                                                                if (hayDias) {
                                                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                                 }
                                                                             }
                                                                         }
                                                                         menu.snackbar.setText("Dia libre eliminado correctamente");
-                                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                                         tv.setTextSize(12);
-                                                                        snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                                         menu.snackbar.show();
                                                                         menu.cargando(false);
                                                                         touch(false);
@@ -1433,20 +1439,20 @@ myMsgtitle.setPadding(2,2,2,2);
                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                             if (menu.getCambioDeFragment()) {
                                                                 actualizarCalendarioAd();
-                                                                if(hayDias){
+                                                                if (hayDias) {
                                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                 }
                                                                 menu.setCambioDeFragmento(false);
                                                             } else {
-                                                                if(hayDias){
+                                                                if (hayDias) {
                                                                     slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                                 }
                                                             }
                                                         }
                                                         menu.snackbar.setText("Motivo del dia libre " + fecha + " actualizado");
-                                                        TextView tv = ( menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                                         tv.setTextSize(10);
-                                                        snackbarDS.configSnackbar(getContext(),  menu.snackbar);
+                                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                         menu.snackbar.show();
                                                         menu.cargando(false);
                                                         touch(false);
@@ -1581,7 +1587,7 @@ myMsgtitle.setPadding(2,2,2,2);
                         public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
                             List<Task<QuerySnapshot>> tasks = new ArrayList<>();
                             for (QueryDocumentSnapshot doc : Objects.requireNonNull(task.getResult())) {
-                                if (doc.getString("Dias libres") != null) {
+                                if (doc.getString("Dias libres") != null && !doc.getBoolean("desactivado")) {
                                     try {
                                         String diasnomot = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("B", "").replaceAll("O", "").replaceAll("V", "");
                                         final String[] contieneDiasString = diasnomot.split("\\s*;\\s*");
@@ -1642,12 +1648,12 @@ myMsgtitle.setPadding(2,2,2,2);
                                             if (slidingLayout.getPanelState() == SlidingUpPanelLayout.PanelState.COLLAPSED) {
                                                 if (menu.getCambioDeFragment()) {
                                                     actualizarCalendarioAd();
-                                                    if(hayDias){
+                                                    if (hayDias) {
                                                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                     }
                                                     menu.setCambioDeFragmento(false);
                                                 } else {
-                                                    if(hayDias){
+                                                    if (hayDias) {
                                                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
                                                     }
                                                 }
@@ -1671,7 +1677,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                                 collectionDates2.clear();
                                                 calendarPickerView2.clearHighlightedDates();
                                                 for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                                                    if (doc.getString("Dias libres") != null) {
+                                                    if (doc.getString("Dias libres") != null && !doc.getBoolean("desactivado")) {
                                                         final String[] diasAceptLista = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
                                                         List<Date> listaDates = new ArrayList<>();
                                                         for (String ds : diasAceptLista) {
@@ -1707,7 +1713,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                     calendarPickerView2.init(hoy, siguienteAno.getTime());
                                     hayDias = false;
                                     diasSolicTextV2.setText("No hay dias libres asignados por ahora");
-                                    if(!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+                                    if (!slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                         slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                     }
                                 }

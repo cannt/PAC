@@ -39,6 +39,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -86,7 +87,9 @@ public class login extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
-    private View view;
+    private View view, mDos;
+
+    private Snackbar snackbar;
 
     private static final int ERROR_DIALOGO_PEDIR = 9001;
 
@@ -98,157 +101,87 @@ public class login extends AppCompatActivity {
         view = findViewById(R.id.viewGrey);
         entrar = findViewById(R.id.btnEntrar);
         registrar = findViewById(R.id.btnRegistrar);
-        final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+        snackbar = Snackbar.make(findViewById(R.id.viewSnack), "Bienvenido", 5000)
+                .setActionTextColor(Color.WHITE);
         cargando(true);
         if (compruebapermisos() && isServicesOK()) {
-            if (Jornada()) {
-                final LocationRequest locationRequest = new LocationRequest();
-                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-                locationRequest.setInterval(10000);
-                locationRequest.setFastestInterval(10000 / 2);
+            final LocationRequest locationRequest = new LocationRequest();
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            locationRequest.setInterval(10000);
+            locationRequest.setFastestInterval(10000 / 2);
 
-                LocationServices.getFusedLocationProviderClient(login.this)
-                        .requestLocationUpdates(locationRequest, new LocationCallback() {
-                            @Override
-                            public void onLocationResult(LocationResult locationResult) {
-                                super.onLocationResult(locationResult);
-                                LocationServices.getFusedLocationProviderClient(login.this)
-                                        .removeLocationUpdates(this);
-                                if (locationResult != null && locationResult.getLocations().size() > 0) {
-                                    mAuth = FirebaseAuth.getInstance();
-                                    firebaseFirestore = FirebaseFirestore.getInstance();
-                                    FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                                            .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
-                                            .build();
-                                    firebaseFirestore.setFirestoreSettings(settings);
+            LocationServices.getFusedLocationProviderClient(login.this)
+                    .requestLocationUpdates(locationRequest, new LocationCallback() {
+                        @Override
+                        public void onLocationResult(LocationResult locationResult) {
+                            super.onLocationResult(locationResult);
+                            LocationServices.getFusedLocationProviderClient(login.this)
+                                    .removeLocationUpdates(this);
+                            if (locationResult != null && locationResult.getLocations().size() > 0) {
+                                mAuth = FirebaseAuth.getInstance();
+                                firebaseFirestore = FirebaseFirestore.getInstance();
+                                FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                                        .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                                        .build();
+                                firebaseFirestore.setFirestoreSettings(settings);
 
-                                    email = findViewById(R.id.logEmail);
-                                    contrasena = findViewById(R.id.logContraseña);
-                                    pPt = findViewById(R.id.PrivacyPolicy);
+                                email = findViewById(R.id.logEmail);
+                                contrasena = findViewById(R.id.logContraseña);
+                                pPt = findViewById(R.id.PrivacyPolicy);
 
-                                    usuario();
+                                usuario();
 
-                                    pPt.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                                            Intent i = new Intent(Intent.ACTION_VIEW);
-                                            i.setData(Uri.parse(url));
-                                            startActivity(i);
-                                        }
-                                    });
+                                pPt.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                                        Intent i = new Intent(Intent.ACTION_VIEW);
+                                        i.setData(Uri.parse(url));
+                                        startActivity(i);
+                                    }
+                                });
 
-                                    registrar.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View v) {
-                                            registro();
+                                registrar.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        registro();
 
-                                        }
-                                    });
+                                    }
+                                });
 
-                                    entrar.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            cargando(true);
-                                            semail = email.getText().toString();
-                                            scontrasena = contrasena.getText().toString();
+                                entrar.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        cargando(true);
+                                        semail = email.getText().toString();
+                                        scontrasena = contrasena.getText().toString();
 
-                                            if (!semail.isEmpty() && !scontrasena.isEmpty()) {
+                                        if (!semail.isEmpty() && !scontrasena.isEmpty()) {
 
-                                                loginUsuario();
+                                            loginUsuario();
 
-                                            } else if (semail.isEmpty()) {
-                                                email.setError("Introduzca su email");
-                                                cargando(false);
-                                                if (scontrasena.isEmpty()) {
-                                                    contrasena.setError("Introduzca su contraseña");
-                                                    cargando(false);
-                                                }
-
-                                            } else {
+                                        } else if (semail.isEmpty()) {
+                                            email.setError("Introduzca su email");
+                                            cargando(false);
+                                            if (scontrasena.isEmpty()) {
                                                 contrasena.setError("Introduzca su contraseña");
                                                 cargando(false);
-                                                if (semail.isEmpty()) {
-                                                    email.setError("Introduzca su email");
-                                                    cargando(false);
-                                                }
+                                            }
+
+                                        } else {
+                                            contrasena.setError("Introduzca su contraseña");
+                                            cargando(false);
+                                            if (semail.isEmpty()) {
+                                                email.setError("Introduzca su email");
+                                                cargando(false);
                                             }
                                         }
-                                    });
-                                    cargando(false);
-                                }
+                                    }
+                                });
+                                cargando(false);
                             }
-                        }, Looper.getMainLooper());
-            } else if (!Jornada()) {
-                final TextView myMsgtitle = new TextView(login.this);
-                myMsgtitle.setText("Esta fuera de horario laboral\n¿Desea continuar de todas formas?");
-                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                myMsgtitle.setTextColor(Color.BLACK);
-myMsgtitle.setPadding(2,2,2,2);
-                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                final Button btnCont = mDosBtn.findViewById(R.id.btn1);
-                btnCont.setText("Continuar");
-                final Button btnSal = mDosBtn.findViewById(R.id.btn2);
-                btnSal.setText("Salir");
-                final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
-                        .setCustomTitle(myMsgtitle)
-                        .setView(mDosBtn);
-                final AlertDialog dialogoFuera = fuera.create();
-                btnCont.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialogoFuera.dismiss();
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putBoolean("acepta", true);
-                        editor.apply();
-                        login.this.recreate();
-                    }
-                });
-                btnSal.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialogoFuera.dismiss();
-                        finish();
-                        System.exit(0);
-                    }
-                });
-                dialogoFuera.setCanceledOnTouchOutside(false);
-                dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
-                    @Override
-                    public void onShow(DialogInterface dialog) {
-                        btnCont.setEnabled(true);
-                        btnSal.setEnabled(true);
-                        cargando(false);
-                        final CharSequence negativeButtonText = btnCont.getText();
-                        new CountDownTimer(10000, 100) {
-                            @Override
-                            public void onTick(long millisUntilFinished) {
-                                btnCont.setText(String.format(
-                                        Locale.getDefault(), "%s (%d)",
-                                        negativeButtonText,
-                                        TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
-                                ));
-                            }
-
-                            @Override
-                            public void onFinish() {
-                                if ((dialogoFuera).isShowing()) {
-                                    dialogoFuera.dismiss();
-                                    finish();
-                                    System.exit(0);
-                                }
-                            }
-                        }.start();
-                    }
-                });
-                if (mDosBtn.getParent() != null) {
-                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
-                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                    dialogoFuera.show();
-                } else {
-                    dialogoFuera.show();
-                }
-            }
+                        }
+                    }, Looper.getMainLooper());
         }
 
     }
@@ -265,10 +198,10 @@ myMsgtitle.setPadding(2,2,2,2);
         if (dfs.getWeekdays()[weekday].equals("Saturday") || dfs.getWeekdays()[weekday].equals("Sunday")) {
             hora = false;
         }
-        if(!hora){
+        if (!hora) {
             final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-            if(sharedPreferences.contains("acepta")){
-                if(sharedPreferences.getBoolean("acepta", false)){
+            if (sharedPreferences.contains("acepta")) {
+                if (sharedPreferences.getBoolean("acepta", false)) {
                     hora = true;
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.clear();
@@ -288,11 +221,11 @@ myMsgtitle.setPadding(2,2,2,2);
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(login.this, available, ERROR_DIALOGO_PEDIR);
             dialog.show();
         } else {
-            menu.snackbar.setText("Mapas no funciona");
-            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+            snackbar.setText("Mapas no funciona");
+            TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
             tv.setTextSize(10);
-            snackbarDS.configSnackbar(this, menu.snackbar);
-            menu.snackbar.show();
+            snackbarDS.configSnackbar(this, snackbar);
+            snackbar.show();
 
         }
         return false;
@@ -322,11 +255,11 @@ myMsgtitle.setPadding(2,2,2,2);
                 if (task.isSuccessful()) {
                     menuRoles();
                 } else {
-                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
-                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                     tv.setTextSize(10);
-                    snackbarDS.configSnackbar(login.this, menu.snackbar);
-                    menu.snackbar.show();
+                    snackbarDS.configSnackbar(login.this, snackbar);
+                    snackbar.show();
                     cargando(false);
                 }
 
@@ -341,29 +274,143 @@ myMsgtitle.setPadding(2,2,2,2);
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
-                    Boolean desac = documentSnapshot.getBoolean("DESACTIVADO");
-                    if (!desac) {
+                    if(documentSnapshot.getString("rol").equals("Empleado")){
+                        final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+                        if(Jornada()){
+                            Boolean desac = documentSnapshot.getBoolean("desactivado");
+                            if (!desac) {
+                                startLocationService();
+                                cargando(false);
+                                startActivity(new Intent(login.this, menu.class));
+                                finish();
+                            } else {
+                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                final TextView myMsgtitle = new TextView(login.this);
+                                myMsgtitle.setText("Usuario actualmente desactivado\nContacte con el responsable de su empresa");
+                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                myMsgtitle.setTextColor(Color.BLACK);
+                                myMsgtitle.setPadding(2, 2, 2, 2);
+                                final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(login.this))
+                                        .setCustomTitle(myMsgtitle)
+                                        .setView(mDos);
+                                final Button btnCon = mDos.findViewById(R.id.btn1);
+                                btnCon.setText("Continuar");
+                                final Button btnSal = mDos.findViewById(R.id.btn2);
+                                btnSal.setText("Salir");
+                                final AlertDialog dialogoRegistro = registroBu.create();
+                                btnCon.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        email.getText().clear();
+                                        contrasena.getText().clear();
+                                        mAuth.signOut();
+                                        login.this.recreate();
+                                        dialogoRegistro.dismiss();
+                                    }
+                                });
+                                btnSal.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoRegistro.dismiss();
+                                        email.getText().clear();
+                                        contrasena.getText().clear();
+                                        mAuth.signOut();
+                                        ((ActivityManager) login.this.getSystemService(ACTIVITY_SERVICE))
+                                                .clearApplicationUserData();
+                                    }
+                                });
+                                dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                    @Override
+                                    public void onShow(DialogInterface dialog) {
+                                        btnCon.setEnabled(true);
+                                        btnSal.setEnabled(true);
+                                        cargando(false);
+                                    }
+                                });
+                                dialogoRegistro.setCanceledOnTouchOutside(false);
+                                if (mDos.getParent() != null) {
+                                    ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    dialogoRegistro.show();
+                                } else {
+                                    dialogoRegistro.show();
+                                }
+                            }
+                        }else if (!Jornada()) {
+                            final TextView myMsgtitle = new TextView(login.this);
+                            myMsgtitle.setText("Esta fuera de horario laboral\n¿Desea continuar de todas formas?");
+                            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                            myMsgtitle.setTextColor(Color.BLACK);
+                            myMsgtitle.setPadding(2,2,2,2);
+                            mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            final Button btnCont = mDosBtn.findViewById(R.id.btn1);
+                            btnCont.setText("Continuar");
+                            final Button btnSal = mDosBtn.findViewById(R.id.btn2);
+                            btnSal.setText("Salir");
+                            final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
+                                    .setCustomTitle(myMsgtitle)
+                                    .setView(mDosBtn);
+                            final AlertDialog dialogoFuera = fuera.create();
+                            btnCont.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    editor.putBoolean("acepta", true);
+                                    editor.apply();
+                                    login.this.recreate();
+                                }
+                            });
+                            btnSal.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    finish();
+                                    System.exit(0);
+                                }
+                            });
+                            dialogoFuera.setCanceledOnTouchOutside(false);
+                            dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(DialogInterface dialog) {
+                                    btnCont.setEnabled(true);
+                                    btnSal.setEnabled(true);
+                                    cargando(false);
+                                    final CharSequence negativeButtonText = btnCont.getText();
+                                    new CountDownTimer(10000, 100) {
+                                        @Override
+                                        public void onTick(long millisUntilFinished) {
+                                            btnCont.setText(String.format(
+                                                    Locale.getDefault(), "%s (%d)",
+                                                    negativeButtonText,
+                                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
+                                            ));
+                                        }
+
+                                        @Override
+                                        public void onFinish() {
+                                            if ((dialogoFuera).isShowing()) {
+                                                dialogoFuera.dismiss();
+                                                finish();
+                                                System.exit(0);
+                                            }
+                                        }
+                                    }.start();
+                                }
+                            });
+                            if (mDosBtn.getParent() != null) {
+                                ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                dialogoFuera.show();
+                            } else {
+                                dialogoFuera.show();
+                            }
+                        }
+                    }else if(documentSnapshot.getString("rol").equals("Administrador")){
                         startLocationService();
                         cargando(false);
                         startActivity(new Intent(login.this, menu.class));
                         finish();
-                    } else {
-                        final AlertDialog.Builder desaDialogoB = new AlertDialog.Builder(login.this)
-                                .setTitle("Usuario actualmente desactivado")
-                                .setMessage("Contante con el responsable de su empresa");
-                        desaDialogoB
-                                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(final DialogInterface dialogInterface, int i) {
-                                        mAuth.signOut();
-                                        email.setText("");
-                                        contrasena.setText("");
-                                    }
-                                });
-                        final AlertDialog desaDialogo = desaDialogoB.create();
-                        desaDialogo.setCanceledOnTouchOutside(false);
-                        cargando(false);
-                        desaDialogo.show();
                     }
                 } else {
                     cargando(false);

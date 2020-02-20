@@ -5,14 +5,14 @@ import com.google.firebase.firestore.GeoPoint;
 public class marcadoresObras {
 
     private GeoPoint geoPoint;
-    private String obra, jefe, Tag;
+    private String obra, jefe, tag;
     private long online;
 
     public marcadoresObras(GeoPoint geoPoint, String obra, String jefe, String tag, long online) {
         this.geoPoint = geoPoint;
         this.obra = obra;
         this.jefe = jefe;
-        this.Tag = tag;
+        this.tag = tag;
         this.online = online;
     }
 
@@ -31,32 +31,32 @@ public class marcadoresObras {
         return obra;
     }
 
-    public void setObra(String obr) {
-        this.obra = obr;
+    public void setObra(String obra) {
+        this.obra = obra;
     }
 
     public String getJefe() {
         return jefe;
     }
 
-    public void setJefe(String jef) {
-        this.jefe = jef;
+    public void setJefe(String jefe) {
+        this.jefe = jefe;
     }
 
     public String getTag() {
-        return Tag;
+        return tag;
     }
 
-    public void setTag(String ta) {
-        this.Tag = ta;
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public long getOnline() {
         return online;
     }
 
-    public void setOnline(int onl) {
-        this.online = onl;
+    public void setOnline(int online) {
+        this.online = online;
     }
 
 }

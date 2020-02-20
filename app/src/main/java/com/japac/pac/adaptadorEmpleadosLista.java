@@ -33,6 +33,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<marcadores
 
     @Override
     protected void onBindViewHolder(@NonNull final adaptadorEmpleadosLista.holderEmpleadosLista holder, int position, @NonNull marcadoresEmpleados model) {
+
         holder.textViewTitle.setText(model.getNombre());
         holder.textViewTitle.setTextSize(18);
         String obra = model.getObra();
@@ -64,23 +65,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<marcadores
             }
         }
         holder.textViewOnline.setTextSize(13);
-        if (model.getEstado().equals("online")) {
-            if (holder.textViewOnline.getAnimation() != null) {
-                if (holder.textViewOnline.getAnimation().isInitialized()) {
-                    holder.textViewOnline.getAnimation().cancel();
-                }
-            }
-            holder.textViewOnline.setTextColor(Color.parseColor("#FF00ff00"));
-            holder.textViewOnline.setText("Conectado");
-        } else if (model.getEstado().equals("offline")) {
-            if (holder.textViewOnline.getAnimation() != null) {
-                if (holder.textViewOnline.getAnimation().isInitialized()) {
-                    holder.textViewOnline.getAnimation().cancel();
-                }
-            }
-            holder.textViewOnline.setTextColor(Color.parseColor("#FFff0000"));
-            holder.textViewOnline.setText("Desconectado");
-        } else if (model.getEstado().equals("trabajando online")) {
+        if (model.getEstado().equals("online") && model.getObra()!=null) {
             if (holder.textViewOnline.getAnimation() != null) {
                 if (holder.textViewOnline.getAnimation().isInitialized()) {
                     holder.textViewOnline.getAnimation().cancel();
@@ -111,7 +96,7 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<marcadores
                 }
             });
             holder.textViewOnline.startAnimation(anim);
-        } else if (model.getEstado().equals("trabajando offline")) {
+        } else if (model.getEstado().equals("offline") && model.getObra()!=null) {
             if (holder.textViewOnline.getAnimation() != null) {
                 if (holder.textViewOnline.getAnimation().isInitialized()) {
                     holder.textViewOnline.getAnimation().cancel();
@@ -142,7 +127,24 @@ public class adaptadorEmpleadosLista extends FirestoreRecyclerAdapter<marcadores
                 }
             });
             holder.textViewOnline.startAnimation(anim);
+        }else if (model.getEstado().equals("online")) {
+            if (holder.textViewOnline.getAnimation() != null) {
+                if (holder.textViewOnline.getAnimation().isInitialized()) {
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setTextColor(Color.parseColor("#FF00ff00"));
+            holder.textViewOnline.setText("Conectado");
+        } else if (model.getEstado().equals("offline")) {
+            if (holder.textViewOnline.getAnimation() != null) {
+                if (holder.textViewOnline.getAnimation().isInitialized()) {
+                    holder.textViewOnline.getAnimation().cancel();
+                }
+            }
+            holder.textViewOnline.setTextColor(Color.parseColor("#FFff0000"));
+            holder.textViewOnline.setText("Desconectado");
         }
+
     }
 
     @NonNull

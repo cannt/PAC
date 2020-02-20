@@ -34,7 +34,6 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -47,9 +46,7 @@ import com.japac.pac.servicios.servicioLocalizacion;
 import com.japac.pac.servicios.snackbarDS;
 
 import java.io.File;
-import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -114,6 +111,7 @@ public class menu extends AppCompatActivity implements
             mDb.collection("Todas las ids").document(Objects.requireNonNull(mAuth.getCurrentUser()).getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    startLocationService();
                     rol = documentSnapshot.getString("rol");
                     almacen = FirebaseStorage.getInstance();
                     almacenRef = almacen.getReference();
@@ -121,7 +119,7 @@ public class menu extends AppCompatActivity implements
                     nombre = documentSnapshot.getString("nombre");
                     empre = documentSnapshot.getString("empresa");
                     compro = documentSnapshot.getString("comprobar");
-                    estado("online");
+                    servicioLocalizacion.setEstado("online");
                     if (rol.equals("Administrador")) {
                         viewPager2.setAdapter(new adaptadorViewPager2Administradores(menu.this));
                     } else if (rol.equals("Empleado")) {
@@ -328,37 +326,6 @@ public class menu extends AppCompatActivity implements
         });
     }
 
-    public static void estado(final String estado) {
-        if(mDb==null){
-            mDb = FirebaseFirestore.getInstance();
-        }
-        if( empre!=null && nombre!=null) {
-            mDb.collection("Empresas").document(empre).collection("Empleado").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                @Override
-                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    compro = documentSnapshot.getString("comprobar");
-                    if (rol != null && rol.equals("Empleado")) {
-                        HashMap<String, String> mapEstado = new HashMap<>();
-                        if (estado.equals("offline")) {
-                            if (compro.equals("iniciada")) {
-                                mapEstado.put("estado", "trabajando offline");
-                            } else if (compro.equals("finalizada") || compro.equals("no")) {
-                                mapEstado.put("estado", estado);
-                            }
-                        } else if (estado.equals("online")) {
-                            if (compro.equals("iniciada")) {
-                                mapEstado.put("estado", "trabajando online");
-                            } else if (compro.equals("finalizada") || compro.equals("no")) {
-                                mapEstado.put("estado", estado);
-                            }
-                        }
-                        mDb.collection("Empresas").document(empre).collection("Localizacion marcadores").document(Normalizer.normalize(nombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")).set(mapEstado, SetOptions.merge());
-                    }
-                }
-            });
-        }
-    }
-
     private void startLocationService() {
         if (!isLocationServiceRunning()) {
             Intent serviceIntent = new Intent(this, servicioLocalizacion.class);
@@ -418,17 +385,16 @@ public class menu extends AppCompatActivity implements
     @Override
     protected void onResume() {
         super.onResume();
-        startLocationService();
+        servicioLocalizacion.setEstado("online");
         servicioLocalizacion.finaliza(false);
-        estado("online");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         killSnack();
+        servicioLocalizacion.setEstado("offline");
         servicioLocalizacion.finaliza(true);
-        estado("offline");
     }
 
     public static void finishTask(){

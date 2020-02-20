@@ -24,6 +24,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -37,6 +38,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -158,9 +160,40 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
-                    mMap.clear();
-                    firestoreNombres();
-                    firestoreObras();
+                    if (pulseMap == 0) {
+                        pulseMap = 1;
+                        menu.snackbar.setText("Vuelva a tocar el mapa para actualizar la información");
+                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                        tv.setTextSize(10);
+                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                        menu.snackbar.show();
+                        timerMap = new CountDownTimer(5000, 1000) {
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                            }
+
+                            @Override
+                            public void onFinish() {
+                                if (pulseMap == 0) {
+                                    menu.snackbar.dismiss();
+                                    mMap.clear();
+                                    firestoreNombres();
+                                    firestoreObras();
+                                    menu.snackbar.setText("Actualizando informacion del mapa");
+                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                    menu.snackbar.show();
+                                } else {
+                                    pulseMap = 0;
+                                }
+                            }
+                        }.start();
+                    } else if (pulseMap == 1) {
+                        pulseMap = 0;
+                        timerMap.cancel();
+                        timerMap.onFinish();
+                    }
                 }
             });
             listenerObs();
@@ -170,12 +203,14 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         }
     }
 
+    private int pulseMap = 0;
 
-    private final List<Marker> markersMapObras = new ArrayList<>();
-    private final Map<String, Integer> markersMapObras2 = new HashMap<>();
     private final List<Marker> markersMapEmpleados = new ArrayList<>();
     private final Map<String, Integer> markersMapEmpleados2 = new HashMap<>();
+    private final Map<String, Marker> markersMapEmpleado = new HashMap<>();
     private final Map<String, Object> map = new HashMap<>();
+    private final Map<String, Marker> markersMapObra = new HashMap<>();
+    private final Map<GeoPoint, String> markersMapObras2 = new HashMap<>();
 
     private String trayecto, obraselect, nombreNu, emailConf, entrada_salida, SHAREempleado, SHAREano, SHAREmes, cif, ano1, mes1, mesnu, id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, busquedaString, jefes, codigoEmpleadoChech, sa, codigo, snackbarLocalizando;
     private FirebaseAuth mAuth;
@@ -190,9 +225,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
 
-    private List<String> obs, jfs;
+    private List<String> obs = new ArrayList<>(), jfs = new ArrayList<>(), empleList = new ArrayList<>(), emailList = new ArrayList<>(), codigosList;
 
-    private FloatingActionButton icCrear, icReactivar, gps;
+    private FloatingActionButton icCrear, icReactivar, gps, registrar, icCodigos;
 
     private View mNombres;
     private View mDos;
@@ -236,7 +271,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private adaptadorEmpleadosLista adaptadorEmpleadosLista;
 
-    private CountDownTimer timerObs, timerJfs, timerPDF, timerLeergeo, timerSnackLocaliza;
+    private CountDownTimer timerObs, timerJfs, timerPDF, timerLeergeo, timerSnackLocaliza, timerMap;
 
     private ArrayList<String> lM;
 
@@ -248,7 +283,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private int markersIntObras = 0;
     private int markersIntEmpleados = 0;
+    private int mayor = 0;
 
+    private CountDownTimer timerBtn;
 
     public gestionarEmpleados() {
 
@@ -292,7 +329,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 ocultarTeclado();
                                 if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                                     if (menu.getCambioDeFragment()) {
-                                        setUpRecyclerView();
+                                        setUpRecyclerViewEm();
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                                         menu.setCambioDeFragmento(false);
                                     } else {
@@ -303,7 +340,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
                                 } else if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                     if (menu.getCambioDeFragment()) {
-                                        setUpRecyclerView();
+                                        setUpRecyclerViewEm();
                                         slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
                                         menu.setCambioDeFragmento(false);
                                     } else {
@@ -330,6 +367,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         gps = getView().findViewById(R.id.ic_gps);
                         icCrear = getView().findViewById(R.id.ic_crearEmpleado);
                         icReactivar = getView().findViewById(R.id.ic_reactivar);
+                        registrar = getView().findViewById(R.id.ic_regis);
+                        icCodigos = getView().findViewById(R.id.ic_verCodigos);
                         pPt = getView().findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -340,7 +379,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 startActivity(i);
                             }
                         });
-                        setUpRecyclerView();
                         iniciarMapa();
 
                     }
@@ -350,19 +388,19 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         return RootView;
     }
 
-    private void setUpRecyclerView() {
-        Query query = mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").orderBy("estado", Query.Direction.DESCENDING);
+    private void setUpRecyclerViewEm() {
+        Query queryEm = mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").whereEqualTo("desactivado", false);
 
-        FirestoreRecyclerOptions<marcadoresEmpleados> options = new FirestoreRecyclerOptions.Builder<marcadoresEmpleados>()
-                .setQuery(query, marcadoresEmpleados.class)
+        FirestoreRecyclerOptions<marcadoresEmpleados> optionsEm = new FirestoreRecyclerOptions.Builder<marcadoresEmpleados>()
+                .setQuery(queryEm, marcadoresEmpleados.class)
                 .build();
 
-        adaptadorEmpleadosLista = new adaptadorEmpleadosLista(options);
+        adaptadorEmpleadosLista = new adaptadorEmpleadosLista(optionsEm);
 
-        RecyclerView recyclerView = Objects.requireNonNull(getView()).findViewById(R.id.recyclerview);
-        recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(adaptadorEmpleadosLista);
+        RecyclerView recyclerViewEm = Objects.requireNonNull(getView()).findViewById(R.id.recyclerviewEm);
+        recyclerViewEm.setHasFixedSize(true);
+        recyclerViewEm.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerViewEm.setAdapter(adaptadorEmpleadosLista);
         adaptadorEmpleadosLista.startListening();
         adaptadorEmpleadosLista.setOnItemClickListener(new adaptadorEmpleadosLista.OnItemClickListener() {
             @Override
@@ -502,9 +540,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     dAdministrarEmpleados(adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre());
                 }
                 adaptadorEmpleadosLista.notifyItemChanged(viewHolder.getAdapterPosition());
-
             }
-        }).attachToRecyclerView(recyclerView);
+        }).attachToRecyclerView(recyclerViewEm);
 
     }
 
@@ -536,7 +573,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void centrarCamara() {
 
-        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        mDb.collection("Empresas").document(empresa).collection("Localizaciones Administrador").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
@@ -591,6 +628,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             mLocalizarUsuario = new localizacionUsuario();
             mLocalizarUsuario.setId(id);
             mLocalizarUsuario.setNombre(nombre);
+            mLocalizarUsuario.setEstado("online");
             menu.cargando(false);
             touch(false);
             localizacion();
@@ -606,7 +644,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             DocumentReference locationRef = mDb
                     .collection("Empresas")
                     .document(empresa)
-                    .collection("Localizaciones")
+                    .collection("Localizaciones Administrador")
                     .document(nombre);
             locationRef.set(mLocalizarUsuario).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
@@ -648,6 +686,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         gps.setOnClickListener(gestionarEmpleados.this);
         icCrear.setOnClickListener(gestionarEmpleados.this);
         icReactivar.setOnClickListener(gestionarEmpleados.this);
+        registrar.setOnClickListener(gestionarEmpleados.this);
+        icCodigos.setOnClickListener(gestionarEmpleados.this);
 
         ocultarTeclado();
     }
@@ -662,7 +702,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getActivity().getCurrentFocus()).getWindowToken(),
                 InputMethodManager.HIDE_NOT_ALWAYS);
         if (!busquedaString.isEmpty()) {
-            mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").document(busc).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(busc).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                     if (Objects.requireNonNull(task.getResult()).exists()) {
@@ -850,16 +890,26 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         if (markersMapEmpleados != null) {
             markersMapEmpleados.clear();
         }
+        if (markersMapEmpleado != null) {
+            markersMapEmpleado.clear();
+        }
         if (markersMapEmpleados2 != null) {
             markersMapEmpleados2.clear();
+        }
+        if (jfs != null) {
+            jfs.clear();
+        }
+        if (empleList != null) {
+            empleList.clear();
+        }
+        if (emailList != null) {
+            emailList.clear();
         }
         if (markersIntEmpleados != 0) {
             markersIntEmpleados = 0;
         }
         geoFirestoreRefJfs = mDb.collection("Empresas").document(empresa).collection("Empleado");
         CollectionReference geoFirestoreRef2Jfs = mDb.collection("Empresas").document(empresa).collection("Administrador");
-        jfs = new ArrayList<>();
-        jfs.clear();
         geoFirestoreRef2Jfs.get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
             @Override
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
@@ -870,9 +920,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (!jfs.contains(jefe)) {
                             jfs.add(jefe);
                         }
+                        if (!empleList.contains(jefe)) {
+                            empleList.add(jefe);
+                        }
                     }
-                } else if (!task2.isSuccessful()) {
-                    jfs.add("sin empleados");
                 }
                 return Tasks.whenAllSuccess(tasks3);
             }
@@ -887,12 +938,22 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (task1.isSuccessful()) {
                             for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
                                 String jefe = document1.getString("nombre");
+                                String emailLis1 = document1.getString("email");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null) {
-                                        jfs.add(jefe);
+                                        if (!document1.getBoolean("desactivado")) {
+                                            jfs.add(jefe);
+                                            if (!emailList.contains(emailLis1)) {
+                                                emailList.add(emailLis1);
+                                            }
+                                        }
+                                        if (!emailList.contains(jefe)) {
+                                            empleList.add(jefe);
+                                        }
                                     }
                                 }
                             }
+                            empleList.remove(nombreAm);
                             jfs.remove(nombreAm);
                         }
                         return Tasks.whenAllSuccess(tasks4);
@@ -908,7 +969,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         jefeSpinner.setAdapter(jefeAdapter);
                         lM = new ArrayList();
                         lM.clear();
-                        mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
+                        mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").get().continueWithTask(new Continuation<QuerySnapshot, Task<List<QuerySnapshot>>>() {
                             @Override
                             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
                                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
@@ -916,9 +977,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     for (final QueryDocumentSnapshot document2 : Objects.requireNonNull(task2.getResult())) {
                                         String jefe = document2.getString("nombre");
                                         if (!lM.contains(jefe)) {
-                                            if (jefe != null) {
-                                                lM.add(jefe);
-                                                anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"));
+                                            lM.add(jefe);
+                                            if (document2.getBoolean("desactivado") != null) {
+                                                if (!document2.getBoolean("desactivado")) {
+                                                    anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"), document2.getString("estado"));
+                                                }
+                                            } else {
+                                                anadirMarcadoresEmpleados(document2.getGeoPoint("geoPoint"), document2.getString("nombre"), document2.getString("obra"), document2.getString("id"), document2.getString("estado"));
                                             }
                                         }
                                     }
@@ -929,6 +994,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             @RequiresApi(api = Build.VERSION_CODES.O)
                             @Override
                             public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
+                                setUpRecyclerViewEm();
                                 readyJfs = true;
                                 alreadyJfs = true;
                                 menu.cargando(false);
@@ -956,8 +1022,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public void onFinish() {
                 if (readyJfs) {
                     readyJfs = false;
-                    final int[] cuentaEmp = {lM.size()};
-                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         public void onEvent(@androidx.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @androidx.annotation.Nullable FirebaseFirestoreException e) {
                             if (e != null) {
@@ -970,13 +1035,31 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
-                                            case REMOVED:
                                                 if (alreadyJfs) {
-                                                    mMap.clear();
-                                                    firestoreNombres();
-                                                    firestoreObras();
+                                                    if (documentChange.getDocument().getBoolean("desactivado") != null) {
+                                                        if (!documentChange.getDocument().getBoolean("desactivado")) {
+                                                            String obN = documentChange.getDocument().getString("obra");
+                                                            anadirMarcadoresEmpleados(documentChange.getDocument().getGeoPoint("geoPoint"), documentChange.getDocument().getString("nombre"), obN, documentChange.getDocument().getString("id"), documentChange.getDocument().getString("estado"));
+                                                        } else if (documentChange.getDocument().getBoolean("desactivado")) {
+                                                            Marker marker = markersMapEmpleado.get(documentChange.getDocument().getString("nombre"));
+                                                            if (marker != null) {
+                                                                marker.remove();
+                                                                markersMapEmpleado.remove(documentChange.getDocument().getString("nombre"));
+                                                                markersMapEmpleados.get(markersMapEmpleados2.get(documentChange.getDocument().getString("nombre"))).remove();
+                                                                markersMapEmpleados2.remove(documentChange.getDocument().getString("nombre"));
+                                                                jfs.remove(documentChange.getDocument().getString("nombre"));
+                                                                mDb.collection("Todas las ids").document(documentChange.getDocument().getString("id")).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        emailList.remove(documentSnapshot.getString("email"));
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 break;
+                                            case REMOVED:
 
                                         }
                                     }
@@ -994,10 +1077,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         alreadyObs = false;
         geoFirestoreRefObs = mDb.collection("Empresas").document(empresa).collection("Obras");
-        obs = new ArrayList<>();
-        obs.clear();
-        if (markersMapObras != null) {
-            markersMapObras.clear();
+        if (obs != null) {
+            obs.clear();
+        }
+        if (markersMapObra != null) {
+            markersMapObra.clear();
         }
         if (markersMapObras2 != null) {
             markersMapObras2.clear();
@@ -1024,7 +1108,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         }
                         if (!obs.contains(obran)) {
                             anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
-                            obs.add(obran);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -1040,7 +1123,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 } else if (!task.isSuccessful()) {
                     menu.cargando(false);
                     touch(false);
-                    obs.add("SIN OBRAS");
                 }
                 return Tasks.whenAllSuccess(tasks2);
             }
@@ -1052,7 +1134,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 geoFirestoreRefObs.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        obs.remove("SIN OBRAS");
                         mBuscar.getText().clear();
                         busquedaString = null;
                         readyObs = true;
@@ -1095,12 +1176,31 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         switch (documentChange.getType()) {
                                             case ADDED:
                                             case MODIFIED:
+                                                if (alreadyObs) {
+                                                    String obAn = documentChange.getDocument().getString("obra antigua");
+                                                    if (obAn != null) {
+                                                        Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra antigua"));
+                                                        if (marker != null) {
+                                                            marker.remove();
+                                                            markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                            markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                            obs.remove(documentChange.getDocument().getString("obra"));
+                                                            geoFirestoreRefObs.document(documentChange.getDocument().getString("obra")).update("obra antigua", FieldValue.delete());
+                                                        }
+                                                    }
+                                                    anadirMarcadores(documentChange.getDocument().getGeoPoint("geoPoint"), documentChange.getDocument().getString("obra"), documentChange.getDocument().getString("jefe"), documentChange.getDocument().getLong("online"));
+                                                }
+                                                break;
                                             case REMOVED:
                                                 if (alreadyObs) {
-                                                    mMap.clear();
-                                                    firestoreObras();
-                                                    firestoreNombres();
-
+                                                    Marker marker = markersMapObra.get(documentChange.getDocument().getString("obra"));
+                                                    if (marker != null) {
+                                                        Log.d("remove", documentChange.getDocument().getString("obra"));
+                                                        marker.remove();
+                                                        markersMapObra.remove(documentChange.getDocument().getString("obra"));
+                                                        obs.remove(documentChange.getDocument().getString("obra"));
+                                                        markersMapObras2.remove(documentChange.getDocument().getString("obra"));
+                                                    }
                                                 }
                                                 break;
                                         }
@@ -1120,8 +1220,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         menu.cargando(true);
         touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
-        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
         menu.cargando(false);
@@ -1132,7 +1232,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     private void anadirMarcadores(final GeoPoint geoPoint1, String title, String snippet, long onl) {
         menu.cargando(true);
         touch(true);
-
+        Marker marker = markersMapObra.get(title);
+        if (marker != null) {
+            marker.remove();
+            markersMapObra.remove(title);
+            markersMapObras2.remove(title);
+            obs.remove(title);
+        }
         MarkerOptions mo = new MarkerOptions()
                 .rotation(0)
                 .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_casa));
@@ -1140,45 +1246,74 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 .title(title)
                 .snippet(snippet)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
-        markersMapObras.add(mkr);
-        markersMapObras2.put(title, markersIntObras);
+        markersMapObra.put(title, mkr);
+        markersMapObras2.put(geoPoint1, title);
+        obs.add(title);
+        mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
-        markersIntObras = markersIntObras + 1;
         menu.cargando(false);
         touch(false);
     }
 
-    private void anadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id) {
+    private void anadirMarcadoresEmpleados(final GeoPoint geoPoint1, String nombre, String obra, String id, String estado) {
         menu.cargando(true);
         touch(true);
-        Map<String, String> markersMapEmpleado = new HashMap<>();
-        String estadoDef = null;
-        String ob = obra;
-        MarkerOptions mo = new MarkerOptions()
-                .rotation(0)
-                .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
-        if (obra != null) {
-            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
-            estadoDef = "online";
-            ob = obra;
+        Marker marker = markersMapEmpleado.get(nombre);
+        if (marker != null) {
+            marker.remove();
+            markersIntEmpleados = markersMapEmpleados2.get(nombre);
+            markersMapEmpleado.remove(nombre);
+            markersMapEmpleados.get(markersMapEmpleados2.get(nombre)).remove();
+            markersMapEmpleados2.remove(nombre);
+            jfs.remove(nombre);
+            mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    emailList.remove(documentSnapshot.getString("email"));
+                }
+            });
+
         }
-        if (obra == null) {
-            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
-            estadoDef = "offline";
-            ob = "null";
+        if (obra != null) {
+            obra = "Trabajando en " + obra;
         }
 
+        MarkerOptions mo = new MarkerOptions()
+                .rotation(0);
+        if (estado.equals("online")) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_online));
+        } else if (estado.equals("offline")) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_empleado_offline));
+        } else if (estado.equals("offline full")) {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
+        } else {
+            mo.icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_empleados));
+        }
         Marker mkr = mMap.addMarker(mo
                 .title(nombre)
                 .position(new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude())));
         if (obra != null) {
             mkr.setSnippet(obra);
         }
-        marcadoresEmpleados marcadoresEmpleados = new marcadoresEmpleados(geoPoint1, nombre, ob, estadoDef, id);
-        markersMapEmpleado.put(marcadoresEmpleados.getTag(), mkr.getId());
+        markersMapEmpleado.put(nombre, mkr);
         markersMapEmpleados.add(mkr);
         markersMapEmpleados2.put(nombre, markersIntEmpleados);
+        if(!jfs.contains(nombre)) {
+            jfs.add(nombre);
+        }
+        if(!empleList.contains(nombre)) {
+            empleList.add(nombre);
+        }
+        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if(!emailList.contains(documentSnapshot.getString("email"))) {
+                    emailList.add(documentSnapshot.getString("email"));
+                }
+
+            }
+        });
         mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mkr.showInfoWindow();
@@ -1275,40 +1410,90 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         @Override
                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
                                             String ans = documentSnapshot2.getString("años");
-                                            final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
-                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                                @Override
-                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                    final String idEm = documentSnapshot.getString("id");
-                                                    try {
+                                            if (ans != null) {
+                                                final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
+                                                mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                        final String idEm = documentSnapshot.getString("id");
+                                                        try {
 
-                                                        localFile = File.createTempFile("firma", "jpg");
-                                                        almacenRef.child(empresa + "/Firmas/" + empleado + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
-                                                            @Override
-                                                            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-                                                                menu.cargando(false);
-                                                                touch(false);
-                                                                elegirFechasAnos(ansL, empleado, nif, naf, idEm);
+                                                            localFile = File.createTempFile("firma", "jpg");
+                                                            almacenRef.child(empresa + "/Firmas/" + empleado + "/" + idEm + ".jpg").getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                                                @Override
+                                                                public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                                                    menu.cargando(false);
+                                                                    touch(false);
+                                                                    elegirFechasAnos(ansL, empleado, nif, naf, idEm);
+                                                                }
+                                                            }).addOnFailureListener(new OnFailureListener() {
+                                                                @Override
+                                                                public void onFailure(@NonNull Exception exception) {
+                                                                    if (timerBtn != null) {
+                                                                        timerBtn.cancel();
+                                                                        ViewCompat.animate(registrar)
+                                                                                .rotation(0.0F)
+                                                                                .withLayer()
+                                                                                .setDuration(300)
+                                                                                .setInterpolator(new OvershootInterpolator(10.0F))
+                                                                                .start();
+                                                                        timerBtn = null;
+                                                                    }
+                                                                    menu.cargando(false);
+                                                                    touch(false);
+                                                                }
+                                                            });
+                                                        } catch (IOException e) {
+                                                            if (timerBtn != null) {
+                                                                timerBtn.cancel();
+                                                                ViewCompat.animate(registrar)
+                                                                        .rotation(0.0F)
+                                                                        .withLayer()
+                                                                        .setDuration(300)
+                                                                        .setInterpolator(new OvershootInterpolator(10.0F))
+                                                                        .start();
+                                                                timerBtn = null;
                                                             }
-                                                        }).addOnFailureListener(new OnFailureListener() {
-                                                            @Override
-                                                            public void onFailure(@NonNull Exception exception) {
-                                                                menu.cargando(false);
-                                                                touch(false);
-                                                            }
-                                                        });
-                                                    } catch (IOException e) {
-                                                        e.printStackTrace();
-                                                        menu.cargando(false);
-                                                        touch(false);
+                                                            e.printStackTrace();
+                                                            menu.cargando(false);
+                                                            touch(false);
+                                                        }
+
                                                     }
-
+                                                });
+                                            } else {
+                                                if (timerBtn != null) {
+                                                    timerBtn.cancel();
+                                                    ViewCompat.animate(registrar)
+                                                            .rotation(0.0F)
+                                                            .withLayer()
+                                                            .setDuration(300)
+                                                            .setInterpolator(new OvershootInterpolator(10.0F))
+                                                            .start();
+                                                    timerBtn = null;
                                                 }
-                                            });
+                                                menu.cargando(false);
+                                                touch(false);
+                                                menu.snackbar.setText("El empleado " + empleado + " no a registrado ninguna jornada todavia");
+                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                tv.setTextSize(10);
+                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                menu.snackbar.show();
+                                            }
                                         }
                                     }).addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
+                                    if (timerBtn != null) {
+                                        timerBtn.cancel();
+                                        ViewCompat.animate(registrar)
+                                                .rotation(0.0F)
+                                                .withLayer()
+                                                .setDuration(300)
+                                                .setInterpolator(new OvershootInterpolator(10.0F))
+                                                .start();
+                                        timerBtn = null;
+                                    }
                                     menu.cargando(false);
                                     touch(false);
                                     menu.snackbar.setText("El empleado " + empleado + " no a registrado ninguna jornada todavia");
@@ -1387,6 +1572,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         botonCancelar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (timerBtn != null) {
+                    timerBtn.cancel();
+                    ViewCompat.animate(registrar)
+                            .rotation(0.0F)
+                            .withLayer()
+                            .setDuration(300)
+                            .setInterpolator(new OvershootInterpolator(10.0F))
+                            .start();
+                    timerBtn = null;
+                }
                 dialogoAnoEle.dismiss();
             }
         });
@@ -1516,6 +1711,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         botonCancelar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (timerBtn != null) {
+                    timerBtn.cancel();
+                    ViewCompat.animate(registrar)
+                            .rotation(0.0F)
+                            .withLayer()
+                            .setDuration(300)
+                            .setInterpolator(new OvershootInterpolator(10.0F))
+                            .start();
+                    timerBtn = null;
+                }
                 dialogoMesEle.dismiss();
             }
         });
@@ -1625,6 +1830,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         SHAREempleado = empl;
                                         SHAREano = anoT;
                                         SHAREmes = mesnu;
+                                        if (timerBtn != null) {
+                                            timerBtn.cancel();
+                                            ViewCompat.animate(registrar)
+                                                    .rotation(0.0F)
+                                                    .withLayer()
+                                                    .setDuration(300)
+                                                    .setInterpolator(new OvershootInterpolator(10.0F))
+                                                    .start();
+                                            timerBtn = null;
+                                        }
                                         menu.cargando(false);
                                         touch(false);
                                         menu.datos(folder, fileShare, SHAREempleado, mes1, SHAREano, SHAREmes, empresa, emailAn);
@@ -1632,6 +1847,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     next = true;
                                     i[0]++;
                                 } catch (ParseException e) {
+                                    if (timerBtn != null) {
+                                        timerBtn.cancel();
+                                        ViewCompat.animate(registrar)
+                                                .rotation(0.0F)
+                                                .withLayer()
+                                                .setDuration(300)
+                                                .setInterpolator(new OvershootInterpolator(10.0F))
+                                                .start();
+                                        timerBtn = null;
+                                    }
                                     e.printStackTrace();
                                 }
                             }
@@ -1757,47 +1982,42 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     private void dElimEmpleado(final String empleadoSele) {
         mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+            public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
                     DocumentSnapshot documento1 = task.getResult();
                     final String idElim = Objects.requireNonNull(documento1).getString("id");
                     final String code = documento1.getString("codigo empleado");
-                    mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).update("DESACTIVADO", true).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            mDb.collection("Todas las ids").document(Objects.requireNonNull(idElim)).update("DESACTIVADO", true).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            mDb.collection("Todas las ids").document(Objects.requireNonNull(idElim)).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
                                     mDb.collection("Codigos").document(codigoEmpresa).update(empleadoSele, code + "_ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(empleadoSele).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            String norm = Normalizer.normalize(empleadoSele.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(norm).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
-                                                    String norm = Normalizer.normalize(empleadoSele.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                                    mDb.collection("Empresas").document(empresa).collection("Localizacion marcadores").document(norm).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    setUpRecyclerViewEm();
+                                                    mDb.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                                         @Override
-                                                        public void onSuccess(Void aVoid) {
-                                                            mDb.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                                                @Override
-                                                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                                                    if (task.isSuccessful()) {
-                                                                        for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
-                                                                            String JFob = document.getString("jefe");
-                                                                            String obran = document.getString("obra");
-                                                                            if (empleadoSele.equals(JFob)) {
-                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(Objects.requireNonNull(obran)).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                                    @Override
-                                                                                    public void onSuccess(Void aVoid) {
-                                                                                        mDb.collection("Jefes").document(idElim).delete();
-                                                                                    }
-                                                                                });
+                                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                                            if (task.isSuccessful()) {
+                                                                for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                                                                    String JFob = document.getString("jefe");
+                                                                    String obran = document.getString("obra");
+                                                                    if (empleadoSele.equals(JFob)) {
+                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(Objects.requireNonNull(obran)).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                mDb.collection("Jefes").document(idElim).delete();
                                                                             }
-                                                                        }
+                                                                        });
                                                                     }
-                                                                    firestoreNombres();
                                                                 }
-                                                            });
+                                                            }
                                                         }
                                                     });
                                                 }
@@ -1843,7 +2063,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (jfs.isEmpty()) {
                             codigo = letras1 + letras3;
                             mDb.collection("Codigos").document(codigoEmpresa).update(snombre, codigo);
-                            firestoreNombres();
                         } else {
                             String ultimo = Iterables.getLast(jfs);
                             String ultimo1 = Normalizer.normalize(ultimo, Normalizer.Form.NFD)
@@ -1866,9 +2085,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 final String finalSnombre = snombre;
                                 mDb.collection("Empresas").document(empresa).collection("Empleado").document(snombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                     @Override
-                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
                                         if (task.isSuccessful()) {
-                                            Boolean desEli = Objects.requireNonNull(task.getResult()).getBoolean("DESACTIVADO");
+                                            Boolean desEli = Objects.requireNonNull(task.getResult()).getBoolean("desactivado");
                                             if (desEli) {
                                                 menu.cargando(true);
                                                 touch(true);
@@ -1893,17 +2112,28 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                         mDb.collection("Empresas").document(empresa).collection("Empleado").document(finalSnombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
-                                                                        mDb.collection("Empresas").document(empresa).collection("Empleado").document(finalSnombre).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        mDb.collection("Empresas").document(empresa).collection("Empleado").document(finalSnombre).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                             @Override
                                                                             public void onSuccess(Void aVoid) {
                                                                                 mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                                     @Override
                                                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                                        mDb.collection("Codigos").document(codigoEmpresa).update(finalSnombre, Objects.requireNonNull(documentSnapshot.getString(finalSnombre)).replace("_ELIMINADO", ""));
-                                                                                        dialogoReactivar.dismiss();
+                                                                                        mDb.collection("Codigos").document(codigoEmpresa).update(finalSnombre, Objects.requireNonNull(documentSnapshot.getString(finalSnombre)).replace("_ELIMINADO", "")).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                            @Override
+                                                                                            public void onSuccess(Void aVoid) {
+                                                                                                String norm = Normalizer.normalize(finalSnombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+                                                                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(norm).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                                    @Override
+                                                                                                    public void onSuccess(Void aVoid) {
+                                                                                                        dialogoReactivar.dismiss();
+                                                                                                    }
+                                                                                                });
+
+                                                                                            }
+                                                                                        });
                                                                                     }
                                                                                 });
                                                                             }
@@ -1965,7 +2195,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     codigo = letras1 + letras3;
                                     mDb.collection("Codigos").document(codigoEmpresa).update(snombre, codigo);
                                     dCompartir(codigo, snombre);
-                                    firestoreNombres();
                                 }
                             }
                         }
@@ -2015,7 +2244,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 if (task2.isSuccessful()) {
                     for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
                         String nomb = document.getString("nombre");
-                        boolean des = document.getBoolean("DESACTIVADO");
+                        boolean des = document.getBoolean("desactivado");
                         if (des) {
                             emplesDesac.add(nomb);
                         }
@@ -2067,17 +2296,28 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                    mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).update("DESACTIVADO", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
                                                     mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                         @Override
                                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                            mDb.collection("Codigos").document(codigoEmpresa).update(desSelec[0], Objects.requireNonNull(documentSnapshot.getString(desSelec[0])).replace("_ELIMINADO", ""));
-                                                            dialogoReactivar.dismiss();
+                                                            mDb.collection("Codigos").document(codigoEmpresa).update(desSelec[0], Objects.requireNonNull(documentSnapshot.getString(desSelec[0])).replace("_ELIMINADO", "")).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                @Override
+                                                                public void onComplete(@NonNull Task<Void> task) {
+                                                                    final String norm = Normalizer.normalize(desSelec[0].toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+                                                                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(norm).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        @Override
+                                                                        public void onSuccess(Void aVoid) {
+                                                                            dialogoReactivar.dismiss();
+                                                                            setUpRecyclerViewEm();
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
                                                         }
                                                     });
                                                 }
@@ -2117,6 +2357,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     tv.setTextSize(10);
                     snackbarDS.configSnackbar(getActivity(), menu.snackbar);
                     menu.snackbar.show();
+                    menu.cargando(false);
+                    touch(false);
                 }
             }
         });
@@ -2131,12 +2373,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void dCompartir(String cod, String nom) {
+        menu.cargando(true);
+        touch(true);
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, "El codigo de empresa de " + empresa + " es: " + codigoEmpresa + "\nY el codigo del empleado " + nom + " es: " + cod);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, "El codigo de la empresa de " + empresa + " es: " + codigoEmpresa + "\n\nEl codigo del empleado " + nom + " es: " + cod);
         sendIntent.setType("text/plain");
-        Intent shareIntent = Intent.createChooser(sendIntent, "Compartir codigo");
+        Intent shareIntent = Intent.createChooser(sendIntent, "Compartir codigo\n\n" + "El codigo de la empresa " + empresa + " es: " + codigoEmpresa + "\n\nEl codigo del empleado " + nom + " es: " + cod);
         startActivity(shareIntent);
+        menu.cargando(false);
+        touch(false);
     }
 
     private int leeObras(Spinner spinner, String obraselecionada) {
@@ -2243,6 +2489,29 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     botonJornada.setEnabled(true);
                     botonCancelar.setEnabled(true);
                 } else if (comp.equals("finalizada") || comp.equals("no")) {
+                    GeoPoint geoPointReferencia;
+                    Double distanciaReferencia = null;
+                    Double distanciaReferencia2 = null;
+                    mayor = 0;
+                    latitudDetectada = geoPointLocalizayo.getLatitude();
+                    longitudDetectada = geoPointLocalizayo.getLongitude();
+                    for (int ob = 1; ob < obs.size(); ob++) {
+
+                        geoPointReferencia = new GeoPoint(markersMapObra.get(obs.get(ob)).getPosition().latitude, markersMapObra.get(obs.get(ob)).getPosition().longitude);
+                        if (distanciaReferencia == null) {
+                            distanciaReferencia = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(geoPointReferencia.getLatitude(), geoPointReferencia.getLongitude()));
+                        } else {
+                            distanciaReferencia2 = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(geoPointReferencia.getLatitude(), geoPointReferencia.getLongitude()));
+                        }
+                        if (distanciaReferencia != null && distanciaReferencia2 != null) {
+                            if (distanciaReferencia2 < distanciaReferencia) {
+                                mayor = ob;
+                                distanciaReferencia = distanciaReferencia2;
+                            }
+                        }
+                    }
+                    obraSpinner.setSelection(leeObras(obraSpinner, markersMapObra.get(obs.get(mayor)).getTitle()), true);
+                    mayor = 0;
                     botonJornada.setText("Iniciar");
                     obraSpinner.setEnabled(true);
                     botonJornada.setEnabled(true);
@@ -2290,118 +2559,126 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 final String contrasenaNu = scontrasena.getText().toString();
                 if (!emailNu.isEmpty() && !contrasenaNu.isEmpty()) {
                     if (!emailNu.equals(emailAn)) {
-                        menu.cargando(true);
-                        touch(true);
-                        mAuth.signOut();
-                        mAuth.signInWithEmailAndPassword(emailNu, contrasenaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                            @Override
-                            public void onComplete(@NonNull Task<AuthResult> task) {
-                                if (task.isSuccessful()) {
-                                    id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
-                                    mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                        @Override
-                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                            if (documentSnapshot.exists()) {
+                        if (emailList.contains(emailNu)) {
+                            menu.cargando(true);
+                            touch(true);
+                            mAuth.signOut();
+                            mAuth.signInWithEmailAndPassword(emailNu, contrasenaNu).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                    if (task.isSuccessful()) {
+                                        id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.exists()) {
 
-                                                codigoEmpresa = documentSnapshot.getString("codigo empresa");
-                                                comp = documentSnapshot.getString("comprobar");
-                                                empresa = documentSnapshot.getString("empresa");
-                                                nombreNu = documentSnapshot.getString("nombre");
-                                                emailConf = documentSnapshot.getString("email");
-                                                roles = documentSnapshot.getString("rol");
-                                                obcomprueba = documentSnapshot.getString("obra");
-                                                if (comp.equals("iniciada")) {
-                                                    entrada_salida = "Salida";
-                                                } else if (comp.equals("finalizada") || comp.equals("no")) {
-                                                    entrada_salida = "Entrada";
-                                                }
-                                                if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                                                    codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                                                    comp = documentSnapshot.getString("comprobar");
+                                                    empresa = documentSnapshot.getString("empresa");
+                                                    nombreNu = documentSnapshot.getString("nombre");
+                                                    emailConf = documentSnapshot.getString("email");
+                                                    roles = documentSnapshot.getString("rol");
                                                     obcomprueba = documentSnapshot.getString("obra");
-                                                }
-                                                final TextView myMsgtitle = new TextView(getActivity());
-                                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                final Button botonJornada = mDos.findViewById(R.id.btn1);
-                                                final Button botonCancelar = mDos.findViewById(R.id.btn2);
-                                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                                                myMsgtitle.setTextColor(Color.BLACK);
-                                                myMsgtitle.setPadding(2, 2, 2, 2);
-                                                String obFin = null;
-                                                if (obcomprueba != null) {
-                                                    if (obcomprueba.equals(obraMarker)) {
-                                                        myMsgtitle.setText(nombreNu + " ¿desea finalizar la jornada en la obra " + obraMarker + "?");
-                                                        obFin = obraMarker;
-                                                    } else {
-                                                        myMsgtitle.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
-                                                        obFin = obcomprueba;
+                                                    if (comp.equals("iniciada")) {
+                                                        entrada_salida = "Salida";
+                                                    } else if (comp.equals("finalizada") || comp.equals("no")) {
+                                                        entrada_salida = "Entrada";
                                                     }
-                                                    botonJornada.setText("Finalizar");
-                                                } else {
-                                                    myMsgtitle.setText(nombreNu + " ¿desea iniciar la jornada en la obra " + obraMarker + "?");
-                                                    obFin = obraMarker;
-                                                    botonJornada.setText("Iniciar");
-                                                }
-                                                final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
-                                                Otro
-                                                        .setCustomTitle(myMsgtitle)
-                                                        .setView(mDos);
-                                                final AlertDialog dialogoOtro = Otro.create();
-                                                final String finalObFin = obFin;
-                                                botonJornada.setOnClickListener(new View.OnClickListener() {
-                                                    @Override
-                                                    public void onClick(View v) {
-                                                        dialogoOtro.dismiss();
-                                                        leerGeo(finalObFin);
+                                                    if (documentSnapshot.getString("obra") != null && documentSnapshot.getString("obra") != "no") {
+                                                        obcomprueba = documentSnapshot.getString("obra");
                                                     }
-                                                });
-                                                botonCancelar.setOnClickListener(new View.OnClickListener() {
-                                                    @Override
-                                                    public void onClick(View v) {
-                                                        dConfirma();
-                                                        dialogoOtro.dismiss();
-                                                    }
-                                                });
-                                                dialogoOtro.setCanceledOnTouchOutside(false);
-                                                dialogoOtro.setOnShowListener(new DialogInterface.OnShowListener() {
-                                                    @Override
-                                                    public void onShow(final DialogInterface dialog) {
-                                                        dialogoOtro.dismiss();
-                                                        botonJornada.setEnabled(true);
-                                                        botonCancelar.setEnabled(true);
-                                                        menu.cargando(false);
-                                                        touch(false);
-                                                    }
-                                                });
-                                                dialogoOtro.setCanceledOnTouchOutside(false);
-                                                if (mDos.getParent() != null) {
-                                                    ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                                    final TextView myMsgtitle = new TextView(getActivity());
                                                     mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                    dialogoOtro.show();
-                                                } else {
-                                                    dialogoOtro.show();
-                                                }
+                                                    final Button botonJornada = mDos.findViewById(R.id.btn1);
+                                                    final Button botonCancelar = mDos.findViewById(R.id.btn2);
+                                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                    myMsgtitle.setTextColor(Color.BLACK);
+                                                    myMsgtitle.setPadding(2, 2, 2, 2);
+                                                    String obFin = null;
+                                                    if (obcomprueba != null) {
+                                                        if (obcomprueba.equals(obraMarker)) {
+                                                            myMsgtitle.setText(nombreNu + " ¿desea finalizar la jornada en la obra " + obraMarker + "?");
+                                                            obFin = obraMarker;
+                                                        } else {
+                                                            myMsgtitle.setText("Ya existe una jornada iniciada en " + obcomprueba + ", finalizala primero");
+                                                            obFin = obcomprueba;
+                                                        }
+                                                        botonJornada.setText("Finalizar");
+                                                    } else {
+                                                        myMsgtitle.setText(nombreNu + " ¿desea iniciar la jornada en la obra " + obraMarker + "?");
+                                                        obFin = obraMarker;
+                                                        botonJornada.setText("Iniciar");
+                                                    }
+                                                    final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                                    Otro
+                                                            .setCustomTitle(myMsgtitle)
+                                                            .setView(mDos);
+                                                    final AlertDialog dialogoOtro = Otro.create();
+                                                    final String finalObFin = obFin;
+                                                    botonJornada.setOnClickListener(new View.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(View v) {
+                                                            dialogoOtro.dismiss();
+                                                            leerGeo(finalObFin);
+                                                        }
+                                                    });
+                                                    botonCancelar.setOnClickListener(new View.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(View v) {
+                                                            dConfirma();
+                                                            dialogoOtro.dismiss();
+                                                        }
+                                                    });
+                                                    dialogoOtro.setCanceledOnTouchOutside(false);
+                                                    dialogoOtro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                        @Override
+                                                        public void onShow(final DialogInterface dialog) {
+                                                            dialogoLogin.dismiss();
+                                                            botonJornada.setEnabled(true);
+                                                            botonCancelar.setEnabled(true);
+                                                            menu.cargando(false);
+                                                            touch(false);
+                                                        }
+                                                    });
+                                                    dialogoOtro.setCanceledOnTouchOutside(false);
+                                                    if (mDos.getParent() != null) {
+                                                        ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoOtro.show();
+                                                    } else {
+                                                        dialogoOtro.show();
+                                                    }
 
-                                            } else {
-                                                menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
-                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                                tv.setTextSize(10);
-                                                snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                                menu.snackbar.show();
-                                                menu.cargando(false);
-                                                touch(false);
-                                                touch(false);
+                                                } else {
+                                                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                    tv.setTextSize(10);
+                                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                                    menu.snackbar.show();
+                                                    menu.cargando(false);
+                                                    touch(false);
+                                                    touch(false);
+                                                }
                                             }
-                                        }
-                                    });
-                                } else {
-                                    menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
-                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                    tv.setTextSize(10);
-                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                    menu.snackbar.show();
-                                    dialogoLogin.show();
+                                        });
+                                    } else {
+                                        menu.snackbar.setText("No se pudo iniciar sesion, compruebe los datos");
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        tv.setTextSize(10);
+                                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                        menu.snackbar.show();
+                                        dialogoLogin.show();
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        } else {
+                            menu.snackbar.setText("Usuario desactivado");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(10);
+                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                            menu.snackbar.show();
+                        }
                     } else {
                         menu.cargando(true);
                         touch(true);
@@ -2562,7 +2839,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         mDb.collection("Todas las ids").document(id).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("comprobar", comp).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2622,12 +2899,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         if (snackbarLocalizando == null) {
                                             snackbarLocalizando = "Localizando";
                                         } else if (snackbarLocalizando.equals("Localizando")) {
-                                            snackbarLocalizando = "Localizando.";
-                                        } else if (snackbarLocalizando.equals("Localizando.")) {
-                                            snackbarLocalizando = "Localizando..";
-                                        } else if (snackbarLocalizando.equals("Localizando..")) {
-                                            snackbarLocalizando = "Localizando...";
-                                        } else if (snackbarLocalizando.equals("Localizando...")) {
+                                            snackbarLocalizando = ".Localizando.";
+                                        } else if (snackbarLocalizando.equals(".Localizando.")) {
+                                            snackbarLocalizando = "..Localizando..";
+                                        } else if (snackbarLocalizando.equals("..Localizando..")) {
+                                            snackbarLocalizando = "...Localizando...";
+                                        } else if (snackbarLocalizando.equals("...Localizando...")) {
                                             snackbarLocalizando = "Localizando";
                                         }
                                         menu.snackbar.setText(snackbarLocalizando);
@@ -2678,7 +2955,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                         @Override
                                                                         public void onSuccess(final DocumentSnapshot documentSnapshot) {
-                                                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombreNu).update("obra", obra).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                 @Override
                                                                                 public void onSuccess(Void aVoid) {
                                                                                     trayecto = documentSnapshot.getString("marca temporal");
@@ -2862,7 +3139,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                 mDb.collection("Empresas").document(empresa).collection(roles).document(nombreNu).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones").document(nombreNu).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombreNu).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
 
@@ -3084,7 +3361,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                             if (valorOnline >= 0) {
                                                                                 valorOnline = valorOnline + 1;
                                                                                 mapES.put("online", valorOnline);
-                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                                mapES.put("obra", obra);
+                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                    @Override
+                                                                                    public void onSuccess(Void aVoid) {
+                                                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(nombreNu).update("obra", obra);
+                                                                                    }
+                                                                                });
                                                                             }
                                                                             menu.snackbar.setText("Jornada iniciada en " + obra + " correctamente");
 
@@ -3092,7 +3375,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                             if (valorOnline > 0) {
                                                                                 valorOnline = valorOnline - 1;
                                                                                 mapES.put("online", valorOnline);
-                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge());
+                                                                                mapES.put("obra", null);
+                                                                                mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                    @Override
+                                                                                    public void onSuccess(Void aVoid) {
+                                                                                        mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(nombreNu).update("obra", null);
+                                                                                    }
+                                                                                });
                                                                             }
                                                                             menu.snackbar.setText("Jornada finalizada en " + obra + " correctamente");
                                                                         }
@@ -3121,7 +3410,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                 firmar();
                                                                             }
                                                                         });
-                                                                        menu.estado("offline");
                                                                     }
                                                                 });
                                                             }
@@ -3293,6 +3581,234 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
             dReactivarEmpleados();
         }
+        if (v.equals(registrar)) {
+            menu.cargando(true);
+            touch(true);
+            if (timerBtn == null) {
+                final long[] grados = {0};
+                timerBtn = new CountDownTimer(60000, 10) {
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+                        grados[0] = grados[0] + 1;
+                        final OvershootInterpolator interpolator = new OvershootInterpolator();
+                        ViewCompat.animate(registrar).
+                                rotation(grados[0]).
+                                withLayer().
+                                setDuration(0).
+                                setInterpolator(interpolator).
+                                start();
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        timerBtn.start();
+                    }
+                }.start();
+            }
+            mDos = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
+            final Spinner resSpinner = mDos.findViewById(R.id.spinnerObra);
+            ArrayAdapter<String> resAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, empleList);
+            resAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            resSpinner.setAdapter(resAdapter);
+            final String[] resSelec = {Objects.requireNonNull(resAdapter.getItem(0))};
+            resSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    resSelec[0] = parent.getItemAtPosition(position).toString();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    resSelec[0] = parent.getItemAtPosition(0).toString();
+                }
+            });
+            final TextView myMsgtitle = new TextView(getActivity());
+            myMsgtitle.setText("Seleccione un empleado para generar un registro");
+            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+            myMsgtitle.setTextColor(Color.BLACK);
+            myMsgtitle.setPadding(2, 2, 2, 2);
+            final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                    .setCustomTitle(myMsgtitle)
+                    .setView(mDos);
+            final Button btnRegistro = mDos.findViewById(R.id.btn1);
+            btnRegistro.setText("Generar PDF");
+            final Button btnCancelar = mDos.findViewById(R.id.btn2);
+            final AlertDialog dialogoRegistro = registroBu.create();
+            btnRegistro.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialogoRegistro.dismiss();
+                    leerRegistro(resSelec[0]);
+                }
+            });
+            btnCancelar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (timerBtn != null) {
+                        timerBtn.cancel();
+                        ViewCompat.animate(registrar)
+                                .rotation(0.0F)
+                                .withLayer()
+                                .setDuration(300)
+                                .setInterpolator(new OvershootInterpolator(10.0F))
+                                .start();
+                        timerBtn = null;
+                    }
+                    dialogoRegistro.dismiss();
+                }
+            });
+            dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
+                @Override
+                public void onShow(DialogInterface dialog) {
+                    btnRegistro.setEnabled(true);
+                    btnCancelar.setEnabled(true);
+                    menu.cargando(false);
+                    touch(false);
+                }
+            });
+            dialogoRegistro.setCanceledOnTouchOutside(false);
+            if (mDos.getParent() != null) {
+                ((ViewGroup) mDos.getParent()).removeView(mDos);
+                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                dialogoRegistro.show();
+            } else {
+                dialogoRegistro.show();
+            }
+        }
+        if (v.equals(icCodigos)) {
+            menu.cargando(true);
+            touch(true);
+            codigosList = new ArrayList<>();
+            mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    String data = documentSnapshot.getData().toString().replaceAll("\\{", "").replaceAll("\\}", "");
+                    for (String res : Arrays.asList(data.split("\\s*, \\s*"))) {
+                        if (!res.contains("Empresa") && !res.contains("Codigo de empresa") && !res.contains("Registrando")) {
+                            String substr = res.substring(0, res.indexOf("="));
+                            substr.trim();
+                            codigosList.add(substr);
+                        } else {
+                            codigosList.remove(res);
+                        }
+                    }
+                    final TextView myMsgtitle = new TextView(getActivity());
+                    myMsgtitle.setText(empresa + " (" + codigoEmpresa + ")\n" + "Seleccione un empleado para consultar su codigo");
+                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                    myMsgtitle.setTextColor(Color.BLACK);
+                    myMsgtitle.setPadding(2, 2, 2, 2);
+                    View mCodes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+                    final Spinner spinnerEmples = mCodes.findViewById(R.id.spinnerObra);
+                    ArrayAdapter<String> codeAdapt = new ArrayAdapter<String>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, codigosList);
+                    codeAdapt.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerEmples.setAdapter(codeAdapt);
+                    final String[] empleCode = {Objects.requireNonNull(codeAdapt.getItem(0))};
+                    spinnerEmples.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                            empleCode[0] = adapterView.getItemAtPosition(i).toString();
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> adapterView) {
+                            empleCode[0] = adapterView.getItemAtPosition(0).toString();
+                        }
+                    });
+                    final Button botonSiguiente = mCodes.findViewById(R.id.btn1);
+                    botonSiguiente.setText("Ver codigo");
+                    final Button botonCancelar = mCodes.findViewById(R.id.btn2);
+                    final AlertDialog.Builder codeAler = new AlertDialog.Builder(getContext())
+                            .setCustomTitle(myMsgtitle);
+                    codeAler
+                            .setView(mCodes);
+                    final AlertDialog dialogoCodeAler = codeAler.create();
+                    botonSiguiente.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            menu.cargando(true);
+                            touch(true);
+                            mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                @Override
+                                public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                                    final TextView myMsgtitle = new TextView(getActivity());
+                                    myMsgtitle.setTextColor(Color.BLACK);
+                                    myMsgtitle.setText("El codigo de " + empresa + " es: " + codigoEmpresa + "\n\n" + "El codigo del empleado es: " + documentSnapshot.getString(empleCode[0]));
+                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                    myMsgtitle.setPadding(2, 2, 2, 2);
+                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    final Button botonCompartir = mDos.findViewById(R.id.btn1);
+                                    botonCompartir.setText("Compartir");
+                                    final Button botonCancelar = mDos.findViewById(R.id.btn2);
+                                    final AlertDialog.Builder codigoAlert = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                                            .setCustomTitle(myMsgtitle);
+                                    codigoAlert
+                                            .setView(mDos);
+                                    final AlertDialog dialogoCodigoAlert = codigoAlert.create();
+                                    botonCompartir.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dCompartir(documentSnapshot.getString(empleCode[0]), empleCode[0]);
+                                            dialogoCodigoAlert.dismiss();
+
+                                        }
+                                    });
+                                    botonCancelar.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoCodigoAlert.dismiss();
+                                        }
+                                    });
+                                    dialogoCodigoAlert.setOnShowListener(new DialogInterface.OnShowListener() {
+                                        @Override
+                                        public void onShow(DialogInterface dialog) {
+                                            botonCompartir.setEnabled(true);
+                                            botonCancelar.setEnabled(true);
+                                            dialogoCodeAler.dismiss();
+                                            menu.cargando(false);
+                                            touch(false);
+                                        }
+                                    });
+                                    dialogoCodigoAlert.setCanceledOnTouchOutside(false);
+                                    if (mDos.getParent() != null) {
+                                        ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                        dialogoCodigoAlert.show();
+                                    } else {
+                                        dialogoCodigoAlert.show();
+                                    }
+
+                                }
+                            });
+                        }
+                    });
+                    botonCancelar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogoCodeAler.dismiss();
+                        }
+                    });
+                    dialogoCodeAler.setCanceledOnTouchOutside(false);
+                    dialogoCodeAler.setOnShowListener(new DialogInterface.OnShowListener() {
+                        @Override
+                        public void onShow(DialogInterface dialog) {
+                            spinnerEmples.setSelection(0);
+                            spinnerEmples.setEnabled(true);
+                            botonSiguiente.setEnabled(true);
+                            botonCancelar.setEnabled(true);
+                            menu.cargando(false);
+                            touch(false);
+                        }
+                    });
+                    if (mCodes.getParent() != null) {
+                        ((ViewGroup) mCodes.getParent()).removeView(mCodes);
+                        mCodes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
+                        dialogoCodeAler.show();
+                    } else {
+                        dialogoCodeAler.show();
+                    }
+                }
+            });
+        }
 
     }
 
@@ -3309,9 +3825,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     @Override
     public void onInfoWindowClick(Marker marker) {
         String tit = marker.getTitle();
-        if (jfs.contains(tit)) {
+        if (markersMapEmpleado.get(tit) != null) {
             dAdministrarEmpleados(tit);
-        } else if (obs.contains(tit)) {
+        }
+        if (markersMapObra.get(tit) != null) {
             dLogin(tit);
         }
     }
