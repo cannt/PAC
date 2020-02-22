@@ -364,7 +364,7 @@ public class registrar extends AppCompatActivity {
                                     final Map<String, Object> mapDias = new HashMap<>();
                                     mapDias.put("Dias libres", null);
                                     mapDias.put("Dias libres solicitados", null);
-                                    mapDias.put("Nombre", snombre);
+                                    mapDias.put("nombre", snombre);
                                     firebaseFirestore.collection("Empresas").document(empresas).collection("Dias libres solicitados").document(snombre).set(mapDias).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {

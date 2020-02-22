@@ -1984,7 +1984,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             @Override
             public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
-                    DocumentSnapshot documento1 = task.getResult();
+                    final DocumentSnapshot documento1 = task.getResult();
                     final String idElim = Objects.requireNonNull(documento1).getString("id");
                     final String code = documento1.getString("codigo empleado");
                     mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -1996,11 +1996,32 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     mDb.collection("Codigos").document(codigoEmpresa).update(empleadoSele, code + "_ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            String norm = Normalizer.normalize(empleadoSele.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(norm).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(empleadoSele).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
-                                                    setUpRecyclerViewEm();
+                                                    mDb.collection("Todas las ids").document(idElim).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            if(documentSnapshot.getString("Dias libres solicitados")!=null){
+                                                                mDb.collection("Todas las ids").document(idElim).update("Dias libres solicitados", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @Override
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).update("Dias libres solicitados", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                mDb.collection("Empresas").document(empresa).collection("Dias libres").document(empleadoSele).update("Dias libres solicitados", null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                    @Override
+                                                                                    public void onSuccess(Void aVoid) {
+                                                                                        mDb.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(empleadoSele).update("Dias libres solicitados", null);
+                                                                                    }
+                                                                                });
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    });
                                                     mDb.collection("Empresas").document(empresa).collection("Obras").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                                         @Override
                                                         public void onComplete(@NonNull Task<QuerySnapshot> task) {
@@ -2293,6 +2314,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     btnReactivar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
+                            menu.cargando(true);
+                            touch(true);
                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -2308,11 +2331,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                             mDb.collection("Codigos").document(codigoEmpresa).update(desSelec[0], Objects.requireNonNull(documentSnapshot.getString(desSelec[0])).replace("_ELIMINADO", "")).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                                 @Override
                                                                 public void onComplete(@NonNull Task<Void> task) {
-                                                                    final String norm = Normalizer.normalize(desSelec[0].toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-                                                                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(norm).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(desSelec[0]).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                         @Override
                                                                         public void onSuccess(Void aVoid) {
                                                                             dialogoReactivar.dismiss();
+                                                                            menu.cargando(false);
+                                                                            touch(false);
                                                                             setUpRecyclerViewEm();
                                                                         }
                                                                     });

@@ -276,134 +276,134 @@ public class login extends AppCompatActivity {
                 if (documentSnapshot.exists()) {
                     if(documentSnapshot.getString("rol").equals("Empleado")){
                         final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-                        if(Jornada()){
-                            Boolean desac = documentSnapshot.getBoolean("desactivado");
-                            if (!desac) {
+                        Boolean desac = documentSnapshot.getBoolean("desactivado");
+                        if (!desac) {
+                            if(Jornada()){
                                 startLocationService();
                                 cargando(false);
                                 startActivity(new Intent(login.this, menu.class));
                                 finish();
-                            } else {
-                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            }else if (!Jornada()) {
                                 final TextView myMsgtitle = new TextView(login.this);
-                                myMsgtitle.setText("Usuario actualmente desactivado\nContacte con el responsable de su empresa");
+                                myMsgtitle.setText("Esta fuera de horario laboral\n¿Desea continuar de todas formas?");
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
-                                myMsgtitle.setPadding(2, 2, 2, 2);
-                                final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(login.this))
-                                        .setCustomTitle(myMsgtitle)
-                                        .setView(mDos);
-                                final Button btnCon = mDos.findViewById(R.id.btn1);
-                                btnCon.setText("Continuar");
-                                final Button btnSal = mDos.findViewById(R.id.btn2);
+                                myMsgtitle.setPadding(2,2,2,2);
+                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                final Button btnCont = mDosBtn.findViewById(R.id.btn1);
+                                btnCont.setText("Continuar");
+                                final Button btnSal = mDosBtn.findViewById(R.id.btn2);
                                 btnSal.setText("Salir");
-                                final AlertDialog dialogoRegistro = registroBu.create();
-                                btnCon.setOnClickListener(new View.OnClickListener() {
+                                final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
+                                        .setCustomTitle(myMsgtitle)
+                                        .setView(mDosBtn);
+                                final AlertDialog dialogoFuera = fuera.create();
+                                btnCont.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        email.getText().clear();
-                                        contrasena.getText().clear();
-                                        mAuth.signOut();
+                                        dialogoFuera.dismiss();
+                                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                                        editor.putBoolean("acepta", true);
+                                        editor.apply();
                                         login.this.recreate();
-                                        dialogoRegistro.dismiss();
                                     }
                                 });
                                 btnSal.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        dialogoRegistro.dismiss();
-                                        email.getText().clear();
-                                        contrasena.getText().clear();
-                                        mAuth.signOut();
-                                        ((ActivityManager) login.this.getSystemService(ACTIVITY_SERVICE))
-                                                .clearApplicationUserData();
+                                        dialogoFuera.dismiss();
+                                        finish();
+                                        System.exit(0);
                                     }
                                 });
-                                dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                dialogoFuera.setCanceledOnTouchOutside(false);
+                                dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
                                     @Override
                                     public void onShow(DialogInterface dialog) {
-                                        btnCon.setEnabled(true);
+                                        btnCont.setEnabled(true);
                                         btnSal.setEnabled(true);
                                         cargando(false);
+                                        final CharSequence negativeButtonText = btnCont.getText();
+                                        new CountDownTimer(10000, 100) {
+                                            @Override
+                                            public void onTick(long millisUntilFinished) {
+                                                btnCont.setText(String.format(
+                                                        Locale.getDefault(), "%s (%d)",
+                                                        negativeButtonText,
+                                                        TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
+                                                ));
+                                            }
+
+                                            @Override
+                                            public void onFinish() {
+                                                if ((dialogoFuera).isShowing()) {
+                                                    dialogoFuera.dismiss();
+                                                    finish();
+                                                    System.exit(0);
+                                                }
+                                            }
+                                        }.start();
                                     }
                                 });
-                                dialogoRegistro.setCanceledOnTouchOutside(false);
-                                if (mDos.getParent() != null) {
-                                    ((ViewGroup) mDos.getParent()).removeView(mDos);
-                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                    dialogoRegistro.show();
+                                if (mDosBtn.getParent() != null) {
+                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    dialogoFuera.show();
                                 } else {
-                                    dialogoRegistro.show();
+                                    dialogoFuera.show();
                                 }
                             }
-                        }else if (!Jornada()) {
+                        } else {
+                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                             final TextView myMsgtitle = new TextView(login.this);
-                            myMsgtitle.setText("Esta fuera de horario laboral\n¿Desea continuar de todas formas?");
+                            myMsgtitle.setText("Usuario actualmente desactivado\nContacte con el responsable de su empresa");
                             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                             myMsgtitle.setTextColor(Color.BLACK);
-                            myMsgtitle.setPadding(2,2,2,2);
-                            mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                            final Button btnCont = mDosBtn.findViewById(R.id.btn1);
-                            btnCont.setText("Continuar");
-                            final Button btnSal = mDosBtn.findViewById(R.id.btn2);
-                            btnSal.setText("Salir");
-                            final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
+                            myMsgtitle.setPadding(2, 2, 2, 2);
+                            final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(login.this))
                                     .setCustomTitle(myMsgtitle)
-                                    .setView(mDosBtn);
-                            final AlertDialog dialogoFuera = fuera.create();
-                            btnCont.setOnClickListener(new View.OnClickListener() {
+                                    .setView(mDos);
+                            final Button btnCon = mDos.findViewById(R.id.btn1);
+                            btnCon.setText("Reintentar");
+                            final Button btnSal = mDos.findViewById(R.id.btn2);
+                            btnSal.setText("Salir");
+                            final AlertDialog dialogoRegistro = registroBu.create();
+                            btnCon.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-                                    dialogoFuera.dismiss();
-                                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                                    editor.putBoolean("acepta", true);
-                                    editor.apply();
+                                    email.getText().clear();
+                                    contrasena.getText().clear();
+                                    mAuth.signOut();
                                     login.this.recreate();
+                                    dialogoRegistro.dismiss();
                                 }
                             });
                             btnSal.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-                                    dialogoFuera.dismiss();
-                                    finish();
-                                    System.exit(0);
+                                    dialogoRegistro.dismiss();
+                                    email.getText().clear();
+                                    contrasena.getText().clear();
+                                    mAuth.signOut();
+                                    ((ActivityManager) login.this.getSystemService(ACTIVITY_SERVICE))
+                                            .clearApplicationUserData();
                                 }
                             });
-                            dialogoFuera.setCanceledOnTouchOutside(false);
-                            dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                            dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
                                 @Override
                                 public void onShow(DialogInterface dialog) {
-                                    btnCont.setEnabled(true);
+                                    btnCon.setEnabled(true);
                                     btnSal.setEnabled(true);
                                     cargando(false);
-                                    final CharSequence negativeButtonText = btnCont.getText();
-                                    new CountDownTimer(10000, 100) {
-                                        @Override
-                                        public void onTick(long millisUntilFinished) {
-                                            btnCont.setText(String.format(
-                                                    Locale.getDefault(), "%s (%d)",
-                                                    negativeButtonText,
-                                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
-                                            ));
-                                        }
-
-                                        @Override
-                                        public void onFinish() {
-                                            if ((dialogoFuera).isShowing()) {
-                                                dialogoFuera.dismiss();
-                                                finish();
-                                                System.exit(0);
-                                            }
-                                        }
-                                    }.start();
                                 }
                             });
-                            if (mDosBtn.getParent() != null) {
-                                ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
-                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                dialogoFuera.show();
+                            dialogoRegistro.setCanceledOnTouchOutside(false);
+                            if (mDos.getParent() != null) {
+                                ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                dialogoRegistro.show();
                             } else {
-                                dialogoFuera.show();
+                                dialogoRegistro.show();
                             }
                         }
                     }else if(documentSnapshot.getString("rol").equals("Administrador")){

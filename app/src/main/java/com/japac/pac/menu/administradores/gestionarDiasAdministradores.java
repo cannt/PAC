@@ -14,6 +14,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import android.os.CountDownTimer;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,6 +49,9 @@ import com.japac.pac.servicios.snackbarDS;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.squareup.timessquare.CalendarPickerView;
 
+import org.joda.time.DateTime;
+
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -278,6 +282,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                 switch (doc.getType()) {
                                     case ADDED:
                                     case MODIFIED:
+                                    case REMOVED:
                                         actualizarCalendarioAd();
                                         if (doc.getDocument().getBoolean("solicita") != null && doc.getDocument().getBoolean("solicita")) {
                                             firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getDocument().getString("nombre"))).update("solicita", false).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -299,10 +304,20 @@ public class gestionarDiasAdministradores extends Fragment {
                                                     menu.snackbar.show();
                                                 }
                                             });
+                                        }else if(doc.getDocument().getBoolean("asignado")!=null && doc.getDocument().getBoolean("asignado")){
+                                            hayDias  = true;
+                                            if (menu.getCambioDeFragment()) {
+                                                actualizarCalendarioAd();
+                                                if (hayDias) {
+                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                }
+                                                menu.setCambioDeFragmento(false);
+                                            } else {
+                                                if (hayDias) {
+                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                }
+                                            }
                                         }
-                                        break;
-                                    case REMOVED:
-                                        actualizarCalendarioAd();
                                         break;
                                 }
                             }
@@ -875,37 +890,18 @@ public class gestionarDiasAdministradores extends Fragment {
                                             @Override
                                             public void onSuccess(Void aVoid) {
                                                 if (fecha.contains("O")) {
-                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre2).update(fecha.replace("O", "").replaceAll("/", "-"), otroMot).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                        @Override
-                                                        public void onSuccess(Void aVoid) {
-                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).update(fecha.replace("O", "").replaceAll("/", "-"), otroMot);
-                                                        }
-                                                    });
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).update(fecha.replace("O", "").replaceAll("/", "-"), otroMot);
                                                 }
-                                                if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
-                                                    if (menu.getCambioDeFragment()) {
-                                                        actualizarCalendarioAd();
-                                                        if (hayDias) {
-                                                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
-                                                        }
-                                                        menu.setCambioDeFragmento(false);
-                                                    } else {
-                                                        if (hayDias) {
-                                                            slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
-                                                        }
-                                                    }
-                                                }
-                                                menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
-                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                                tv.setTextSize(12);
-                                                tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                                                snackbarDS.configSnackbar(getContext(), menu.snackbar);
-                                                menu.snackbar.show();
-                                                menu.cargando(false);
-                                                touch(false);
                                             }
                                         });
-
+                                        menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
+                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        tv.setTextSize(12);
+                                        tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
+                                        menu.snackbar.show();
+                                        menu.cargando(false);
+                                        touch(false);
                                     }
                                 });
                             }
@@ -954,9 +950,9 @@ public class gestionarDiasAdministradores extends Fragment {
         myMsgtitle.setTextColor(Color.BLACK);
         myMsgtitle.setPadding(2, 2, 2, 2);
         mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
-        final Button btnAceptar = mTresBtn.findViewById(R.id.btn1);
+        final Button btnAceptar = mTresBtn.findViewById(R.id.btn2);
         btnAceptar.setText("Aceptar");
-        final Button btnRechazar = mTresBtn.findViewById(R.id.btn2);
+        final Button btnRechazar = mTresBtn.findViewById(R.id.btn1);
         btnRechazar.setText("Rechazar");
         final Button btnCance = mTresBtn.findViewById(R.id.Cancelar);
         AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
@@ -980,6 +976,22 @@ public class gestionarDiasAdministradores extends Fragment {
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                try {
+                                    final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(fech);
+                                    DecimalFormat mFormat= new DecimalFormat("00");
+                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                    }
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
                         String tip = documentSnapshot.getString("Dias libres solicitados");
                         String fin = null;
                         final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
@@ -1042,6 +1054,26 @@ public class gestionarDiasAdministradores extends Fragment {
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                try {
+                                    final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(fech);
+                                    final DecimalFormat mFormat= new DecimalFormat("00");
+                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                            }
+                                        });
+                                    }
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
                         String tip = documentSnapshot.getString("Dias libres solicitados");
                         String fin = null;
                         String aceptD = documentSnapshot.getString("Dias libres");
@@ -1143,7 +1175,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private void gestDiasAd(final String nombre2, final String date) {
 
-        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre2).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 motiv = documentSnapshot.getString("Dias libres");
@@ -1162,7 +1194,6 @@ public class gestionarDiasAdministradores extends Fragment {
                 }
             }
         });
-
     }
 
     private void dialogoYaDia(final String nombre3, final String date, final String motivo) {
@@ -1488,13 +1519,8 @@ public class gestionarDiasAdministradores extends Fragment {
                     String dateS = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date);
                     Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateS);
                     Date currentTime = Calendar.getInstance().getTime();
-                    if (Objects.requireNonNull(date1).before(currentTime)) {
-                        menu.snackbar.setText("Este dia ya ha pasado, seleccione un dia futuro");
-                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                        tv.setTextSize(10);
-                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                        menu.snackbar.show();
-                    } else {
+                    if (new DateTime(date1).getDayOfYear() >= new DateTime(currentTime).getDayOfYear()
+                            || new DateTime(date1).getYear() > new DateTime(currentTime).getYear()) {
                         dialogoLibresAd(date);
                     }
                 } catch (ParseException e) {
@@ -1519,57 +1545,75 @@ public class gestionarDiasAdministradores extends Fragment {
                         for (String ds : diasSoliLista) {
                             if (ds != null) {
                                 try {
-                                    Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(ds);
+                                    final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(ds);
                                     Date currentTime = Calendar.getInstance().getTime();
                                     SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                                     final String dateS = fmt.format(Objects.requireNonNull(date1));
                                     if (date1.before(currentTime)) {
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                            @Override
-                                            public void onSuccess(final DocumentSnapshot documentSnapshot) {
-                                                if (documentSnapshot.getString("Dias libres solicitados") != null) {
-                                                    String tip = documentSnapshot.getString("Dias libres solicitados");
-                                                    String fin = null;
-                                                    final Map<String, String> mapD = new HashMap<>();
-                                                    final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
-                                                    final List<String> dias2 = new ArrayList<>();
-                                                    for (String ds : diasSotLista) {
-                                                        if (!ds.contains(dateS)) {
-                                                            dias2.add(ds);
-                                                        }
-                                                    }
-                                                    for (String ds2 : dias2) {
-                                                        if (fin == null) {
-                                                            fin = ds2 + ";";
-                                                        } else {
-                                                            fin = fin + ds2 + ";";
-                                                        }
-                                                    }
-
-                                                    mapD.put("Dias libres solicitados", fin);
-                                                    firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id")))
-                                                            .set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                        @Override
-                                                        public void onSuccess(Void aVoid) {
-                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                @Override
-                                                                public void onSuccess(Void aVoid) {
-                                                                    if (documentSnapshot.getString("nombre") == null) {
-                                                                        mapD.put("nombre", nombre);
-                                                                    }
-                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                        @Override
-                                                                        public void onSuccess(Void aVoid) {
-                                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge());
-                                                                        }
-                                                                    });
+                                        if (new DateTime(date1).getMonthOfYear() == new DateTime(currentTime).getMonthOfYear()
+                                                && new DateTime(date1).getMonthOfYear() == new DateTime(currentTime).getMonthOfYear()
+                                                && new DateTime(date1).getDayOfMonth() == new DateTime(currentTime).getDayOfMonth()){
+                                            collectionDates.add(date1);
+                                            calendarPickerView.highlightDates(collectionDates);
+                                        }else{
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                @Override
+                                                public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                                                    if (documentSnapshot.getString("Dias libres solicitados") != null) {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                DecimalFormat mFormat= new DecimalFormat("00");
+                                                                if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getString("nombre"))).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
                                                                 }
-                                                            });
+
+                                                            }
+                                                        });
+                                                        String tip = documentSnapshot.getString("Dias libres solicitados");
+                                                        String fin = null;
+                                                        final Map<String, Object> mapD = new HashMap<>();
+                                                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
+                                                        final List<String> dias2 = new ArrayList<>();
+                                                        for (String ds : diasSotLista) {
+                                                            if (!ds.contains(dateS)) {
+                                                                dias2.add(ds);
+                                                            }
                                                         }
-                                                    });
+                                                        for (String ds2 : dias2) {
+                                                            if (fin == null) {
+                                                                fin = ds2 + ";";
+                                                            } else {
+                                                                fin = fin + ds2 + ";";
+                                                            }
+                                                        }
+
+                                                        mapD.put("Dias libres solicitados", fin);
+                                                        firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id")))
+                                                                .set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @Override
+                                                                    public void onSuccess(Void aVoid) {
+                                                                        if (documentSnapshot.getString("nombre") == null) {
+                                                                            mapD.put("nombre", nombre);
+                                                                        }
+                                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void aVoid) {
+                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge());
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
                                                 }
-                                            }
-                                        });
+                                            });
+                                        }
                                     } else {
                                         collectionDates.add(date1);
                                         calendarPickerView.highlightDates(collectionDates);
@@ -1623,13 +1667,8 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 String dateS = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date);
                                                 Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateS);
                                                 Date currentTime = Calendar.getInstance().getTime();
-                                                if (Objects.requireNonNull(date1).before(currentTime)) {
-                                                    menu.snackbar.setText("Este dia ya ha pasado, seleccione un dia futuro");
-                                                    TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                                    tv.setTextSize(10);
-                                                    snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                                    menu.snackbar.show();
-                                                } else {
+                                                if (new DateTime(date1).getDayOfYear() >= new DateTime(currentTime).getDayOfYear()
+                                                        || new DateTime(date1).getYear() > new DateTime(currentTime).getYear()) {
                                                     dialogoLibresAd(date);
                                                 }
                                             } catch (ParseException e) {
