@@ -70,8 +70,8 @@ public class myPrintDocumentAdapter extends PrintDocumentAdapter {
         }
         finally {
             try {
-                Objects.requireNonNull(in).close();
-                Objects.requireNonNull(out).close();
+                in.close();
+                out.close();
             }
             catch (IOException ignored) {
 

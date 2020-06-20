@@ -2,118 +2,53 @@
 
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     style='style="?android:attr/buttonBarStyle'
-    android:layout_width="306dp"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center_horizontal"
     app:layout_anchorGravity="center_horizontal">
 
     <LinearLayout
-        android:layout_width="306dp"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:weightSum="3"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <Button
+            android:id="@+id/btn2"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:gravity="center"
-            android:orientation="horizontal"
-            app:layout_constraintBottom_toTopOf="@id/linearFirm"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_weight="1"
+            android:background="@drawable/bg_btns"
+            android:enabled="false"
+            android:text="@string/btnBorrar"
+            android:textColor="#FFFFFF" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="304dp"
-                android:layout_height="wrap_content"
-                android:padding="4dp">
-
-                <Button
-                    android:id="@+id/btn2"
-                    style="?android:attr/buttonBarButtonStyle"
-                    android:layout_width="304dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginEnd="2dp"
-                    android:background="@drawable/bg_snackbar"
-                    android:enabled="false"
-                    android:text="@string/btnBorrar"
-                    android:textColor="#FFFFFF"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/linearFirm"
-            android:layout_width="306dp"
+        <com.github.gcacace.signaturepad.views.SignaturePad
+            android:id="@+id/firmaCon2"
+            android:layout_width="match_parent"
             android:layout_height="150dp"
-            android:layout_gravity="center_horizontal"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:layout_weight="1"
+            app:penColor="@android:color/black"
+            app:penMaxWidth="4dp"
+            app:penMinWidth="2dp" />
 
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="304dp"
-                android:layout_height="150dp">
-
-                <com.github.gcacace.signaturepad.views.SignaturePad
-                    android:id="@+id/firmaCon2"
-                    android:layout_width="304dp"
-                    android:layout_height="150dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:penColor="@android:color/black"
-                    app:penMaxWidth="4dp"
-                    app:penMinWidth="2dp" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="306dp"
+        <Button
+            android:id="@+id/btn1"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="304dp"
-                android:layout_height="wrap_content">
-
-                <Button
-                    android:id="@+id/btn1"
-                    style="?android:attr/buttonBarButtonStyle"
-                    android:layout_width="304dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginTop="1dp"
-                    android:layout_marginEnd="2dp"
-                    android:layout_marginBottom="2dp"
-                    android:background="@drawable/bg_snackbar"
-                    android:enabled="false"
-                    android:padding="4dp"
-                    android:text="@string/confirmar"
-                    android:textColor="#FFFFFF"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-        </LinearLayout>
+            android:layout_weight="1"
+            android:background="@drawable/bg_btns"
+            android:enabled="false"
+            android:text="@string/confirmar"
+            android:textColor="#FFFFFF" />
 
     </LinearLayout>
 

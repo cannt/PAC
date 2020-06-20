@@ -48,4 +48,11 @@
     <string name="ayuda_general_emples">Toque los botones para desplegar información util sobre su utilidad.</string>
     <string name="ayuda_salir">Para salir del modo ayuda\nvuelva a tocar el icono de ayuda.</string>
     <string name="ayuda_generar_registro">Al tocar este boton elija un año y un mes de ese año disponible para generar su registro horario comprendido dentro de esa fecha, se le permitira descargarlo en formato PDF, enviarlo por correo o imprimirlo.</string>
+    <string name="Lunes">Lunes</string>
+    <string name="Martes">Martes</string>
+    <string name="Miercoles">Miercoles</string>
+    <string name="Jueves">Jueves</string>
+    <string name="Viernes">Viernes</string>
+    <string name="Sabado">Sabado</string>
+    <string name="Domingo">Domingo</string>
 </resources>

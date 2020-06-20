@@ -63,6 +63,34 @@
                         android:visibility="visible" />
 
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/ic_horario"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_alignParentTop="true"
+                        android:layout_marginStart="15dp"
+                        android:layout_marginTop="15dp"
+                        android:background="#01407B"
+                        android:backgroundTint="#01407B"
+                        android:src="@drawable/ic_horario"
+                        app:borderWidth="0dp"
+                        app:fabSize="mini" />
+
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/ic_diasLS"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/ic_horario"
+                        android:layout_alignParentStart="true"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginStart="15dp"
+                        android:background="#01407B"
+                        android:backgroundTint="#01407B"
+                        android:src="@drawable/ic_dias_libre_semanales"
+                        app:borderWidth="0dp"
+                        app:fabSize="mini" />
+
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/ic_gps"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

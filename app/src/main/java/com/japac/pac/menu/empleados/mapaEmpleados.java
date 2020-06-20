@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -101,19 +102,26 @@ import com.japac.pac.servicios.servicioLocalizacion;
 import com.japac.pac.servicios.snackbarDS;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
+import org.joda.time.DateTime;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static android.content.Context.ACTIVITY_SERVICE;
+import static android.content.Context.MODE_PRIVATE;
 import static android.view.View.VISIBLE;
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
@@ -139,7 +147,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         if (compruebapermisos()) {
             detalles();
 
-            if (ActivityCompat.checkSelfPermission(Objects.requireNonNull(getActivity()),
+            if (ActivityCompat.checkSelfPermission(getActivity(),
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(getActivity(),
                             Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -222,6 +230,18 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private String busquedaString;
     private String entrada_salida;
     private String snackbarLocalizando;
+    private String hEntrada;
+    private String hEntrada2;
+    private String hSalida;
+    private String hSalida2;
+    private String diasVaca;
+    private String diasVacaRango;
+    private String mislisT;
+    private String marca;
+    private Date hEntradaDate = null;
+    private Date hEntrada2Date = null;
+    private Date hSalidaDate = null;
+    private Date hSalida2Date = null;
     private FirebaseAuth mAuth;
     private static final int Permisos = 8991;
     private final String[] permisos = new String[]{
@@ -230,6 +250,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+    private ArrayList<String> diasLibresSemana;
 
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
@@ -259,6 +281,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private TextView ayudaObras;
     private TextView ayudaSalir;
 
+    private TextView tituloFueraJornada;
 
     private Animation anim;
 
@@ -292,6 +315,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
     private int mayor = 0;
 
+    private SimpleDateFormat formatJor = new SimpleDateFormat("HH:mm");
+
     public mapaEmpleados() {
 
     }
@@ -302,7 +327,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         View RootView = inflater.inflate(R.layout.fragment_mapa_empleados, container, false);
         if (compruebapermisos() && isServicesOK()) {
             mAuth = FirebaseAuth.getInstance();
-            id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+            id = mAuth.getCurrentUser().getUid();
             mDb = FirebaseFirestore.getInstance();
             almacen = FirebaseStorage.getInstance();
             mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -310,6 +335,63 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                     if (documentSnapshot.exists()) {
                         codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                        mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                diasLibresSemana = new ArrayList<>();
+                                diasLibresSemana.clear();
+                                diasLibresSemana = (ArrayList<String>) documentSnapshot.get("dias libres semana");
+                                hEntrada = documentSnapshot.getString("hora de entrada");
+                                if (hEntrada != null) {
+                                    try {
+                                        hEntradaDate = formatJor.parse(hEntrada);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                hSalida = documentSnapshot.getString("hora de salida");
+                                if (hSalida != null) {
+                                    try {
+                                        hSalidaDate = formatJor.parse(hSalida);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                hEntrada2 = documentSnapshot.getString("hora de entrada partida");
+                                if (hEntrada2 != null) {
+                                    try {
+                                        hEntrada2Date = formatJor.parse(hEntrada2);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                hSalida2 = documentSnapshot.getString("hora de salida partida");
+                                if (hSalida2 != null) {
+                                    try {
+                                        hSalida2Date = formatJor.parse(hSalida2);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                try {
+                                    Log.d("hEntrada", hEntrada);
+                                    Log.d("hSalida", hSalida);
+                                    SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                    Date entradaDate = format.parse(hEntrada);
+                                    Date salidaDate = format.parse(hSalida);
+                                    Log.d("entradaDate", entradaDate.toString());
+                                    Log.d("salidaDate", salidaDate.toString());
+                                    long milis = salidaDate.getTime() - entradaDate.getTime();
+                                    Log.d("hours", String.valueOf(milis));
+                                    mislisT = String.valueOf(milis);
+                                    Log.d("mislisT", mislisT);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                        marca = documentSnapshot.getString("hora marcada");
+                        diasVaca = documentSnapshot.getString("Dias libres");
                         comp = documentSnapshot.getString("comprobar");
                         empresa = documentSnapshot.getString("empresa");
                         nombre = documentSnapshot.getString("nombre");
@@ -320,7 +402,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
-                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        slidingLayout2 = getView().findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
                         xpand2 = getView().findViewById(R.id.btnXpand2);
                         mBuscar = getView().findViewById(R.id.input_buscar);
@@ -410,9 +492,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("¿Quien va a registrar la jornada?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         View mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
         final Button botonYo = mTres.findViewById(R.id.btn2);
         botonYo.setTextSize(15);
@@ -422,7 +506,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         botonOtro.setText("Empleado invitado");
         final Button botonCancelar = mTres.findViewById(R.id.Cancelar);
         botonCancelar.setTextSize(15);
-        final AlertDialog.Builder Quien = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+        final AlertDialog.Builder Quien = new AlertDialog.Builder(getContext());
         Quien
                 .setCustomTitle(myMsgtitle)
                 .setView(mTres);
@@ -440,7 +524,9 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     final Button botonCancelar = mDos.findViewById(R.id.btn2);
                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                     myMsgtitle.setTextColor(Color.BLACK);
-                    myMsgtitle.setPadding(2, 2, 2, 2);
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
+
                     String obFin = null;
                     if (obcomprueba != null) {
                         if (obcomprueba.equals(obraMarker)) {
@@ -456,7 +542,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         obFin = obraMarker;
                         botonJornada.setText("Iniciar");
                     }
-                    final AlertDialog.Builder Yo = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                    final AlertDialog.Builder Yo = new AlertDialog.Builder(getContext());
                     Yo
                             .setCustomTitle(myMsgtitle)
                             .setView(mDos);
@@ -471,7 +557,133 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                             } else if (comp.equals("finalizada") || comp.equals("no")) {
                                 entrada_salida = "Entrada";
                             }
-                            leerGeo(finalObFin);
+                            if (Jornada()) {
+                                leerGeo(finalObFin);
+                            } else {
+                                menu.cargando(true);
+                                touch(true);
+                                final View[] mDosBtn = {getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null)};
+                                final Button btnCont = mDosBtn[0].findViewById(R.id.btn1);
+                                btnCont.setText("Continuar");
+                                final Button btnSal = mDosBtn[0].findViewById(R.id.btn2);
+                                btnSal.setText("Cancelar y salir");
+                                final AlertDialog.Builder fuera = new AlertDialog.Builder(getContext())
+                                        .setCustomTitle(tituloFueraJornada)
+                                        .setView(mDosBtn[0]);
+                                final AlertDialog dialogoFuera = fuera.create();
+                                btnCont.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoFuera.dismiss();
+                                        leerGeo(finalObFin);
+                                    }
+                                });
+                                btnSal.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoFuera.dismiss();
+                                        menu.getInstance().finish();
+                                        System.exit(0);
+                                    }
+                                });
+                                dialogoFuera.setCanceledOnTouchOutside(false);
+                                dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                    @Override
+                                    public void onShow(DialogInterface dialog) {
+                                        btnCont.setEnabled(true);
+                                        btnSal.setEnabled(true);
+                                        menu.cargando(false);
+                                        touch(false);
+                                    }
+                                });
+                                final String[] horasDV = {null};
+                                if (diasVacaRango != null) {
+                                    mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            String docu = diasVacaRango.replaceAll("/", "-").trim();
+                                            horasDV[0] = documentSnapshot.getString(docu);
+                                            if (horasDV[0] != null) {
+                                                final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                                String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                                String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                                final Calendar calAhora = Calendar.getInstance();
+                                                Calendar calEntradaDia = Calendar.getInstance();
+                                                calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                                calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                                calEntradaDia.set(Calendar.SECOND, 00);
+                                                Calendar calSalidaDia = Calendar.getInstance();
+                                                calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                                calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                                calSalidaDia.set(Calendar.SECOND, 00);
+                                                if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                    if (diasVacaRango.contains("V")) {
+                                                        tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea registrar la jornada de todas formas?");
+                                                        fuera.setCustomTitle(tituloFueraJornada);
+                                                        if (mDosBtn[0].getParent() != null) {
+                                                            ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                            mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                            dialogoFuera.show();
+                                                        } else {
+                                                            dialogoFuera.show();
+                                                        }
+
+                                                    } else if (diasVacaRango.contains("B")) {
+                                                        tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea registrar la jornada de todas formas?");
+                                                        fuera.setCustomTitle(tituloFueraJornada);
+                                                        if (mDosBtn[0].getParent() != null) {
+                                                            ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                            mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                            dialogoFuera.show();
+                                                        } else {
+                                                            dialogoFuera.show();
+                                                        }
+
+                                                    } else if (diasVacaRango.contains("O")) {
+                                                        mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                String d = diasVacaRango.replace("O", "").replaceAll("/", "-");
+                                                                tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea registrar la jornada de todas formas?");
+                                                                fuera.setCustomTitle(tituloFueraJornada);
+                                                                if (mDosBtn[0].getParent() != null) {
+                                                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                    dialogoFuera.show();
+                                                                } else {
+                                                                    dialogoFuera.show();
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                } else {
+                                                    menu.cargando(false);
+                                                    touch(false);
+                                                    leerGeo(finalObFin);
+                                                }
+                                            } else {
+                                                tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                                if (mDosBtn[0].getParent() != null) {
+                                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                    dialogoFuera.show();
+                                                } else {
+                                                    dialogoFuera.show();
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                    if (mDosBtn[0].getParent() != null) {
+                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                        dialogoFuera.show();
+                                    } else {
+                                        dialogoFuera.show();
+                                    }
+                                }
+                            }
                         }
                     });
                     botonCancelar.setOnClickListener(new View.OnClickListener() {
@@ -564,12 +776,14 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Seleccione la obra");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         View mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         obraSpinner = mObras.findViewById(R.id.spinnerObra);
-        ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, obs);
+        ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, obs);
         obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         obraSpinner.setAdapter(obraAdapter);
         final Button botonJornada = mObras.findViewById(R.id.btn1);
@@ -617,7 +831,133 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         obraSpinner.setSelection(leeObras(obraSpinner, obcomprueba));
                     } else if (comp.equals("finalizada") || comp.equals("no")) {
                         entrada_salida = "Entrada";
-                        leerGeo(obraselect);
+                        if (Jornada()) {
+                            leerGeo(obraselect);
+                        } else {
+                            menu.cargando(true);
+                            touch(true);
+                            final View[] mDosBtn = {getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null)};
+                            final Button btnCont = mDosBtn[0].findViewById(R.id.btn1);
+                            btnCont.setText("Continuar");
+                            final Button btnSal = mDosBtn[0].findViewById(R.id.btn2);
+                            btnSal.setText("Cancelar y salir");
+                            final AlertDialog.Builder fuera = new AlertDialog.Builder(getContext())
+                                    .setCustomTitle(tituloFueraJornada)
+                                    .setView(mDosBtn[0]);
+                            final AlertDialog dialogoFuera = fuera.create();
+                            btnCont.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    leerGeo(obraselect);
+                                }
+                            });
+                            btnSal.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    menu.getInstance().finish();
+                                    System.exit(0);
+                                }
+                            });
+                            dialogoFuera.setCanceledOnTouchOutside(false);
+                            dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(DialogInterface dialog) {
+                                    btnCont.setEnabled(true);
+                                    btnSal.setEnabled(true);
+                                    menu.cargando(false);
+                                    touch(false);
+                                }
+                            });
+                            final String[] horasDV = {null};
+                            if (diasVacaRango != null) {
+                                mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                        String docu = diasVacaRango.replaceAll("/", "-").trim();
+                                        horasDV[0] = documentSnapshot.getString(docu);
+                                        if (horasDV[0] != null) {
+                                            final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                            String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                            String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                            final Calendar calAhora = Calendar.getInstance();
+                                            Calendar calEntradaDia = Calendar.getInstance();
+                                            calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                            calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                            calEntradaDia.set(Calendar.SECOND, 00);
+                                            Calendar calSalidaDia = Calendar.getInstance();
+                                            calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                            calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                            calSalidaDia.set(Calendar.SECOND, 00);
+                                            if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                if (diasVacaRango.contains("V")) {
+                                                    tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea registrar la jornada de todas formas?");
+                                                    fuera.setCustomTitle(tituloFueraJornada);
+                                                    if (mDosBtn[0].getParent() != null) {
+                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoFuera.show();
+                                                    } else {
+                                                        dialogoFuera.show();
+                                                    }
+
+                                                } else if (diasVacaRango.contains("B")) {
+                                                    tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea registrar la jornada de todas formas?");
+                                                    fuera.setCustomTitle(tituloFueraJornada);
+                                                    if (mDosBtn[0].getParent() != null) {
+                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoFuera.show();
+                                                    } else {
+                                                        dialogoFuera.show();
+                                                    }
+
+                                                } else if (diasVacaRango.contains("O")) {
+                                                    mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            String d = diasVacaRango.replace("O", "").replaceAll("/", "-");
+                                                            tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea registrar la jornada de todas formas?");
+                                                            fuera.setCustomTitle(tituloFueraJornada);
+                                                            if (mDosBtn[0].getParent() != null) {
+                                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                dialogoFuera.show();
+                                                            } else {
+                                                                dialogoFuera.show();
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            } else {
+                                                menu.cargando(false);
+                                                touch(false);
+                                                leerGeo(obraselect);
+                                            }
+                                        } else {
+                                            tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                            if (mDosBtn[0].getParent() != null) {
+                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                dialogoFuera.show();
+                                            } else {
+                                                dialogoFuera.show();
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                if (mDosBtn[0].getParent() != null) {
+                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    dialogoFuera.show();
+                                } else {
+                                    dialogoFuera.show();
+                                }
+                            }
+                        }
                     }
                 } else if (botonJornada.getText().equals("Finalizar")) {
                     if (comp.contentEquals("finalizada") || comp.contentEquals("no")) {
@@ -630,7 +970,133 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         botonJornada.setTextColor(Color.RED);
                     } else if (comp.contentEquals("iniciada")) {
                         entrada_salida = "Salida";
-                        leerGeo(obraselect);
+                        if (Jornada()) {
+                            leerGeo(obraselect);
+                        } else {
+                            menu.cargando(true);
+                            touch(true);
+                            final View[] mDosBtn = {getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null)};
+                            final Button btnCont = mDosBtn[0].findViewById(R.id.btn1);
+                            btnCont.setText("Continuar");
+                            final Button btnSal = mDosBtn[0].findViewById(R.id.btn2);
+                            btnSal.setText("Cancelar y salir");
+                            final AlertDialog.Builder fuera = new AlertDialog.Builder(getContext())
+                                    .setCustomTitle(tituloFueraJornada)
+                                    .setView(mDosBtn[0]);
+                            final AlertDialog dialogoFuera = fuera.create();
+                            btnCont.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    leerGeo(obraselect);
+                                }
+                            });
+                            btnSal.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoFuera.dismiss();
+                                    menu.getInstance().finish();
+                                    System.exit(0);
+                                }
+                            });
+                            dialogoFuera.setCanceledOnTouchOutside(false);
+                            dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(DialogInterface dialog) {
+                                    btnCont.setEnabled(true);
+                                    btnSal.setEnabled(true);
+                                    menu.cargando(false);
+                                    touch(false);
+                                }
+                            });
+                            final String[] horasDV = {null};
+                            if (diasVacaRango != null) {
+                                mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                        String docu = diasVacaRango.replaceAll("/", "-").trim();
+                                        horasDV[0] = documentSnapshot.getString(docu);
+                                        if (horasDV[0] != null) {
+                                            final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                            String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                            String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                            final Calendar calAhora = Calendar.getInstance();
+                                            Calendar calEntradaDia = Calendar.getInstance();
+                                            calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                            calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                            calEntradaDia.set(Calendar.SECOND, 00);
+                                            Calendar calSalidaDia = Calendar.getInstance();
+                                            calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                            calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                            calSalidaDia.set(Calendar.SECOND, 00);
+                                            if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                if (diasVacaRango.contains("V")) {
+                                                    tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea registrar la jornada de todas formas?");
+                                                    fuera.setCustomTitle(tituloFueraJornada);
+                                                    if (mDosBtn[0].getParent() != null) {
+                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoFuera.show();
+                                                    } else {
+                                                        dialogoFuera.show();
+                                                    }
+
+                                                } else if (diasVacaRango.contains("B")) {
+                                                    tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea registrar la jornada de todas formas?");
+                                                    fuera.setCustomTitle(tituloFueraJornada);
+                                                    if (mDosBtn[0].getParent() != null) {
+                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                        dialogoFuera.show();
+                                                    } else {
+                                                        dialogoFuera.show();
+                                                    }
+
+                                                } else if (diasVacaRango.contains("O")) {
+                                                    mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                            String d = diasVacaRango.replace("O", "").replaceAll("/", "-");
+                                                            tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea registrar la jornada de todas formas?");
+                                                            fuera.setCustomTitle(tituloFueraJornada);
+                                                            if (mDosBtn[0].getParent() != null) {
+                                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                dialogoFuera.show();
+                                                            } else {
+                                                                dialogoFuera.show();
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            } else {
+                                                menu.cargando(false);
+                                                touch(false);
+                                                leerGeo(obraselect);
+                                            }
+                                        } else {
+                                            tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                            if (mDosBtn[0].getParent() != null) {
+                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                dialogoFuera.show();
+                                            } else {
+                                                dialogoFuera.show();
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                if (mDosBtn[0].getParent() != null) {
+                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    dialogoFuera.show();
+                                } else {
+                                    dialogoFuera.show();
+                                }
+                            }
+                        }
                     }
 
                 }
@@ -704,11 +1170,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Introduzca los credenciales del empleado invitado");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
-        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
         final EditText semail = mLogin.findViewById(R.id.emailDialogo);
         final EditText scontrasena = mLogin.findViewById(R.id.contrasenaDialogo);
         final Button botonSig = mLogin.findViewById(R.id.btn1);
@@ -732,7 +1200,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                     menu.cargando(true);
                                     touch(true);
                                     if (task.isSuccessful()) {
-                                        id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                        id = mAuth.getCurrentUser().getUid();
                                         mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                             @Override
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -759,7 +1227,9 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                         final Button botonCancelar = mDos.findViewById(R.id.btn2);
                                                         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                         myMsgtitle.setTextColor(Color.BLACK);
-                                                        myMsgtitle.setPadding(2, 2, 2, 2);
+                                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                        myMsgtitle.setLayoutParams(params);
+
                                                         String obFin = null;
                                                         if (obcomprueba != null) {
                                                             if (obcomprueba.equals(obraMarker)) {
@@ -775,7 +1245,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                             obFin = obraMarker;
                                                             botonJornada.setText("Iniciar");
                                                         }
-                                                        final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                                        final AlertDialog.Builder Otro = new AlertDialog.Builder(getContext());
                                                         Otro
                                                                 .setCustomTitle(myMsgtitle)
                                                                 .setView(mDos);
@@ -790,7 +1260,133 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                     entrada_salida = "Entrada";
                                                                 }
                                                                 dialogoOtro.dismiss();
-                                                                leerGeo(finalObFin);
+                                                                if (Jornada()) {
+                                                                    leerGeo(finalObFin);
+                                                                } else {
+                                                                    menu.cargando(true);
+                                                                    touch(true);
+                                                                    final View[] mDosBtn = {getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null)};
+                                                                    final Button btnCont = mDosBtn[0].findViewById(R.id.btn1);
+                                                                    btnCont.setText("Continuar");
+                                                                    final Button btnSal = mDosBtn[0].findViewById(R.id.btn2);
+                                                                    btnSal.setText("Cancelar y salir");
+                                                                    final AlertDialog.Builder fuera = new AlertDialog.Builder(getContext())
+                                                                            .setCustomTitle(tituloFueraJornada)
+                                                                            .setView(mDosBtn[0]);
+                                                                    final AlertDialog dialogoFuera = fuera.create();
+                                                                    btnCont.setOnClickListener(new View.OnClickListener() {
+                                                                        @Override
+                                                                        public void onClick(View v) {
+                                                                            dialogoFuera.dismiss();
+                                                                            leerGeo(finalObFin);
+                                                                        }
+                                                                    });
+                                                                    btnSal.setOnClickListener(new View.OnClickListener() {
+                                                                        @Override
+                                                                        public void onClick(View v) {
+                                                                            dialogoFuera.dismiss();
+                                                                            menu.getInstance().finish();
+                                                                            System.exit(0);
+                                                                        }
+                                                                    });
+                                                                    dialogoFuera.setCanceledOnTouchOutside(false);
+                                                                    dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                        @Override
+                                                                        public void onShow(DialogInterface dialog) {
+                                                                            btnCont.setEnabled(true);
+                                                                            btnSal.setEnabled(true);
+                                                                            menu.cargando(false);
+                                                                            touch(false);
+                                                                        }
+                                                                    });
+                                                                    final String[] horasDV = {null};
+                                                                    if (diasVacaRango != null) {
+                                                                        mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                            @Override
+                                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                                String docu = diasVacaRango.replaceAll("/", "-").trim();
+                                                                                horasDV[0] = documentSnapshot.getString(docu);
+                                                                                if (horasDV[0] != null) {
+                                                                                    final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                                                                    String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                                                                    String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                                                                    final Calendar calAhora = Calendar.getInstance();
+                                                                                    Calendar calEntradaDia = Calendar.getInstance();
+                                                                                    calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                                                                    calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                                                                    calEntradaDia.set(Calendar.SECOND, 00);
+                                                                                    Calendar calSalidaDia = Calendar.getInstance();
+                                                                                    calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                                                                    calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                                                                    calSalidaDia.set(Calendar.SECOND, 00);
+                                                                                    if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                                                        if (diasVacaRango.contains("V")) {
+                                                                                            tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea registrar la jornada de todas formas?");
+                                                                                            fuera.setCustomTitle(tituloFueraJornada);
+                                                                                            if (mDosBtn[0].getParent() != null) {
+                                                                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                dialogoFuera.show();
+                                                                                            } else {
+                                                                                                dialogoFuera.show();
+                                                                                            }
+
+                                                                                        } else if (diasVacaRango.contains("B")) {
+                                                                                            tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea registrar la jornada de todas formas?");
+                                                                                            fuera.setCustomTitle(tituloFueraJornada);
+                                                                                            if (mDosBtn[0].getParent() != null) {
+                                                                                                ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                                                mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                dialogoFuera.show();
+                                                                                            } else {
+                                                                                                dialogoFuera.show();
+                                                                                            }
+
+                                                                                        } else if (diasVacaRango.contains("O")) {
+                                                                                            mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                                                @Override
+                                                                                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                                                    String d = diasVacaRango.replace("O", "").replaceAll("/", "-");
+                                                                                                    tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea registrar la jornada de todas formas?");
+                                                                                                    fuera.setCustomTitle(tituloFueraJornada);
+                                                                                                    if (mDosBtn[0].getParent() != null) {
+                                                                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                        dialogoFuera.show();
+                                                                                                    } else {
+                                                                                                        dialogoFuera.show();
+                                                                                                    }
+                                                                                                }
+                                                                                            });
+                                                                                        }
+                                                                                    } else {
+                                                                                        menu.cargando(false);
+                                                                                        touch(false);
+                                                                                        leerGeo(finalObFin);
+                                                                                    }
+                                                                                } else {
+                                                                                    tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                                                                    if (mDosBtn[0].getParent() != null) {
+                                                                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                        dialogoFuera.show();
+                                                                                    } else {
+                                                                                        dialogoFuera.show();
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    } else {
+                                                                        tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                                                        if (mDosBtn[0].getParent() != null) {
+                                                                            ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                            mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                            dialogoFuera.show();
+                                                                        } else {
+                                                                            dialogoFuera.show();
+                                                                        }
+                                                                    }
+                                                                }
                                                             }
                                                         });
                                                         botonCancelar.setOnClickListener(new View.OnClickListener() {
@@ -905,11 +1501,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText(nombreNu + " confirme la operación");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null, false);
-        final AlertDialog.Builder Confirma = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+        final AlertDialog.Builder Confirma = new AlertDialog.Builder(getContext());
         final EditText semail = mLogin.findViewById(R.id.emailDialogo);
         semail.setEnabled(false);
         semail.setText(emailAn);
@@ -929,7 +1527,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
-                                id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                id = mAuth.getCurrentUser().getUid();
                                 otro = false;
                                 dialogoConfirma.dismiss();
                                 new CountDownTimer(6000, 6000) {
@@ -989,7 +1587,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void leerGeo(final String obra) {
-
         mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -997,7 +1594,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 touch(true);
                 dis = 50.0;
                 GeoPoint geopointGuardado = documentSnapshot.getGeoPoint("geoPoint");
-                latitudGuardada = Objects.requireNonNull(geopointGuardado).getLatitude();
+                latitudGuardada = geopointGuardado.getLatitude();
                 longitudGuardada = geopointGuardado.getLongitude();
                 timerLeergeo = new CountDownTimer(60000, 5000) {
                     @Override
@@ -1043,8 +1640,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                 distan2 = 1.2;
                                                                                 menu.cargando(false);
                                                                                 touch(false);
-                                                                                enviajornada(obra, null);
+                                                                                if (timerSnackLocaliza != null) {
+                                                                                    timerSnackLocaliza.cancel();
+                                                                                }
                                                                                 cancel();
+                                                                                enviajornada(obra, null);
                                                                             }
                                                                         });
                                                                     }
@@ -1061,8 +1661,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 distan2 = 1.2;
                                 menu.cargando(false);
                                 touch(false);
-                                compruebaObra(obra);
+                                if (timerSnackLocaliza != null) {
+                                    timerSnackLocaliza.cancel();
+                                }
                                 cancel();
+                                compruebaObra(obra);
                             }
                         } else if (Double.compare(distan, 50.0) > 0) {
                             distan2 = 1.0;
@@ -1106,9 +1709,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
                         if (distan2 == 1.2) {
                             distan2 = 1.0;
+                            if (timerSnackLocaliza != null) {
+                                timerSnackLocaliza.cancel();
+                            }
                             menu.cargando(false);
                             touch(false);
-                            cancel();
                         } else if (distan2 == 1.0) {
                             distan2 = 1.1;
                             if (latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
@@ -1153,11 +1758,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                         touch(true);
                                                                                         final TextView myMsgtitle = new TextView(getActivity());
                                                                                         myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                                                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                        myMsgtitle.setLayoutParams(params);
                                                                                         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                                                         myMsgtitle.setTextColor(Color.BLACK);
-                                                                                        myMsgtitle.setPadding(2, 2, 2, 2);
+
                                                                                         mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                                         final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
                                                                                         final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
                                                                                         Login
@@ -1226,11 +1833,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                         touch(true);
                                         final TextView myMsgtitle = new TextView(getActivity());
                                         myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                        myMsgtitle.setLayoutParams(params);
                                         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                         myMsgtitle.setTextColor(Color.BLACK);
-                                        myMsgtitle.setPadding(2, 2, 2, 2);
+
                                         mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                         final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
                                         final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
                                         Login
@@ -1291,6 +1900,176 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         });
     }
 
+    private boolean Jornada() {
+        menu.cargando(true);
+        touch(true);
+        final boolean[] hora = {true};
+        mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if (documentSnapshot.exists()) {
+                    hora[0] = true;
+                    codigoEmpresa = documentSnapshot.getString("codigo empresa");
+                    mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            diasLibresSemana = new ArrayList<>();
+                            diasLibresSemana.clear();
+                            diasLibresSemana = (ArrayList<String>) documentSnapshot.get("dias libres semana");
+                            hEntrada = documentSnapshot.getString("hora de entrada");
+                            if (hEntrada != null) {
+                                try {
+                                    hEntradaDate = formatJor.parse(hEntrada);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            hSalida = documentSnapshot.getString("hora de salida");
+                            if (hSalida != null) {
+                                try {
+                                    hSalidaDate = formatJor.parse(hSalida);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            hEntrada2 = documentSnapshot.getString("hora de entrada partida");
+                            if (hEntrada2 != null) {
+                                try {
+                                    hEntrada2Date = formatJor.parse(hEntrada2);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            hSalida2 = documentSnapshot.getString("hora de salida partida");
+                            if (hSalida2 != null) {
+                                try {
+                                    hSalida2Date = formatJor.parse(hSalida2);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    });
+                    diasVaca = documentSnapshot.getString("Dias libres");
+                    tituloFueraJornada = new TextView(getContext());
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    tituloFueraJornada.setLayoutParams(params);
+                    tituloFueraJornada.setGravity(Gravity.CENTER_HORIZONTAL);
+                    tituloFueraJornada.setTextColor(Color.BLACK);
+                    tituloFueraJornada.setPadding(2, 2, 2, 2);
+                    final Calendar calAhora = Calendar.getInstance();
+                    int weekday = calAhora.get(Calendar.DAY_OF_WEEK);
+                    DateFormatSymbols dfs = new DateFormatSymbols();
+                    if (diasVaca != null) {
+                        final String[] diasSotLista = diasVaca.split("\\s*;\\s*");
+                        SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                        Date date = calAhora.getTime();
+                        final String datefull = formato.format(date);
+                        for (final String ds : diasSotLista) {
+                            if (ds.contains(datefull)) {
+                                diasVacaRango = ds;
+                                if (ds.contains("V")) {
+                                    tituloFueraJornada.setText("Hoy es dia " + ds.replaceAll("V", "") + " asignado libre por vacaciones");
+                                    hora[0] = false;
+                                    break;
+                                } else if (ds.contains("B")) {
+                                    tituloFueraJornada.setText("Hoy es dia " + ds.replaceAll("B", "") + " asignado libre por baja laboral");
+                                    hora[0] = false;
+                                    break;
+                                } else if (ds.contains("O")) {
+                                    mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            String d = ds.replace("O", "").replaceAll("/", "-");
+                                            tituloFueraJornada.setText("Hoy es dia " + ds.replaceAll("O", "") + " asignado libre por " + documentSnapshot.getString(d));
+                                        }
+                                    });
+                                    hora[0] = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (hora[0]) {
+                        if (diasLibresSemana != null && diasLibresSemana.size() > 0) {
+                            if (diasLibresSemana.contains(dfs.getWeekdays()[weekday])) {
+                                hora[0] = false;
+                                if (dfs.getWeekdays()[weekday].equals("Monday")) {
+                                    tituloFueraJornada.setText("Hoy es Lunes, dia asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Tuesday")) {
+                                    tituloFueraJornada.setText("Hoy es Martes, asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Wednesday")) {
+                                    tituloFueraJornada.setText("Hoy es Miercoles, asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Thursday")) {
+                                    tituloFueraJornada.setText("Hoy es Jueves, asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Friday")) {
+                                    tituloFueraJornada.setText("Hoy es Viernes, asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Saturday")) {
+                                    tituloFueraJornada.setText("Hoy es Sabado, asignado por " + empresa + " como dia de descanso semanal");
+                                } else if (dfs.getWeekdays()[weekday].equals("Sunday")) {
+                                    tituloFueraJornada.setText("Hoy es Domingo, asignado por " + empresa + " como dia de descanso semanal");
+                                }
+                            }
+                        }
+                    }
+                    if (hora[0]) {
+                        if (hSalida2Date == null && hEntrada2Date == null) {
+                            Calendar calEntrada = Calendar.getInstance();
+                            calEntrada.set(Calendar.HOUR_OF_DAY, new DateTime(hEntradaDate).getHourOfDay());
+                            calEntrada.set(Calendar.MINUTE, new DateTime(hEntradaDate).getMinuteOfHour());
+                            calEntrada.set(Calendar.SECOND, 00);
+                            Calendar calSalida = Calendar.getInstance();
+                            calSalida.set(Calendar.HOUR_OF_DAY, new DateTime(hSalidaDate).getHourOfDay());
+                            calSalida.set(Calendar.MINUTE, new DateTime(hSalidaDate).getMinuteOfHour());
+                            calSalida.set(Calendar.SECOND, 00);
+                            if (calAhora.getTime().equals(calEntrada.getTime()) || calAhora.getTime().equals(calSalida.getTime())) {
+                                hora[0] = true;
+                            } else if (calAhora.getTime().after(calEntrada.getTime()) && calAhora.getTime().before(calSalida.getTime())) {
+                                hora[0] = true;
+                            } else {
+                                tituloFueraJornada.setText("Son las " + calAhora.get(Calendar.HOUR_OF_DAY) + ":" + calAhora.get(Calendar.MINUTE) + ",esta fuera del horario laboral");
+                                hora[0] = false;
+                            }
+
+                        } else {
+                            Calendar calEntrada = Calendar.getInstance();
+                            calEntrada.set(Calendar.HOUR_OF_DAY, new DateTime(hEntradaDate).getHourOfDay());
+                            calEntrada.set(Calendar.MINUTE, new DateTime(hEntradaDate).getMinuteOfHour());
+                            calEntrada.set(Calendar.SECOND, 00);
+                            Calendar calSalida = Calendar.getInstance();
+                            calSalida.set(Calendar.HOUR_OF_DAY, new DateTime(hSalidaDate).getHourOfDay());
+                            calSalida.set(Calendar.MINUTE, new DateTime(hSalidaDate).getMinuteOfHour());
+                            calSalida.set(Calendar.SECOND, 00);
+                            Calendar calSalida2 = Calendar.getInstance();
+                            calSalida2.set(Calendar.HOUR_OF_DAY, new DateTime(hSalida2Date).getHourOfDay());
+                            calSalida2.set(Calendar.MINUTE, new DateTime(hSalida2Date).getMinuteOfHour());
+                            calSalida2.set(Calendar.SECOND, 00);
+                            Calendar calEntrada2 = Calendar.getInstance();
+                            calEntrada2.set(Calendar.HOUR_OF_DAY, new DateTime(hEntrada2Date).getHourOfDay());
+                            calEntrada2.set(Calendar.MINUTE, new DateTime(hEntrada2Date).getMinuteOfHour());
+                            calEntrada2.set(Calendar.SECOND, 00);
+                            if (calAhora.getTime().equals(calEntrada.getTime())
+                                    || calAhora.getTime().equals(calSalida.getTime())
+                                    || calAhora.getTime().equals(calSalida2.getTime())
+                                    || calAhora.getTime().equals(calEntrada2.getTime())) {
+                                hora[0] = true;
+                            } else if ((calAhora.getTime().after(calEntrada.getTime()) && calAhora.getTime().before(calSalida2.getTime()))
+                                    || (calAhora.getTime().after(calEntrada2.getTime()) && calAhora.getTime().before(calSalida.getTime()))) {
+                                hora[0] = true;
+                            } else {
+                                tituloFueraJornada.setText("Son las " + calAhora.get(Calendar.HOUR_OF_DAY) + ":" + calAhora.get(Calendar.MINUTE) + ",esta fuera del horario laboral");
+                                hora[0] = false;
+                            }
+                        }
+                    }
+                    menu.cargando(false);
+                    touch(false);
+                }
+            }
+        });
+        return hora[0];
+    }
+
     private void compruebaObra(final String obra) {
         menu.cargando(true);
         touch(true);
@@ -1316,18 +2095,269 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                         mDb.collection("Empresas").document(empresa).collection("Localizaciones " + roles).document(nombre).update("obra", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-
+                                                                Calendar CalendarioEditadoPruebas = Calendar.getInstance();
+                                                                CalendarioEditadoPruebas.set(Calendar.HOUR_OF_DAY, 18);
+                                                                CalendarioEditadoPruebas.set(Calendar.MINUTE, 20);
+                                                                CalendarioEditadoPruebas.set(Calendar.SECOND, 00);
                                                                 DateFormat dayFormat = new SimpleDateFormat("dd 'del' MM 'de' yyyy", Locale.getDefault());
                                                                 DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-                                                                String fecha = dayFormat.format(Calendar.getInstance().getTime());
-                                                                String hora = hourFormat.format(Calendar.getInstance().getTime());
+                                                                String fecha = dayFormat.format(CalendarioEditadoPruebas.getTime());
+                                                                final String hora = hourFormat.format(CalendarioEditadoPruebas.getTime());
                                                                 trayecto = "Iniciado el " + fecha + " a las " + hora + " y finalizado el ";
                                                                 mDb.collection("Empresas").document(empresa).collection(roles).document(nombre).update("marca temporal", trayecto).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
                                                                         menu.cargando(false);
                                                                         touch(false);
-                                                                        enviajornada(obra, obcomp);
+                                                                        if (marca != null) {
+                                                                            Log.d("marca", marca);
+                                                                            try {
+                                                                                SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                                                                Log.d("hMarca", marca);
+                                                                                Log.d("hHoraAhora", hora);
+                                                                                if (marca.contains(";")) {
+                                                                                    final String[] marcaYhoras = marca.split("\\s*;\\s*");
+                                                                                    Date entradaDate = format.parse(marcaYhoras[0]);
+                                                                                    Date salidaDate = format.parse(hora);
+                                                                                    Log.d("entradaDate", entradaDate.toString());
+                                                                                    Log.d("salidaDate", salidaDate.toString());
+                                                                                    long milis = (salidaDate.getTime() - entradaDate.getTime()) + Long.parseLong(marcaYhoras[1]);
+                                                                                    Log.d("hours", String.valueOf(milis));
+                                                                                    String milisTAhora = String.valueOf(milis);
+                                                                                    Log.d("milisTAhora", milisTAhora);
+                                                                                    Long minutes = ((Long.parseLong(mislisT) / (1000 * 60)) % 60);
+                                                                                    Log.d("minutes", String.valueOf(minutes));
+                                                                                    Long hours = ((Long.parseLong(mislisT) / (1000 * 60 * 60)) % 24);
+                                                                                    Log.d("hours", String.valueOf(hours));
+                                                                                    final Long hoursDeMas = ((Long.parseLong(milisTAhora) / (1000 * 60 * 60)) % 24) - hours;
+                                                                                    if (Long.parseLong(milisTAhora) > Long.parseLong(mislisT)) {
+                                                                                        menu.cargando(true);
+                                                                                        touch(true);
+                                                                                        final TextView myMsgtitle = new TextView(getActivity());
+                                                                                        if (minutes > 00) {
+                                                                                            myMsgtitle.setText("Hoy a trabajado " + hoursDeMas + " horas mas de las " + hours + ":" + minutes + " designadas en el horario laboral\n¿Son estas horas, extras o complementarias?");
+                                                                                        }
+                                                                                        myMsgtitle.setText("Hoy a trabajado " + hoursDeMas + " horas mas de las " + hours + " designadas en el horario laboral\n¿Son estas horas, extras o complementarias?");
+                                                                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                        myMsgtitle.setLayoutParams(params);
+                                                                                        myMsgtitle.setTextColor(Color.BLACK);
+                                                                                        View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                        final Button btnEx = mDosBtn.findViewById(R.id.btn1);
+                                                                                        btnEx.setText("Extras");
+                                                                                        final Button btnCom = mDosBtn.findViewById(R.id.btn2);
+                                                                                        btnCom.setText("Complementarias");
+                                                                                        final AlertDialog.Builder HorasDeMas1 = new AlertDialog.Builder(getContext())
+                                                                                                .setCustomTitle(myMsgtitle)
+                                                                                                .setView(mDosBtn);
+                                                                                        final AlertDialog dialogoHorasDeMas1 = HorasDeMas1.create();
+                                                                                        btnEx.setOnClickListener(new View.OnClickListener() {
+                                                                                            @Override
+                                                                                            public void onClick(View v) {
+                                                                                                menu.cargando(true);
+                                                                                                touch(true);
+                                                                                                final TextView myMsgtitle = new TextView(getActivity());
+                                                                                                myMsgtitle.setText("¿Son horas extras normales o de fuerza mayor?");
+                                                                                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                                myMsgtitle.setLayoutParams(params);
+                                                                                                myMsgtitle.setTextColor(Color.BLACK);
+                                                                                                View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                final Button btnNor = mDosBtn.findViewById(R.id.btn1);
+                                                                                                btnNor.setText("normales");
+                                                                                                final Button btnFM = mDosBtn.findViewById(R.id.btn2);
+                                                                                                btnFM.setText("Fuerza mayor");
+                                                                                                final AlertDialog.Builder HorasDeMas2 = new AlertDialog.Builder(getContext())
+                                                                                                        .setCustomTitle(myMsgtitle)
+                                                                                                        .setView(mDosBtn);
+                                                                                                final AlertDialog dialogoHorasDeMas2 = HorasDeMas2.create();
+                                                                                                btnNor.setOnClickListener(new View.OnClickListener() {
+                                                                                                    @Override
+                                                                                                    public void onClick(View v) {
+                                                                                                        dialogoHorasDeMas2.dismiss();
+                                                                                                        map.put("horas extras", hoursDeMas);
+                                                                                                        enviajornada(obra, obcomp);
+                                                                                                    }
+                                                                                                });
+                                                                                                btnFM.setOnClickListener(new View.OnClickListener() {
+                                                                                                    @Override
+                                                                                                    public void onClick(View v) {
+                                                                                                        dialogoHorasDeMas2.dismiss();
+                                                                                                        map.put("horas extras FM", hoursDeMas);
+                                                                                                        enviajornada(obra, obcomp);
+                                                                                                    }
+                                                                                                });
+                                                                                                dialogoHorasDeMas2.setCanceledOnTouchOutside(false);
+                                                                                                dialogoHorasDeMas2.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                                                    @Override
+                                                                                                    public void onShow(DialogInterface dialog) {
+                                                                                                        btnNor.setEnabled(true);
+                                                                                                        btnFM.setEnabled(true);
+                                                                                                        dialogoHorasDeMas1.dismiss();
+                                                                                                        menu.cargando(false);
+                                                                                                        touch(false);
+                                                                                                    }
+                                                                                                });
+                                                                                                if (mDosBtn.getParent() != null) {
+                                                                                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                    dialogoHorasDeMas2.show();
+                                                                                                } else {
+                                                                                                    dialogoHorasDeMas2.show();
+                                                                                                }
+
+                                                                                            }
+                                                                                        });
+                                                                                        btnCom.setOnClickListener(new View.OnClickListener() {
+                                                                                            @Override
+                                                                                            public void onClick(View v) {
+                                                                                                dialogoHorasDeMas1.dismiss();
+                                                                                                map.put("horas complementarias", hoursDeMas);
+                                                                                                enviajornada(obra, obcomp);
+                                                                                            }
+                                                                                        });
+                                                                                        dialogoHorasDeMas1.setCanceledOnTouchOutside(false);
+                                                                                        dialogoHorasDeMas1.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                                            @Override
+                                                                                            public void onShow(DialogInterface dialog) {
+                                                                                                btnEx.setEnabled(true);
+                                                                                                btnCom.setEnabled(true);
+                                                                                                menu.cargando(false);
+                                                                                                touch(false);
+                                                                                            }
+                                                                                        });
+                                                                                        if (mDosBtn.getParent() != null) {
+                                                                                            ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                                            mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                            dialogoHorasDeMas1.show();
+                                                                                        } else {
+                                                                                            dialogoHorasDeMas1.show();
+                                                                                        }
+                                                                                    } else {
+                                                                                        enviajornada(obra, obcomp);
+                                                                                    }
+                                                                                } else {
+                                                                                    Date entradaDate = format.parse(marca);
+                                                                                    Date salidaDate = format.parse(hora);
+                                                                                    Log.d("entradaDate", entradaDate.toString());
+                                                                                    Log.d("salidaDate", salidaDate.toString());
+                                                                                    long milis = salidaDate.getTime() - entradaDate.getTime();
+                                                                                    Log.d("hours", String.valueOf(milis));
+                                                                                    String milisTAhora = String.valueOf(milis);
+                                                                                    Log.d("milisTAhora", milisTAhora);
+                                                                                    Long hours = ((Long.parseLong(mislisT) / (1000 * 60 * 60)) % 24);
+                                                                                    final Long hoursDeMas = ((Long.parseLong(milisTAhora) / (1000 * 60 * 60)) % 24) - hours;
+                                                                                    if (Long.parseLong(milisTAhora) > Long.parseLong(mislisT)) {
+                                                                                        menu.cargando(true);
+                                                                                        touch(true);
+                                                                                        final TextView myMsgtitle = new TextView(getActivity());
+                                                                                        myMsgtitle.setText("Hoy a trabajado " + hoursDeMas + " horas mas de las " + hours + " designadas en el horario laboral\n¿Son estas horas, extras o complementarias?");
+                                                                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                        myMsgtitle.setLayoutParams(params);
+                                                                                        myMsgtitle.setTextColor(Color.BLACK);
+                                                                                        View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                        final Button btnEx = mDosBtn.findViewById(R.id.btn1);
+                                                                                        btnEx.setText("Extras");
+                                                                                        final Button btnCom = mDosBtn.findViewById(R.id.btn2);
+                                                                                        btnCom.setText("Complementarias");
+                                                                                        final AlertDialog.Builder HorasDeMas1 = new AlertDialog.Builder(getContext())
+                                                                                                .setCustomTitle(myMsgtitle)
+                                                                                                .setView(mDosBtn);
+                                                                                        final AlertDialog dialogoHorasDeMas1 = HorasDeMas1.create();
+                                                                                        btnEx.setOnClickListener(new View.OnClickListener() {
+                                                                                            @Override
+                                                                                            public void onClick(View v) {
+                                                                                                menu.cargando(true);
+                                                                                                touch(true);
+                                                                                                final TextView myMsgtitle = new TextView(getActivity());
+                                                                                                myMsgtitle.setText("¿Son horas extras normales o de fuerza mayor?");
+                                                                                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                                myMsgtitle.setLayoutParams(params);
+                                                                                                myMsgtitle.setTextColor(Color.BLACK);
+                                                                                                View mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                final Button btnNor = mDosBtn.findViewById(R.id.btn1);
+                                                                                                btnNor.setText("normales");
+                                                                                                final Button btnFM = mDosBtn.findViewById(R.id.btn2);
+                                                                                                btnFM.setText("Fuerza mayor");
+                                                                                                final AlertDialog.Builder HorasDeMas2 = new AlertDialog.Builder(getContext())
+                                                                                                        .setCustomTitle(myMsgtitle)
+                                                                                                        .setView(mDosBtn);
+                                                                                                final AlertDialog dialogoHorasDeMas2 = HorasDeMas2.create();
+                                                                                                btnNor.setOnClickListener(new View.OnClickListener() {
+                                                                                                    @Override
+                                                                                                    public void onClick(View v) {
+                                                                                                        dialogoHorasDeMas2.dismiss();
+                                                                                                        map.put("horas extras", hoursDeMas);
+                                                                                                        enviajornada(obra, obcomp);
+                                                                                                    }
+                                                                                                });
+                                                                                                btnFM.setOnClickListener(new View.OnClickListener() {
+                                                                                                    @Override
+                                                                                                    public void onClick(View v) {
+                                                                                                        dialogoHorasDeMas2.dismiss();
+                                                                                                        map.put("horas extras FM", hoursDeMas);
+                                                                                                        enviajornada(obra, obcomp);
+                                                                                                    }
+                                                                                                });
+                                                                                                dialogoHorasDeMas2.setCanceledOnTouchOutside(false);
+                                                                                                dialogoHorasDeMas2.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                                                    @Override
+                                                                                                    public void onShow(DialogInterface dialog) {
+                                                                                                        btnNor.setEnabled(true);
+                                                                                                        btnFM.setEnabled(true);
+                                                                                                        dialogoHorasDeMas1.dismiss();
+                                                                                                        menu.cargando(false);
+                                                                                                        touch(false);
+                                                                                                    }
+                                                                                                });
+                                                                                                if (mDosBtn.getParent() != null) {
+                                                                                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                                    dialogoHorasDeMas2.show();
+                                                                                                } else {
+                                                                                                    dialogoHorasDeMas2.show();
+                                                                                                }
+
+                                                                                            }
+                                                                                        });
+                                                                                        btnCom.setOnClickListener(new View.OnClickListener() {
+                                                                                            @Override
+                                                                                            public void onClick(View v) {
+                                                                                                dialogoHorasDeMas1.dismiss();
+                                                                                                map.put("horas complementarias", hoursDeMas);
+                                                                                                enviajornada(obra, obcomp);
+                                                                                            }
+                                                                                        });
+                                                                                        dialogoHorasDeMas1.setCanceledOnTouchOutside(false);
+                                                                                        dialogoHorasDeMas1.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                                                            @Override
+                                                                                            public void onShow(DialogInterface dialog) {
+                                                                                                btnEx.setEnabled(true);
+                                                                                                btnCom.setEnabled(true);
+                                                                                                menu.cargando(false);
+                                                                                                touch(false);
+                                                                                            }
+                                                                                        });
+                                                                                        if (mDosBtn.getParent() != null) {
+                                                                                            ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                                            mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                            dialogoHorasDeMas1.show();
+                                                                                        } else {
+                                                                                            dialogoHorasDeMas1.show();
+                                                                                        }
+                                                                                    } else {
+                                                                                        enviajornada(obra, obcomp);
+                                                                                    }
+                                                                                }
+
+                                                                            } catch (ParseException e) {
+                                                                                e.printStackTrace();
+                                                                            }
+                                                                        } else {
+                                                                            enviajornada(obra, obcomp);
+                                                                        }
                                                                     }
                                                                 });
                                                             }
@@ -1354,7 +2384,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 touch(false);
             }
         });
-        Objects.requireNonNull(getActivity()).overridePendingTransition(0, 0);
+        getActivity().overridePendingTransition(0, 0);
     }
 
     private void enviajornada(final String obra, String obcomp) {
@@ -1362,16 +2392,47 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
 
         DateFormat dfecha = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        Log.d("dfecha INICIAR", String.valueOf(dfecha));
         DateFormat dano = new SimpleDateFormat("yyyy", Locale.getDefault());
+        Log.d("dano INICIAR", String.valueOf(dano));
         DateFormat dmes = new SimpleDateFormat("MM", Locale.getDefault());
+        Log.d("dmes INICIAR", String.valueOf(dmes));
         DateFormat ddia = new SimpleDateFormat("dd", Locale.getDefault());
+        Log.d("ddia INICIAR", String.valueOf(ddia));
         final String[] fecha = {dfecha.format(Calendar.getInstance().getTime())};
+        Log.d("fecha INICIAR", fecha[0]);
         final String ano1 = dano.format(Calendar.getInstance().getTime());
+        Log.d("ano1 INICIAR", ano1);
         final String mes = dmes.format(Calendar.getInstance().getTime());
+        Log.d("mes INICIAR", mes);
         final String dia = ddia.format(Calendar.getInstance().getTime());
+        Log.d("dia INICIAR", dia);
+        final String[] hora = new String[1];
+        if (entrada_salida.equals("Entrada")) {
+            Calendar CalendarioEditadoPruebas = Calendar.getInstance();
+            CalendarioEditadoPruebas.set(Calendar.HOUR_OF_DAY, 7);
+            CalendarioEditadoPruebas.set(Calendar.MINUTE, 30);
+            CalendarioEditadoPruebas.set(Calendar.SECOND, 00);
+            DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            Log.d("hourFormat INICIA", String.valueOf(hourFormat));
+            Log.d("CALENDAR INICIA", String.valueOf(CalendarioEditadoPruebas.getTime()));
+            hora[0] = hourFormat.format(CalendarioEditadoPruebas.getTime());
+            Log.d("hora INICIA", hora[0]);
+        } else {
+            Calendar CalendarioEditadoPruebas = Calendar.getInstance();
+            CalendarioEditadoPruebas.set(Calendar.HOUR_OF_DAY, 19);
+            CalendarioEditadoPruebas.set(Calendar.MINUTE, 43);
+            CalendarioEditadoPruebas.set(Calendar.SECOND, 00);
+            DateFormat hourFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            Log.d("hourFormat FINALIZA", String.valueOf(hourFormat));
+            Log.d("CALENDAR FINALIZA", String.valueOf(CalendarioEditadoPruebas.getTime()));
+            hora[0] = hourFormat.format(CalendarioEditadoPruebas.getTime());
+            Log.d("hora FINALIZA", hora[0]);
 
-        DateFormat dhora = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-        final String[] hora = {dhora.format(Calendar.getInstance().getTime())};
+        }
+
+        /*DateFormat dhora = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            hora[0] = dhora.format(Calendar.getInstance().getTime());*/
 
         Calendar c = Calendar.getInstance();
         int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
@@ -1385,8 +2446,6 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         } else {
             manaOtard = "Noche";
         }
-
-
         map.put("nombre", nombre);
         map.put("Entrada o Salida", entrada_salida);
         map.put("obra", obra);
@@ -1465,7 +2524,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.contains("años")) {
                             String a = documentSnapshot.getString("años");
-                            if (Objects.requireNonNull(a).isEmpty()) {
+                            if (a.isEmpty()) {
                                 mapA.put("años", ano1);
                             } else {
                                 if (!a.contains(ano1)) {
@@ -1480,7 +2539,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                     if (documentSnapshot.contains("meses")) {
                                         String m = documentSnapshot.getString("meses");
-                                        if (Objects.requireNonNull(m).isEmpty()) {
+                                        if (m.isEmpty()) {
                                             mapM.put("meses", mes);
                                         } else {
                                             if (!m.contains(mes)) {
@@ -1494,7 +2553,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                 if (documentSnapshot.contains("dias")) {
                                                     String d = documentSnapshot.getString("dias");
-                                                    if (Objects.requireNonNull(d).isEmpty()) {
+                                                    if (d.isEmpty()) {
                                                         mapD.put("dias", dia);
                                                     } else {
                                                         if (!d.contains(dia)) {
@@ -1534,10 +2593,37 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                         mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                int valorOnline = Objects.requireNonNull(documentSnapshot.getLong("online")).intValue();
+                                                                int valorOnline = documentSnapshot.getLong("online").intValue();
                                                                 final Map<String, Object> mapES = new HashMap<>();
+                                                                final Map<String, Object> mapMarca = new HashMap<>();
                                                                 if (entrada_salida.equals("Entrada")) {
-
+                                                                    if (marca == null) {
+                                                                        marca = hora[0];
+                                                                        Log.d("marca", marca);
+                                                                        mapMarca.put("hora marcada", marca);
+                                                                    } else {
+                                                                        Log.d("marca", marca);
+                                                                        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                                                        Log.d("hMarca", marca);
+                                                                        Log.d("hHoraAhora", hora[0]);
+                                                                        if (marca.contains(";")) {
+                                                                            final String[] marcaYhoras = marca.split("\\s*;\\s*");
+                                                                            long milis = Long.parseLong(marcaYhoras[1]);
+                                                                            Log.d("hours", String.valueOf(milis));
+                                                                            String milisTAhora = String.valueOf(milis);
+                                                                            Log.d("milisTAhora", milisTAhora);
+                                                                            marca = hora[0] + ";" + milisTAhora;
+                                                                        } else {
+                                                                            marca = hora[0];
+                                                                        }
+                                                                        mapMarca.put("hora marcada", marca);
+                                                                    }
+                                                                    mDb.collection("Todas las ids").document(id).set(mapMarca, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        @Override
+                                                                        public void onSuccess(Void aVoid) {
+                                                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(nombre).set(mapMarca, SetOptions.merge());
+                                                                        }
+                                                                    });
                                                                     if (valorOnline >= 0) {
                                                                         valorOnline = valorOnline + 1;
                                                                         mapES.put("online", valorOnline);
@@ -1549,9 +2635,53 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                         });
                                                                     }
                                                                     menu.snackbar.setText("Jornada iniciada en " + obra + " correctamente");
-
-
                                                                 } else if (entrada_salida.equals("Salida")) {
+                                                                    if (marca != null) {
+                                                                        Log.d("marca", marca);
+                                                                        try {
+                                                                            SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                                                            Log.d("hMarca", marca);
+                                                                            Log.d("hHoraAhora", hora[0]);
+                                                                            if (marca.contains(";")) {
+                                                                                final String[] marcaYhoras = marca.split("\\s*;\\s*");
+                                                                                Date entradaDate = format.parse(marcaYhoras[0]);
+                                                                                Date salidaDate = format.parse(hora[0]);
+                                                                                Log.d("entradaDate", entradaDate.toString());
+                                                                                Log.d("salidaDate", salidaDate.toString());
+                                                                                long milis = (salidaDate.getTime() - entradaDate.getTime()) + Long.parseLong(marcaYhoras[1]);
+                                                                                Log.d("hours", String.valueOf(milis));
+                                                                                String milisTAhora = String.valueOf(milis);
+                                                                                Log.d("milisTAhora", milisTAhora);
+                                                                                marca = hora[0] + ";" + milisTAhora;
+                                                                                if (Long.parseLong(milisTAhora) > Long.parseLong(mislisT)) {
+                                                                                    map.put("UID", id);
+                                                                                }
+                                                                            } else {
+                                                                                Date entradaDate = format.parse(marca);
+                                                                                Date salidaDate = format.parse(hora[0]);
+                                                                                Log.d("entradaDate", entradaDate.toString());
+                                                                                Log.d("salidaDate", salidaDate.toString());
+                                                                                long milis = salidaDate.getTime() - entradaDate.getTime();
+                                                                                Log.d("hours", String.valueOf(milis));
+                                                                                String milisTAhora = String.valueOf(milis);
+                                                                                Log.d("milisTAhora", milisTAhora);
+                                                                                marca = hora[0] + ";" + milisTAhora;
+                                                                                if (Long.parseLong(milisTAhora) > Long.parseLong(mislisT)) {
+
+                                                                                }
+                                                                            }
+                                                                            Log.d("marca", marca);
+                                                                            mapMarca.put("hora marcada", marca);
+                                                                        } catch (ParseException e) {
+                                                                            e.printStackTrace();
+                                                                        }
+                                                                    }
+                                                                    mDb.collection("Todas las ids").document(id).set(mapMarca, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        @Override
+                                                                        public void onSuccess(Void aVoid) {
+                                                                            mDb.collection("Empresas").document(empresa).collection("Empleado").document(nombre).set(mapMarca, SetOptions.merge());
+                                                                        }
+                                                                    });
                                                                     if (valorOnline > 0) {
                                                                         valorOnline = valorOnline - 1;
                                                                         mapES.put("online", valorOnline);
@@ -1563,6 +2693,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                                                         });
                                                                     }
                                                                     menu.snackbar.setText("Jornada finalizada en " + obra + " correctamente");
+                                                                    if (hEntradaDate != null && hSalidaDate != null && hEntrada2Date == null && hSalida2Date == null) {
+
+                                                                    } else if (hEntradaDate != null && hSalidaDate != null && hEntrada2Date != null && hSalida2Date != null) {
+
+                                                                    }
                                                                 }
                                                                 if (otro) {
                                                                     otro = false;
@@ -1629,10 +2764,11 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText(nombreNu + " debe firmar para confirmar la operación");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
         mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
-        final AlertDialog.Builder Firmar = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+        final AlertDialog.Builder Firmar = new AlertDialog.Builder(getContext());
         final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
         final Button botonFirm = mFirmar.findViewById(R.id.btn1);
         final Button botonBor = mFirmar.findViewById(R.id.btn2);
@@ -1722,23 +2858,23 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 if (mAuth2.getCurrentUser() != null) {
                                     String desde = documentSnapshot.getString("Desde");
                                     firmaRef[0] = almacenRef2
-                                            .child(Objects.requireNonNull(documentSnapshot.getString("empresa")))
+                                            .child(documentSnapshot.getString("empresa"))
                                             .child("Registros desde " + desde)
-                                            .child(Objects.requireNonNull(documentSnapshot.getString("nombre")))
-                                            .child(Objects.requireNonNull(documentSnapshot.get("obraR")).toString())
-                                            .child(Objects.requireNonNull(documentSnapshot.get("fechaR")).toString())
-                                            .child(Objects.requireNonNull(documentSnapshot.get("horaR")).toString())
+                                            .child(documentSnapshot.getString("nombre"))
+                                            .child(documentSnapshot.get("obraR").toString())
+                                            .child(documentSnapshot.get("fechaR").toString())
+                                            .child(documentSnapshot.get("horaR").toString())
                                             .child(documentSnapshot.getString("saR") +
                                                     " de " +
                                                     documentSnapshot.getString("nombre") +
                                                     " en la obra " +
-                                                    Objects.requireNonNull(documentSnapshot.get("obraR")).toString() +
+                                                    documentSnapshot.get("obraR").toString() +
                                                     " desde la cuenta de " +
                                                     desde +
                                                     " el dia " +
-                                                    Objects.requireNonNull(documentSnapshot.get("fechaR")).toString() +
+                                                    documentSnapshot.get("fechaR").toString() +
                                                     " a las " +
-                                                    Objects.requireNonNull(documentSnapshot.get("fechaR")).toString() +
+                                                    documentSnapshot.get("fechaR").toString() +
                                                     ".jpg");
                                 }
                             }
@@ -1803,7 +2939,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
         adaptadorObrasLista = new adaptadorObrasLista(options);
 
-        RecyclerView recyclerView = Objects.requireNonNull(getView()).findViewById(R.id.recyclerview);
+        RecyclerView recyclerView = getView().findViewById(R.id.recyclerview);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adaptadorObrasLista);
@@ -1841,8 +2977,10 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     final Button botonJornada = mDos.findViewById(R.id.btn1);
                     final Button botonCancelar = mDos.findViewById(R.id.btn2);
                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
                     myMsgtitle.setTextColor(Color.BLACK);
-                    myMsgtitle.setPadding(2, 2, 2, 2);
+
                     String obFin = null;
                     if (obcomprueba != null) {
                         if (obcomprueba.equals(adaptadorObrasLista.getItem(viewHolder.getAdapterPosition()).getObra())) {
@@ -1858,7 +2996,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         obFin = adaptadorObrasLista.getItem(viewHolder.getAdapterPosition()).getObra();
                         botonJornada.setText("Iniciar");
                     }
-                    final AlertDialog.Builder Yo = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                    final AlertDialog.Builder Yo = new AlertDialog.Builder(getContext());
                     Yo
                             .setCustomTitle(myMsgtitle)
                             .setView(mDos);
@@ -1873,7 +3011,133 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 entrada_salida = "Entrada";
                             }
                             dialogoYo.dismiss();
-                            leerGeo(finalObFin);
+                            if (Jornada()) {
+                                leerGeo(finalObFin);
+                            } else {
+                                menu.cargando(true);
+                                touch(true);
+                                final View[] mDosBtn = {getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null)};
+                                final Button btnCont = mDosBtn[0].findViewById(R.id.btn1);
+                                btnCont.setText("Continuar");
+                                final Button btnSal = mDosBtn[0].findViewById(R.id.btn2);
+                                btnSal.setText("Cancelar y salir");
+                                final AlertDialog.Builder fuera = new AlertDialog.Builder(getContext())
+                                        .setCustomTitle(tituloFueraJornada)
+                                        .setView(mDosBtn[0]);
+                                final AlertDialog dialogoFuera = fuera.create();
+                                btnCont.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoFuera.dismiss();
+                                        leerGeo(finalObFin);
+                                    }
+                                });
+                                btnSal.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoFuera.dismiss();
+                                        menu.getInstance().finish();
+                                        System.exit(0);
+                                    }
+                                });
+                                dialogoFuera.setCanceledOnTouchOutside(false);
+                                dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                    @Override
+                                    public void onShow(DialogInterface dialog) {
+                                        btnCont.setEnabled(true);
+                                        btnSal.setEnabled(true);
+                                        menu.cargando(false);
+                                        touch(false);
+                                    }
+                                });
+                                final String[] horasDV = {null};
+                                if (diasVacaRango != null) {
+                                    mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        @Override
+                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                            String docu = diasVacaRango.replaceAll("/", "-").trim();
+                                            horasDV[0] = documentSnapshot.getString(docu);
+                                            if (horasDV[0] != null) {
+                                                final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                                String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                                String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                                final Calendar calAhora = Calendar.getInstance();
+                                                Calendar calEntradaDia = Calendar.getInstance();
+                                                calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                                calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                                calEntradaDia.set(Calendar.SECOND, 00);
+                                                Calendar calSalidaDia = Calendar.getInstance();
+                                                calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                                calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                                calSalidaDia.set(Calendar.SECOND, 00);
+                                                if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                    if (diasVacaRango.contains("V")) {
+                                                        tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea registrar la jornada de todas formas?");
+                                                        fuera.setCustomTitle(tituloFueraJornada);
+                                                        if (mDosBtn[0].getParent() != null) {
+                                                            ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                            mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                            dialogoFuera.show();
+                                                        } else {
+                                                            dialogoFuera.show();
+                                                        }
+
+                                                    } else if (diasVacaRango.contains("B")) {
+                                                        tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea registrar la jornada de todas formas?");
+                                                        fuera.setCustomTitle(tituloFueraJornada);
+                                                        if (mDosBtn[0].getParent() != null) {
+                                                            ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                            mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                            dialogoFuera.show();
+                                                        } else {
+                                                            dialogoFuera.show();
+                                                        }
+
+                                                    } else if (diasVacaRango.contains("O")) {
+                                                        mDb.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                            @Override
+                                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                String d = diasVacaRango.replace("O", "").replaceAll("/", "-");
+                                                                tituloFueraJornada.setText("Hoy es dia " + diasVacaRango.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea registrar la jornada de todas formas?");
+                                                                fuera.setCustomTitle(tituloFueraJornada);
+                                                                if (mDosBtn[0].getParent() != null) {
+                                                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                    dialogoFuera.show();
+                                                                } else {
+                                                                    dialogoFuera.show();
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                } else {
+                                                    menu.cargando(false);
+                                                    touch(false);
+                                                    leerGeo(finalObFin);
+                                                }
+                                            } else {
+                                                tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                                if (mDosBtn[0].getParent() != null) {
+                                                    ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                                    mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                    dialogoFuera.show();
+                                                } else {
+                                                    dialogoFuera.show();
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    tituloFueraJornada.setText(tituloFueraJornada.getText().toString() + "\n¿Desea registrar la jornada de todas formas?");
+                                    if (mDosBtn[0].getParent() != null) {
+                                        ((ViewGroup) mDosBtn[0].getParent()).removeView(mDosBtn[0]);
+                                        mDosBtn[0] = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                        dialogoFuera.show();
+                                    } else {
+                                        dialogoFuera.show();
+                                    }
+                                }
+                            }
                         }
                     });
                     botonCancelar.setOnClickListener(new View.OnClickListener() {
@@ -1934,9 +3198,9 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 if (task.isSuccessful()) {
                     menu.cargando(true);
                     touch(true);
-                    GeoPoint geoPoint1 = Objects.requireNonNull(task.getResult()).getGeoPoint("geoPoint");
+                    GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
 
-                    mLocaliza = new LatLng(Objects.requireNonNull(geoPoint1).getLatitude(), geoPoint1.getLongitude());
+                    mLocaliza = new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude());
                     menu.cargando(false);
                     touch(false);
                     setCamara();
@@ -1968,10 +3232,10 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void touch(Boolean touch) {
         if (touch) {
-            Objects.requireNonNull(getActivity()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         } else {
-            Objects.requireNonNull(getActivity()).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         }
 
     }
@@ -2052,14 +3316,14 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         busquedaString = mBuscar.getText().toString();
         InputMethodManager inputManager = (InputMethodManager)
-                Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getActivity().getCurrentFocus()).getWindowToken(),
+                getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(),
                 InputMethodManager.HIDE_NOT_ALWAYS);
         if (!busquedaString.isEmpty()) {
             mDb.collection("Empresas").document(empresa).collection("Obras").document(busquedaString.toLowerCase().trim()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (Objects.requireNonNull(task.getResult()).exists()) {
+                    if (task.getResult().exists()) {
                         if (menu.getCambioDeFragment()) {
                             setUpRecyclerView();
                             if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
@@ -2074,7 +3338,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                             }
                         }
 
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLatitude(), Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLongitude()), ZOOM_PREDETERMINADO));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(task.getResult().getGeoPoint("geoPoint").getLatitude(), task.getResult().getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
                         mBuscar.getText().clear();
                     } else if (!task.getResult().exists()) {
                         Geocoder geocoder = new Geocoder(getActivity());
@@ -2123,7 +3387,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     private void localizacion() {
         menu.cargando(true);
         touch(true);
-        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(Objects.requireNonNull(getActivity()));
+        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
                 final Task localizacion = mProovedor.getLastLocation();
@@ -2133,7 +3397,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                         if (task.isSuccessful()) {
                             Location locacizacionActual = (Location) task.getResult();
                             if (locacizacionActual != null) {
-                                geoPointLocalizayo = new GeoPoint(Objects.requireNonNull(locacizacionActual).getLatitude(), locacizacionActual.getLongitude());
+                                geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
                             }
                             if (geoPointLocalizayo != null) {
                                 mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
@@ -2159,7 +3423,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         menu.cargando(true);
         touch(true);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapa);
-        Objects.requireNonNull(mapFragment).getMapAsync(mapaEmpleados.this);
+        mapFragment.getMapAsync(mapaEmpleados.this);
         menu.cargando(false);
         touch(false);
 
@@ -2198,13 +3462,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
-            resultado = ContextCompat.checkSelfPermission(Objects.requireNonNull(getActivity()), perm);
+            resultado = ContextCompat.checkSelfPermission(getActivity(), perm);
             if (resultado != PackageManager.PERMISSION_GRANTED) {
                 listaPermisosNecesarios.add(perm);
             }
         }
         if (!listaPermisosNecesarios.isEmpty()) {
-            ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
+            ActivityCompat.requestPermissions(getActivity(), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
             return false;
         }
         menu.cargando(false);
@@ -2213,8 +3477,8 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void ocultarTeclado() {
-        InputMethodManager imm = (InputMethodManager) Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(imm).hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
     }
 
     private void firestoreObras() {
@@ -2236,7 +3500,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
                 List<Task<QuerySnapshot>> tasks2 = new ArrayList<>();
                 if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
                         String obran = document.getString("obra");
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
@@ -2249,7 +3513,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                             jefe1 = "sin jefe de obra";
                         }
                         if (!obs.contains(obran)) {
-                            anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
+                            anadirMarcadores(geoPoint2, obran, jefe1, online);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -2406,7 +3670,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
+                    for (QueryDocumentSnapshot document : task2.getResult()) {
                         String jefe = document.getString("nombre");
                         if (!jfs.contains(jefe) && !document.getBoolean("desactivado")) {
                             jfs.add(jefe);
@@ -2426,7 +3690,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
                         List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                         if (task1.isSuccessful()) {
-                            for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
+                            for (final QueryDocumentSnapshot document1 : task1.getResult()) {
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null && !document1.getBoolean("desactivado")) {
@@ -2446,7 +3710,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
-                        jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
+                        jefeAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
                         readyJfs = true;
@@ -2522,7 +3786,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
         menu.cargando(true);
         touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        vectorDrawable.setBounds(0, 0, 60, 60);
         Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);

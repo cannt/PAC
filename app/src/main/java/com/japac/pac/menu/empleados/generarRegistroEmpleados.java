@@ -114,7 +114,7 @@ public class generarRegistroEmpleados extends Fragment {
                              Bundle savedInstanceState) {
         final View RootView = inflater.inflate(R.layout.fragment_generar_registro_empleados, container, false);
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        String id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+        String id = mAuth.getCurrentUser().getUid();
         mDb = FirebaseFirestore.getInstance();
         almacen = FirebaseStorage.getInstance();
         almacenRef = almacen.getReference();
@@ -247,7 +247,7 @@ public class generarRegistroEmpleados extends Fragment {
                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
                                             String ans = documentSnapshot2.getString("años");
                                             if(ans!=null){
-                                                final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
+                                                final List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
                                                 mDb.collection("Empresas").document(empresa).collection("Empleado").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                     @Override
                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -347,6 +347,8 @@ public class generarRegistroEmpleados extends Fragment {
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Elija el año");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
@@ -363,7 +365,7 @@ myMsgtitle.setPadding(2,2,2,2);
 
             }
         });
-        anoAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, anos);
+        anoAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, anos);
         anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         anoMesSpinner.setAdapter(anoAdapter);
         final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
@@ -392,7 +394,7 @@ myMsgtitle.setPadding(2,2,2,2);
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot3) {
                                 String ms = documentSnapshot3.getString("meses");
-                                List<String> msL = Arrays.asList(Objects.requireNonNull(ms).split("\\s*,\\s*"));
+                                List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
                                 menu.cargando(false);
                                 touch(false);
                                 elegirFechasMeses(msL, empleado, ano1, nif, naf, id1);
@@ -442,6 +444,8 @@ myMsgtitle.setPadding(2,2,2,2);
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Elija el mes");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
 myMsgtitle.setPadding(2,2,2,2);
@@ -497,7 +501,7 @@ myMsgtitle.setPadding(2,2,2,2);
 
             }
         });
-        anoAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, meses);
+        anoAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, meses);
         anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         anoMesSpinner.setAdapter(anoAdapter);
         final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
@@ -531,7 +535,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                     menu.cargando(false);
                                     touch(false);
                                     String dia = documentSnapshotd.getString("dias");
-                                    List<String> diL = Arrays.asList(Objects.requireNonNull(dia).split("\\s*,\\s*"));
+                                    List<String> diL = Arrays.asList(dia.split("\\s*,\\s*"));
                                     creacionPdf(diL, empleado, mesnu, ano3, empresa, id1, nif, naf);
                                     dialogoMesEle.dismiss();
                                 }
@@ -612,7 +616,7 @@ myMsgtitle.setPadding(2,2,2,2);
                             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                 List<String> horas = new ArrayList<>();
                                 if (task.isSuccessful()) {
-                                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
                                         horas.add(document.getId());
                                     }
                                 }
@@ -623,7 +627,7 @@ myMsgtitle.setPadding(2,2,2,2);
                                 try {
                                     Date dateEn = simpleDateFormat.parse(horaEn);
                                     Date dateSa = simpleDateFormat.parse(horaSa);
-                                    diferencia = Objects.requireNonNull(dateSa).getTime() - Objects.requireNonNull(dateEn).getTime();
+                                    diferencia = dateSa.getTime() - dateEn.getTime();
                                     int days = (int) (diferencia / (1000 * 60 * 60 * 24));
                                     int hours = (int) ((diferencia - (1000 * 60 * 60 * 24 * days)) / (1000 * 60 * 60));
                                     int mindif = (int) (diferencia - (1000 * 60 * 60 * 24 * days) - (1000 * 60 * 60 * hours)) / (1000 * 60);
@@ -701,7 +705,7 @@ myMsgtitle.setPadding(2,2,2,2);
     private void deleteRecursive(File fileOrDirectory) {
         if (fileOrDirectory != null) {
             if (fileOrDirectory.isDirectory()) {
-                for (File child : Objects.requireNonNull(fileOrDirectory.listFiles())) {
+                for (File child : fileOrDirectory.listFiles()) {
                     deleteRecursive(child);
                 }
             }
@@ -745,10 +749,10 @@ myMsgtitle.setPadding(2,2,2,2);
 
     private void touch(Boolean touch) {
         if (touch) {
-            Objects.requireNonNull(getActivity()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         } else {
-            Objects.requireNonNull(getActivity()).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         }
     }
 

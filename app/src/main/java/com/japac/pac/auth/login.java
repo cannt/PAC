@@ -19,7 +19,9 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -51,11 +53,14 @@ import com.japac.pac.menu.menu;
 import com.japac.pac.servicios.snackbarDS;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
+import java.sql.Time;
 import java.text.DateFormatSymbols;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -83,13 +88,15 @@ public class login extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseFirestore firebaseFirestore;
 
-    private String semail = "", scontrasena = "";
+    private String semail = "", scontrasena = "", codigoEmpre, dia;
 
     private ProgressBar progressBar;
 
     private View view, mDos;
 
     private Snackbar snackbar;
+
+    private TextView myMsgtitle;
 
     private static final int ERROR_DIALOGO_PEDIR = 9001;
 
@@ -109,7 +116,6 @@ public class login extends AppCompatActivity {
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             locationRequest.setInterval(10000);
             locationRequest.setFastestInterval(10000 / 2);
-
             LocationServices.getFusedLocationProviderClient(login.this)
                     .requestLocationUpdates(locationRequest, new LocationCallback() {
                         @Override
@@ -187,29 +193,134 @@ public class login extends AppCompatActivity {
     }
 
 
-    private boolean Jornada() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        DateTime now = DateTime.now(zone);
-        int hour = now.getHourOfDay();
-        boolean hora = ((hour >= 7) && (hour < 17));
-        Calendar calendar = Calendar.getInstance();
-        int weekday = calendar.get(Calendar.DAY_OF_WEEK);
+    private boolean Jornada(Date entrada, Date salida2, Date entrada2, Date salida, ArrayList<String> diasLS, String diasVacas, final String empresa, final String nombre) {
+        cargando(true);
+        myMsgtitle = new TextView(login.this);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        myMsgtitle.setPadding(2, 2, 2, 2);
+        final Calendar calAhora = Calendar.getInstance();
+        final boolean[] hora = {true};
+        hora[0] = true;
+        int weekday = calAhora.get(Calendar.DAY_OF_WEEK);
         DateFormatSymbols dfs = new DateFormatSymbols();
-        if (dfs.getWeekdays()[weekday].equals("Saturday") || dfs.getWeekdays()[weekday].equals("Sunday")) {
-            hora = false;
+        if (diasVacas != null) {
+            final String[] diasSotLista = diasVacas.split("\\s*;\\s*");
+            SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            Date date = calAhora.getTime();
+            final String datefull = formato.format(date);
+            for (final String ds : diasSotLista) {
+                if (ds.contains(datefull)) {
+                    dia = ds;
+                    if (ds.contains("V")) {
+                        myMsgtitle.setText("Hoy es dia " + ds.replaceAll("V", "") + " asignado libre por vacaciones");
+                        hora[0] = false;
+                        break;
+                    } else if (ds.contains("B")) {
+                        myMsgtitle.setText("Hoy es dia " + ds.replaceAll("B", "") + " asignado libre por baja laboral");
+                        hora[0] = false;
+                        break;
+                    } else if (ds.contains("O")) {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                String d = ds.replace("O", "").replaceAll("/", "-");
+                                myMsgtitle.setText("Hoy es dia " + ds.replaceAll("O", "") + " asignado libre por " + documentSnapshot.getString(d));
+                            }
+                        });
+                        hora[0] = false;
+                        break;
+                    }
+                }
+            }
         }
-        if (!hora) {
+        if (hora[0]) {
+            if (diasLS != null && diasLS.size() > 0) {
+                if (diasLS.contains(dfs.getWeekdays()[weekday])) {
+                    hora[0] = false;
+                    if (dfs.getWeekdays()[weekday].equals("Monday")) {
+                        myMsgtitle.setText("Hoy es Lunes, dia asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Tuesday")) {
+                        myMsgtitle.setText("Hoy es Martes, asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Wednesday")) {
+                        myMsgtitle.setText("Hoy es Miercoles, asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Thursday")) {
+                        myMsgtitle.setText("Hoy es Jueves, asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Friday")) {
+                        myMsgtitle.setText("Hoy es Viernes, asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Saturday")) {
+                        myMsgtitle.setText("Hoy es Sabado, asignado por " + empresa + " como dia de descanso semanal");
+                    } else if (dfs.getWeekdays()[weekday].equals("Sunday")) {
+                        myMsgtitle.setText("Hoy es Domingo, asignado por " + empresa + " como dia de descanso semanal");
+                    }
+                }
+            }
+        }
+        if (hora[0]) {
+            if (salida2 == null && entrada2 == null) {
+                Calendar calEntrada = Calendar.getInstance();
+                calEntrada.set(Calendar.HOUR_OF_DAY, new DateTime(entrada).getHourOfDay());
+                calEntrada.set(Calendar.MINUTE, new DateTime(entrada).getMinuteOfHour());
+                calEntrada.set(Calendar.SECOND, 00);
+                Calendar calSalida = Calendar.getInstance();
+                calSalida.set(Calendar.HOUR_OF_DAY, new DateTime(salida).getHourOfDay());
+                calSalida.set(Calendar.MINUTE, new DateTime(salida).getMinuteOfHour());
+                calSalida.set(Calendar.SECOND, 00);
+                if (calAhora.getTime().equals(calEntrada.getTime()) || calAhora.getTime().equals(calSalida.getTime())) {
+                    hora[0] = true;
+                } else if (calAhora.getTime().after(calEntrada.getTime()) && calAhora.getTime().before(calSalida.getTime())) {
+                    hora[0] = true;
+                } else {
+                    myMsgtitle.setText("Son las " + calAhora.get(Calendar.HOUR_OF_DAY) + ":" + calAhora.get(Calendar.MINUTE) + ",esta fuera del horario laboral");
+                    hora[0] = false;
+                }
+
+            } else {
+                Calendar calEntrada = Calendar.getInstance();
+                calEntrada.set(Calendar.HOUR_OF_DAY, new DateTime(entrada).getHourOfDay());
+                calEntrada.set(Calendar.MINUTE, new DateTime(entrada).getMinuteOfHour());
+                calEntrada.set(Calendar.SECOND, 00);
+                Calendar calSalida = Calendar.getInstance();
+                calSalida.set(Calendar.HOUR_OF_DAY, new DateTime(salida).getHourOfDay());
+                calSalida.set(Calendar.MINUTE, new DateTime(salida).getMinuteOfHour());
+                calSalida.set(Calendar.SECOND, 00);
+                Calendar calSalida2 = Calendar.getInstance();
+                calSalida2.set(Calendar.HOUR_OF_DAY, new DateTime(salida2).getHourOfDay());
+                calSalida2.set(Calendar.MINUTE, new DateTime(salida2).getMinuteOfHour());
+                calSalida2.set(Calendar.SECOND, 00);
+                Calendar calEntrada2 = Calendar.getInstance();
+                calEntrada2.set(Calendar.HOUR_OF_DAY, new DateTime(entrada2).getHourOfDay());
+                calEntrada2.set(Calendar.MINUTE, new DateTime(entrada2).getMinuteOfHour());
+                calEntrada2.set(Calendar.SECOND, 00);
+                if (calAhora.getTime().equals(calEntrada.getTime())
+                        || calAhora.getTime().equals(calSalida.getTime())
+                        || calAhora.getTime().equals(calSalida2.getTime())
+                        || calAhora.getTime().equals(calEntrada2.getTime())) {
+                    hora[0] = true;
+                } else if ((calAhora.getTime().after(calEntrada.getTime()) && calAhora.getTime().before(calSalida2.getTime()))
+                        || (calAhora.getTime().after(calEntrada2.getTime()) && calAhora.getTime().before(calSalida.getTime()))) {
+                    hora[0] = true;
+                } else {
+                    myMsgtitle.setText("Son las " + calAhora.get(Calendar.HOUR_OF_DAY) + ":" + calAhora.get(Calendar.MINUTE) + ",esta fuera del horario laboral");
+                    hora[0] = false;
+                }
+            }
+        }
+        if (!hora[0]) {
             final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
             if (sharedPreferences.contains("acepta")) {
                 if (sharedPreferences.getBoolean("acepta", false)) {
-                    hora = true;
+                    hora[0] = true;
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.clear();
                     editor.apply();
                 }
             }
         }
-        return hora;
+        cargando(false);
+        return hora[0];
     }
 
     private boolean isServicesOK() {
@@ -269,144 +380,257 @@ public class login extends AppCompatActivity {
 
     private void menuRoles() {
         cargando(true);
-        final String id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+        final String id = mAuth.getCurrentUser().getUid();
         firebaseFirestore.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
-                    if(documentSnapshot.getString("rol").equals("Empleado")){
+                    if (documentSnapshot.getString("rol").equals("Empleado")) {
                         final SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-                        Boolean desac = documentSnapshot.getBoolean("desactivado");
-                        if (!desac) {
-                            if(Jornada()){
-                                startLocationService();
-                                cargando(false);
-                                startActivity(new Intent(login.this, menu.class));
-                                finish();
-                            }else if (!Jornada()) {
-                                final TextView myMsgtitle = new TextView(login.this);
-                                myMsgtitle.setText("Esta fuera de horario laboral\n¿Desea continuar de todas formas?");
-                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                                myMsgtitle.setTextColor(Color.BLACK);
-                                myMsgtitle.setPadding(2,2,2,2);
-                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                final Button btnCont = mDosBtn.findViewById(R.id.btn1);
-                                btnCont.setText("Continuar");
-                                final Button btnSal = mDosBtn.findViewById(R.id.btn2);
-                                btnSal.setText("Salir");
-                                final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
-                                        .setCustomTitle(myMsgtitle)
-                                        .setView(mDosBtn);
-                                final AlertDialog dialogoFuera = fuera.create();
-                                btnCont.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        dialogoFuera.dismiss();
-                                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                                        editor.putBoolean("acepta", true);
-                                        editor.apply();
-                                        login.this.recreate();
-                                    }
-                                });
-                                btnSal.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        dialogoFuera.dismiss();
-                                        finish();
-                                        System.exit(0);
-                                    }
-                                });
-                                dialogoFuera.setCanceledOnTouchOutside(false);
-                                dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
-                                    @Override
-                                    public void onShow(DialogInterface dialog) {
-                                        btnCont.setEnabled(true);
-                                        btnSal.setEnabled(true);
+                        final Boolean desac = documentSnapshot.getBoolean("desactivado");
+                        final String diasVaca = documentSnapshot.getString("Dias libres");
+                        final String nombre = documentSnapshot.getString("nombre");
+                        final String empresa = documentSnapshot.getString("empresa");
+                        codigoEmpre = documentSnapshot.getString("codigo empresa");
+                        firebaseFirestore.collection("Codigos").document(codigoEmpre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (!desac) {
+                                    if (documentSnapshot.getString("hora de entrada") == null && documentSnapshot.getString("hora de salida") == null) {
+                                        startLocationService();
                                         cargando(false);
-                                        final CharSequence negativeButtonText = btnCont.getText();
-                                        new CountDownTimer(10000, 100) {
-                                            @Override
-                                            public void onTick(long millisUntilFinished) {
-                                                btnCont.setText(String.format(
-                                                        Locale.getDefault(), "%s (%d)",
-                                                        negativeButtonText,
-                                                        TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
-                                                ));
+                                        startActivity(new Intent(login.this, menu.class));
+                                        finish();
+                                    } else {
+                                        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                        Date entrada = null;
+                                        Date descanso = null;
+                                        Date entrada2 = null;
+                                        Date salida = null;
+                                        try {
+                                            entrada = format.parse(documentSnapshot.getString("hora de entrada"));
+                                            salida = format.parse(documentSnapshot.getString("hora de salida"));
+                                            if (documentSnapshot.getString("hora de salida partida") != null && documentSnapshot.getString("hora de entrada partida") != null) {
+                                                descanso = format.parse(documentSnapshot.getString("hora de salida partida"));
+                                                entrada2 = format.parse(documentSnapshot.getString("hora de entrada partida"));
                                             }
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
 
-                                            @Override
-                                            public void onFinish() {
-                                                if ((dialogoFuera).isShowing()) {
+                                        ArrayList<String> diasLibresSemana = new ArrayList<>();
+                                        diasLibresSemana.clear();
+                                        diasLibresSemana = (ArrayList<String>) documentSnapshot.get("dias libres semana");
+                                        if (Jornada(entrada, descanso, entrada2, salida, diasLibresSemana, diasVaca, empresa, nombre)) {
+                                            startLocationService();
+                                            cargando(false);
+                                            startActivity(new Intent(login.this, menu.class));
+                                            finish();
+                                        } else {
+                                            mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                            final Button btnCont = mDosBtn.findViewById(R.id.btn1);
+                                            btnCont.setText("Continuar");
+                                            final Button btnSal = mDosBtn.findViewById(R.id.btn2);
+                                            btnSal.setText("Salir");
+                                            final AlertDialog.Builder fuera = new AlertDialog.Builder(login.this)
+                                                    .setCustomTitle(myMsgtitle)
+                                                    .setView(mDosBtn);
+                                            final AlertDialog dialogoFuera = fuera.create();
+                                            btnCont.setOnClickListener(new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View v) {
+                                                    dialogoFuera.dismiss();
+                                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                                    editor.putBoolean("acepta", true);
+                                                    editor.apply();
+                                                    login.this.recreate();
+                                                }
+                                            });
+                                            btnSal.setOnClickListener(new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View v) {
                                                     dialogoFuera.dismiss();
                                                     finish();
                                                     System.exit(0);
                                                 }
+                                            });
+                                            dialogoFuera.setCanceledOnTouchOutside(false);
+                                            dialogoFuera.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                @Override
+                                                public void onShow(DialogInterface dialog) {
+                                                    btnCont.setEnabled(true);
+                                                    btnSal.setEnabled(true);
+                                                    cargando(false);
+                                                    final CharSequence negativeButtonText = btnCont.getText();
+                                                    new CountDownTimer(10000, 100) {
+                                                        @Override
+                                                        public void onTick(long millisUntilFinished) {
+                                                            btnCont.setText(String.format(
+                                                                    Locale.getDefault(), "%s (%d)",
+                                                                    negativeButtonText,
+                                                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
+                                                            ));
+                                                        }
+
+                                                        @Override
+                                                        public void onFinish() {
+                                                            if ((dialogoFuera).isShowing()) {
+                                                                dialogoFuera.dismiss();
+                                                                finish();
+                                                                System.exit(0);
+                                                            }
+                                                        }
+                                                    }.start();
+                                                }
+                                            });
+                                            final String[] horasDV = {null};
+                                            if (dia != null) {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                        String docu = dia.replaceAll("/", "-").trim();
+                                                        horasDV[0] = documentSnapshot.getString(docu);
+                                                        if (horasDV[0] != null) {
+                                                            final String[] horaRangDi = horasDV[0].split("\\s*;\\s*");
+                                                            String[] horaRangEn = horaRangDi[0].split("\\s*:\\s*");
+                                                            String[] horaRangSa = horaRangDi[1].split("\\s*:\\s*");
+                                                            final Calendar calAhora = Calendar.getInstance();
+                                                            Calendar calEntradaDia = Calendar.getInstance();
+                                                            calEntradaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangEn[0]));
+                                                            calEntradaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangEn[1]));
+                                                            calEntradaDia.set(Calendar.SECOND, 00);
+                                                            Calendar calSalidaDia = Calendar.getInstance();
+                                                            calSalidaDia.set(Calendar.HOUR_OF_DAY, Integer.parseInt(horaRangSa[0]));
+                                                            calSalidaDia.set(Calendar.MINUTE, Integer.parseInt(horaRangSa[1]));
+                                                            calSalidaDia.set(Calendar.SECOND, 00);
+                                                            if (calAhora.getTime().after(calEntradaDia.getTime()) && calAhora.getTime().before(calSalidaDia.getTime())) {
+                                                                if (dia.contains("V")) {
+                                                                    myMsgtitle.setText("Hoy es dia " + dia.replaceAll("V", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por vacaciones\n¿Desea continuar de todas formas?");
+                                                                    fuera.setCustomTitle(myMsgtitle);
+                                                                    if (mDosBtn.getParent() != null) {
+                                                                        ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                        mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                        dialogoFuera.show();
+                                                                    } else {
+                                                                        dialogoFuera.show();
+                                                                    }
+
+                                                                } else if (dia.contains("B")) {
+                                                                    myMsgtitle.setText("Hoy es dia " + dia.replaceAll("B", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por baja laboral\n¿Desea continuar de todas formas?");
+                                                                    fuera.setCustomTitle(myMsgtitle);
+                                                                    if (mDosBtn.getParent() != null) {
+                                                                        ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                        mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                        dialogoFuera.show();
+                                                                    } else {
+                                                                        dialogoFuera.show();
+                                                                    }
+
+                                                                } else if (dia.contains("O")) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                        @Override
+                                                                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                            String d = dia.replace("O", "").replaceAll("/", "-");
+                                                                            myMsgtitle.setText("Hoy es dia " + dia.replaceAll("O", "") + " asignado libre desde las " + horaRangDi[0] + " hasta las " + horaRangDi[1] + " por " + documentSnapshot.getString(d) + "\n¿Desea continuar de todas formas?");
+                                                                            fuera.setCustomTitle(myMsgtitle);
+                                                                            if (mDosBtn.getParent() != null) {
+                                                                                ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                                dialogoFuera.show();
+                                                                            } else {
+                                                                                dialogoFuera.show();
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                }
+                                                            } else {
+                                                                startLocationService();
+                                                                cargando(false);
+                                                                startActivity(new Intent(login.this, menu.class));
+                                                                finish();
+                                                            }
+                                                        } else {
+                                                            myMsgtitle.setText(myMsgtitle.getText().toString() + "\n¿Desea continuar de todas formas?");
+                                                            if (mDosBtn.getParent() != null) {
+                                                                ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                                dialogoFuera.show();
+                                                            } else {
+                                                                dialogoFuera.show();
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } else {
+                                                myMsgtitle.setText(myMsgtitle.getText().toString() + "\n¿Desea continuar de todas formas?");
+                                                if (mDosBtn.getParent() != null) {
+                                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                                    dialogoFuera.show();
+                                                } else {
+                                                    dialogoFuera.show();
+                                                }
                                             }
-                                        }.start();
+                                        }
                                     }
-                                });
-                                if (mDosBtn.getParent() != null) {
-                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
-                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                    dialogoFuera.show();
                                 } else {
-                                    dialogoFuera.show();
+                                    mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                    final TextView myMsgtitle = new TextView(login.this);
+                                    myMsgtitle.setText("Usuario actualmente desactivado\nContacte con el responsable de " + empresa);
+                                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                    myMsgtitle.setLayoutParams(params);
+                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                    myMsgtitle.setTextColor(Color.BLACK);
+
+                                    final AlertDialog.Builder registroBu = new AlertDialog.Builder(login.this)
+                                            .setCustomTitle(myMsgtitle)
+                                            .setView(mDos);
+                                    final Button btnCon = mDos.findViewById(R.id.btn1);
+                                    btnCon.setText("Reintentar");
+                                    final Button btnSal = mDos.findViewById(R.id.btn2);
+                                    btnSal.setText("Salir");
+                                    final AlertDialog dialogoRegistro = registroBu.create();
+                                    btnCon.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            email.getText().clear();
+                                            contrasena.getText().clear();
+                                            mAuth.signOut();
+                                            login.this.recreate();
+                                            dialogoRegistro.dismiss();
+                                        }
+                                    });
+                                    btnSal.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoRegistro.dismiss();
+                                            email.getText().clear();
+                                            contrasena.getText().clear();
+                                            mAuth.signOut();
+                                            ((ActivityManager) login.this.getSystemService(ACTIVITY_SERVICE))
+                                                    .clearApplicationUserData();
+                                        }
+                                    });
+                                    dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
+                                        @Override
+                                        public void onShow(DialogInterface dialog) {
+                                            btnCon.setEnabled(true);
+                                            btnSal.setEnabled(true);
+                                            cargando(false);
+                                        }
+                                    });
+                                    dialogoRegistro.setCanceledOnTouchOutside(false);
+                                    if (mDos.getParent() != null) {
+                                        ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                        dialogoRegistro.show();
+                                    } else {
+                                        dialogoRegistro.show();
+                                    }
                                 }
                             }
-                        } else {
-                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                            final TextView myMsgtitle = new TextView(login.this);
-                            myMsgtitle.setText("Usuario actualmente desactivado\nContacte con el responsable de su empresa");
-                            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                            myMsgtitle.setTextColor(Color.BLACK);
-                            myMsgtitle.setPadding(2, 2, 2, 2);
-                            final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(login.this))
-                                    .setCustomTitle(myMsgtitle)
-                                    .setView(mDos);
-                            final Button btnCon = mDos.findViewById(R.id.btn1);
-                            btnCon.setText("Reintentar");
-                            final Button btnSal = mDos.findViewById(R.id.btn2);
-                            btnSal.setText("Salir");
-                            final AlertDialog dialogoRegistro = registroBu.create();
-                            btnCon.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    email.getText().clear();
-                                    contrasena.getText().clear();
-                                    mAuth.signOut();
-                                    login.this.recreate();
-                                    dialogoRegistro.dismiss();
-                                }
-                            });
-                            btnSal.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    dialogoRegistro.dismiss();
-                                    email.getText().clear();
-                                    contrasena.getText().clear();
-                                    mAuth.signOut();
-                                    ((ActivityManager) login.this.getSystemService(ACTIVITY_SERVICE))
-                                            .clearApplicationUserData();
-                                }
-                            });
-                            dialogoRegistro.setOnShowListener(new DialogInterface.OnShowListener() {
-                                @Override
-                                public void onShow(DialogInterface dialog) {
-                                    btnCon.setEnabled(true);
-                                    btnSal.setEnabled(true);
-                                    cargando(false);
-                                }
-                            });
-                            dialogoRegistro.setCanceledOnTouchOutside(false);
-                            if (mDos.getParent() != null) {
-                                ((ViewGroup) mDos.getParent()).removeView(mDos);
-                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                dialogoRegistro.show();
-                            } else {
-                                dialogoRegistro.show();
-                            }
-                        }
-                    }else if(documentSnapshot.getString("rol").equals("Administrador")){
+                        });
+                    } else if (documentSnapshot.getString("rol").equals("Administrador")) {
                         startLocationService();
                         cargando(false);
                         startActivity(new Intent(login.this, menu.class));
@@ -483,7 +707,7 @@ public class login extends AppCompatActivity {
 
     private boolean isLocationServiceRunning() {
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : Objects.requireNonNull(manager).getRunningServices(Integer.MAX_VALUE)) {
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if ("com.japac.pac.Servicios.servicioLocalizacion".equals(service.service.getClassName())) {
                 return true;
             }

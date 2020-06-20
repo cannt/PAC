@@ -35,15 +35,20 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.common.ConnectionResult;
@@ -68,6 +73,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
@@ -81,6 +87,7 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.japac.pac.localizacion.localizacionObra;
 import com.japac.pac.localizacion.localizacionUsuario;
@@ -91,12 +98,19 @@ import com.japac.pac.adaptadorObrasLista;
 import com.japac.pac.servicios.snackbarDS;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
+import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
+
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
@@ -109,7 +123,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         View.OnClickListener,
         AdapterView.OnItemSelectedListener,
         GoogleMap.OnMarkerClickListener,
-        GoogleMap.OnInfoWindowClickListener {
+        GoogleMap.OnInfoWindowClickListener,
+        CompoundButton.OnCheckedChangeListener {
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -123,7 +138,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         if (compruebapermisos()) {
             detalles();
 
-            if (ActivityCompat.checkSelfPermission(Objects.requireNonNull(getActivity()),
+            if (ActivityCompat.checkSelfPermission(getActivity(),
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(getActivity(),
                             Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -189,7 +204,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private CountDownTimer timerObs, timerJfs, timerMap;
 
-    private String id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO;
+    private String mislisT, id, codigoEmpresa, comp, empresa, nombre, roles, nombreAm, emailAn, codigoEmpleado, obcomprueba, sobra, busquedaString, ob, jf, jefes, codigoEmpleadoChech, JFC, JFO, hEntrada, hSalida, hEntrada2, hSalida2;
     private static final int Permisos = 8991;
     private final String[] permisos = new String[]{
             Manifest.permission.INTERNET,
@@ -197,17 +212,19 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
-
+    private ArrayList<String> DLS = new ArrayList<>();
+    private ArrayList<String> diasLibresSemana = new ArrayList<>();
     private static final int ERROR_DIALOGO_PEDIR = 9001;
     private static final float ZOOM_PREDETERMINADO = 20f;
 
     private ArrayList<String> obs = new ArrayList<>(), jfs = new ArrayList<>(), lM;
 
-    private FloatingActionButton icCrear, gps;
+    private FloatingActionButton icCrear, gps, icHorario, icDiasLS;
 
     private View mNombres;
     private View mDosText;
     private View mDos;
+    private View mTres;
 
     private EditText mBuscar;
 
@@ -254,13 +271,19 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         View RootView = inflater.inflate(R.layout.fragment_menu_principal, container, false);
         if (compruebapermisos() && isServicesOK()) {
             FirebaseAuth mAuth = FirebaseAuth.getInstance();
-            id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+            id = mAuth.getCurrentUser().getUid();
             mDb = FirebaseFirestore.getInstance();
             FirebaseStorage almacen = FirebaseStorage.getInstance();
             mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                     if (documentSnapshot.exists()) {
+                        hEntrada = documentSnapshot.getString("hora de entrada");
+                        hSalida = documentSnapshot.getString("hora de salida");
+                        hEntrada2 = documentSnapshot.getString("hora de entrada partida");
+                        hSalida2 = documentSnapshot.getString("hora de salida partida");
+                        diasLibresSemana.clear();
+                        diasLibresSemana = (ArrayList<String>) documentSnapshot.get("dias libres semana");
                         codigoEmpresa = documentSnapshot.getString("codigo empresa");
                         comp = documentSnapshot.getString("comprobar");
                         empresa = documentSnapshot.getString("empresa");
@@ -270,9 +293,158 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         emailAn = documentSnapshot.getString("email");
                         codigoEmpleado = documentSnapshot.getString("codigo empleado");
                         if (documentSnapshot.contains("obra")) {
-                            obcomprueba = documentSnapshot.getString("obra");
+                            obcomprueba = documentSnapshot.getString( "obra");
                         }
-                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        if (hEntrada == null && hSalida == null) {
+                            final TextView myMsgtitle = new TextView(getActivity());
+                            myMsgtitle.setText("La empresa " + empresa + " no a designado el horario laboral" + "\npor favor designe el horario laboral inmediatamente");
+                            ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            myMsgtitle.setLayoutParams(params);
+                            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                            myMsgtitle.setTextColor(Color.BLACK);
+
+                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            final Button btnCamb = mDos.findViewById(R.id.btn1);
+                            btnCamb.setText("Continuar");
+                            final Button btnCancelar = mDos.findViewById(R.id.btn2);
+                            final AlertDialog.Builder horarioCamb = new AlertDialog.Builder(requireContext())
+                                    .setCustomTitle(myMsgtitle)
+                                    .setView(mDos);
+                            final AlertDialog dialogoHorarioCamb = horarioCamb.create();
+                            btnCamb.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoHorarioCamb.dismiss();
+                                    tipoHorario();
+
+                                }
+                            });
+                            btnCancelar.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    final Snackbar snackbar = Snackbar.make(mDos, "Debe designar un horario laboral cuanto antes", 5000);
+                                    final CountDownTimer timerAler = new CountDownTimer(5500, 1000) {
+                                        @Override
+                                        public void onTick(long millisUntilFinished) {
+                                        }
+
+                                        @Override
+                                        public void onFinish() {
+                                            snackbar.dismiss();
+                                            dialogoHorarioCamb.dismiss();
+                                            menu.snackbar.setText("Debe designar un horario laboral cuanto antes");
+                                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                            tv.setTextSize(10);
+                                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                            menu.snackbar.show();
+                                        }
+                                    }.start();
+                                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                                    snackbar.setAction("Continuar", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoHorarioCamb.dismiss();
+                                            timerAler.cancel();
+                                            tipoHorario();
+                                        }
+                                    }).setActionTextColor(Color.WHITE);
+                                    snackbar.show();
+                                }
+                            });
+                            dialogoHorarioCamb.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(DialogInterface dialog) {
+                                    btnCamb.setEnabled(true);
+                                    btnCancelar.setEnabled(true);
+                                }
+                            });
+                            dialogoHorarioCamb.setCanceledOnTouchOutside(false);
+                            if (mDos.getParent() != null) {
+                                ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                dialogoHorarioCamb.show();
+                            } else {
+                                dialogoHorarioCamb.show();
+                            }
+
+                        } else if (diasLibresSemana == null) {
+                            final TextView myMsgtitle = new TextView(getActivity());
+                            myMsgtitle.setText("La empresa " + empresa + " no a designado los dias libres semanales" + "\npor favor designe los dias libres semanales inmediatamente");
+                            ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            myMsgtitle.setLayoutParams(params);
+                            myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                            myMsgtitle.setTextColor(Color.BLACK);
+
+                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            final Button btnCamb = mDos.findViewById(R.id.btn1);
+                            btnCamb.setText("Continuar");
+                            final Button btnCancelar = mDos.findViewById(R.id.btn2);
+                            final AlertDialog.Builder horarioCamb = new AlertDialog.Builder(requireContext())
+                                    .setCustomTitle(myMsgtitle)
+                                    .setView(mDos);
+                            final AlertDialog dialogoHorarioCamb = horarioCamb.create();
+                            btnCamb.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    dialogoHorarioCamb.dismiss();
+                                    diasLibresSemanasCambiar();
+
+                                }
+                            });
+                            btnCancelar.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    final Snackbar snackbar = Snackbar.make(mDos, "Debe designar los dias libres semanales cuanto antes", 5000);
+                                    final CountDownTimer timerAler = new CountDownTimer(5500, 1000) {
+                                        @Override
+                                        public void onTick(long millisUntilFinished) {
+                                        }
+
+                                        @Override
+                                        public void onFinish() {
+                                            snackbar.dismiss();
+                                            dialogoHorarioCamb.dismiss();
+                                            menu.snackbar.setText("Debe designar los dias libres semanales cuanto antes");
+                                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                            tv.setTextSize(10);
+                                            snackbarDS.configSnackbar(getActivity(), menu.snackbar);
+                                            menu.snackbar.show();
+                                        }
+                                    }.start();
+                                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                                    snackbar.setAction("Continuar", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoHorarioCamb.dismiss();
+                                            timerAler.cancel();
+                                            diasLibresSemanasCambiar();
+                                        }
+                                    }).setActionTextColor(Color.WHITE);
+                                    snackbar.show();
+
+                                }
+                            });
+                            dialogoHorarioCamb.setOnShowListener(new DialogInterface.OnShowListener() {
+                                @Override
+                                public void onShow(DialogInterface dialog) {
+                                    btnCamb.setEnabled(true);
+                                    btnCancelar.setEnabled(true);
+                                }
+                            });
+                            dialogoHorarioCamb.setCanceledOnTouchOutside(false);
+                            if (mDos.getParent() != null) {
+                                ((ViewGroup) mDos.getParent()).removeView(mDos);
+                                mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                                dialogoHorarioCamb.show();
+                            } else {
+                                dialogoHorarioCamb.show();
+                            }
+                        }
+                        slidingLayout2 = requireView().findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
                         xpand2 = getView().findViewById(R.id.btnXpand2);
                         mBuscar = getView().findViewById(R.id.input_buscar);
@@ -319,6 +491,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         });
                         gps = getView().findViewById(R.id.ic_gps);
                         icCrear = getView().findViewById(R.id.ic_crearObra);
+                        icHorario = getView().findViewById(R.id.ic_horario);
+                        icDiasLS = getView().findViewById(R.id.ic_diasLS);
                         pPt = getView().findViewById(R.id.PrivacyPolicy);
                         pPt.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -348,7 +522,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
         adaptadorObrasLista = new adaptadorObrasLista(options);
 
-        RecyclerView recyclerView = Objects.requireNonNull(getView()).findViewById(R.id.recyclerview);
+        RecyclerView recyclerView = requireView().findViewById(R.id.recyclerview);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adaptadorObrasLista);
@@ -395,9 +569,9 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 if (task.isSuccessful()) {
                     menu.cargando(true);
                     touch(true);
-                    GeoPoint geoPoint1 = Objects.requireNonNull(task.getResult()).getGeoPoint("geoPoint");
+                    GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
 
-                    mLocaliza = new LatLng(Objects.requireNonNull(geoPoint1).getLatitude(), geoPoint1.getLongitude());
+                    mLocaliza = new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude());
                     menu.cargando(false);
                     touch(false);
                     setCamara();
@@ -429,10 +603,10 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     private void touch(Boolean touch) {
         if (touch) {
-            Objects.requireNonNull(getActivity()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         } else {
-            Objects.requireNonNull(getActivity()).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         }
     }
 
@@ -500,6 +674,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         });
         gps.setOnClickListener(menuPrincipalAdministradores.this);
         icCrear.setOnClickListener(menuPrincipalAdministradores.this);
+        icHorario.setOnClickListener(menuPrincipalAdministradores.this);
+        icDiasLS.setOnClickListener(menuPrincipalAdministradores.this);
 
         ocultarTeclado();
     }
@@ -509,19 +685,19 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         touch(true);
         busquedaString = mBuscar.getText().toString();
         InputMethodManager inputManager = (InputMethodManager)
-                Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getActivity().getCurrentFocus()).getWindowToken(),
+                getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(),
                 InputMethodManager.HIDE_NOT_ALWAYS);
         if (!busquedaString.isEmpty()) {
             mDb.collection("Empresas").document(empresa).collection("Obras").document(busquedaString.toLowerCase().trim()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (Objects.requireNonNull(task.getResult()).exists()) {
+                    if (task.getResult().exists()) {
                         if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                             slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                         }
 
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLatitude(), Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLongitude()), ZOOM_PREDETERMINADO));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(task.getResult().getGeoPoint("geoPoint").getLatitude(), task.getResult().getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
                         mBuscar.getText().clear();
                     } else if (!task.getResult().exists()) {
                         Geocoder geocoder = new Geocoder(getActivity());
@@ -607,7 +783,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void localizacion() {
         menu.cargando(true);
         touch(true);
-        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(Objects.requireNonNull(getActivity()));
+        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
                 final Task localizacion = mProovedor.getLastLocation();
@@ -616,7 +792,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     public void onComplete(@NonNull Task task) {
                         if (task.isSuccessful()) {
                             Location locacizacionActual = (Location) task.getResult();
-                            geoPointLocalizayo = new GeoPoint(Objects.requireNonNull(locacizacionActual).getLatitude(), locacizacionActual.getLongitude());
+                            geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
                             final int[] online = new int[1];
                             online[0] = 0;
                             if (obraBo) {
@@ -633,7 +809,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                     mDb.collection("Empresas").document(empresa).collection("Obras").document(ob.toLowerCase().trim()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                         @Override
                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                            online[0] = Objects.requireNonNull(documentSnapshot.getLong("online")).intValue();
+                                            online[0] = documentSnapshot.getLong("online").intValue();
                                             mDb.collection("Empresas").document(empresa).collection("Obras").document(ob.toLowerCase().trim()).delete();
                                         }
                                     });
@@ -664,7 +840,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         menu.cargando(true);
         touch(true);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapa);
-        Objects.requireNonNull(mapFragment).getMapAsync(menuPrincipalAdministradores.this);
+        mapFragment.getMapAsync(menuPrincipalAdministradores.this);
         menu.cargando(false);
         touch(false);
 
@@ -703,13 +879,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
-            resultado = ContextCompat.checkSelfPermission(Objects.requireNonNull(getActivity()), perm);
+            resultado = ContextCompat.checkSelfPermission(getActivity(), perm);
             if (resultado != PackageManager.PERMISSION_GRANTED) {
                 listaPermisosNecesarios.add(perm);
             }
         }
         if (!listaPermisosNecesarios.isEmpty()) {
-            ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
+            ActivityCompat.requestPermissions(getActivity(), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
             return false;
         }
         menu.cargando(false);
@@ -718,8 +894,8 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     }
 
     private void ocultarTeclado() {
-        InputMethodManager imm = (InputMethodManager) Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(imm).hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
     }
 
     private void firestoreObras() {
@@ -741,7 +917,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
                 List<Task<QuerySnapshot>> tasks2 = new ArrayList<>();
                 if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
                         String obran = document.getString("obra");
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
@@ -754,7 +930,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             jefe1 = "sin jefe de obra";
                         }
                         if (!obs.contains(obran)) {
-                            anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
+                            anadirMarcadores(geoPoint2, obran, jefe1, online);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -786,7 +962,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                     if (documentSnapshot.exists()) {
-                                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(Objects.requireNonNull(documentSnapshot.getGeoPoint("geoPoint")).getLatitude(), Objects.requireNonNull(documentSnapshot.getGeoPoint("geoPoint")).getLongitude()), ZOOM_PREDETERMINADO));
+                                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(documentSnapshot.getGeoPoint("geoPoint").getLatitude(), documentSnapshot.getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
                                     }
                                 }
                             });
@@ -891,7 +1067,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
+                    for (QueryDocumentSnapshot document : task2.getResult()) {
                         String jefe = document.getString("nombre");
                         if (!jfs.contains(jefe)) {
                             jfs.add(jefe);
@@ -909,7 +1085,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
                         List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                         if (task1.isSuccessful()) {
-                            for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
+                            for (final QueryDocumentSnapshot document1 : task1.getResult()) {
                                 String jefe = document1.getString("nombre");
                                 if (!jfs.contains(jefe)) {
                                     if (jefe != null) {
@@ -929,7 +1105,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
                         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
                         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
-                        jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
+                        jefeAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
                         lM = new ArrayList();
@@ -939,7 +1115,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
                                 List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                                 if (task1.isSuccessful()) {
-                                    for (final QueryDocumentSnapshot document2 : Objects.requireNonNull(task1.getResult())) {
+                                    for (final QueryDocumentSnapshot document2 : task1.getResult()) {
                                         String jefe = document2.getString("nombre");
                                         if (!lM.contains(jefe)) {
                                             if (jefe != null) {
@@ -1039,7 +1215,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         menu.cargando(true);
         touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        vectorDrawable.setBounds(0, 0, 60, 60);
         Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
@@ -1118,19 +1294,21 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dAdmin(final String obraAd) {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("menu de administracion de la obra " + obraAd);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        View mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-        final Button btnCam = mCuatroBtn.findViewById(R.id.Vacas);
+
+        View mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
+        final Button btnCam = mCuatroBtn.findViewById(R.id.btn1);
         btnCam.setText("Cambiar nombre");
-        final Button btnElim = mCuatroBtn.findViewById(R.id.Baja);
+        final Button btnElim = mCuatroBtn.findViewById(R.id.btn2);
         btnElim.setText("Eliminar obra");
-        final Button btnAdJef = mCuatroBtn.findViewById(R.id.Otros);
+        final Button btnAdJef = mCuatroBtn.findViewById(R.id.btn3);
         btnAdJef.setText("Administrar jefe");
         final Button btnCance = mCuatroBtn.findViewById(R.id.Cancelar);
         btnCance.setText("Cancelar");
-        final AlertDialog.Builder obraAdministrarObras = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder obraAdministrarObras = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mCuatroBtn);
         final AlertDialog dialogoAdministradorObras = obraAdministrarObras.create();
@@ -1166,7 +1344,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.exists()) {
                             String jefe = documentSnapshot.getString("jefe");
-                            if (!Objects.requireNonNull(jefe).equals("no") && !jefe.equals("")) {
+                            if (!jefe.equals("no") && !jefe.equals("")) {
                                 dJefeExiste(obraAd, jefe);
                             } else {
                                 dJefes(obraAd, jefe);
@@ -1185,7 +1363,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         dialogoAdministradorObras.setCanceledOnTouchOutside(false);
         if (mCuatroBtn.getParent() != null) {
             ((ViewGroup) mCuatroBtn.getParent()).removeView(mCuatroBtn);
-            mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
+            mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
             dialogoAdministradorObras.show();
         } else {
             dialogoAdministradorObras.show();
@@ -1202,21 +1380,21 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                 final GeoPoint geoPointAn = documentSnapshot.getGeoPoint("geoPoint");
                 final String obraAn = documentSnapshot.getString("obra");
                 final String jefeAn = documentSnapshot.getString("jefe");
-                final int online = Objects.requireNonNull(documentSnapshot.getLong("online")).intValue();
-                mDb.collection("Empresas").document(empresa).collection("Obras").document(Objects.requireNonNull(obraAn)).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                final int online = documentSnapshot.getLong("online").intValue();
+                mDb.collection("Empresas").document(empresa).collection("Obras").document(obraAn).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         mLocalizacionObra = new localizacionObra();
                         mLocalizacionObra.setGeoPoint(geoPointAn);
                         mLocalizacionObra.setObra(obraNu);
                         mLocalizacionObra.setOnline(online);
-                        if (!Objects.requireNonNull(jefeAn).equals("no")) {
+                        if (!jefeAn.equals("no")) {
                             mLocalizacionObra.setJefe(jefeAn);
                             mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                     String codEmpl = documentSnapshot.getString(jefeAn);
-                                    if (Objects.requireNonNull(codEmpl).contains("," + obraAn)) {
+                                    if (codEmpl.contains("," + obraAn)) {
                                         codEmpl = codEmpl.replace("," + obraAn, "," + obraNu);
 
                                     } else if (codEmpl.contains("/" + obraAn)) {
@@ -1235,7 +1413,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                     final String idNu = documentSnapshot.getString("id");
                                                     String jf = documentSnapshot.getString("jefe");
-                                                    if (Objects.requireNonNull(jf).contains("," + obraAn)) {
+                                                    if (jf.contains("," + obraAn)) {
                                                         jf = jf.replace("," + obraAn, "," + obraNu);
                                                     } else if (jf.contains(obraAn + ",")) {
                                                         jf = jf.replace(obraAn + ",", obraNu + ",");
@@ -1243,7 +1421,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                                         jf = jf.replace(obraAn, obraNu);
                                                     }
                                                     final String finalJf = jf;
-                                                    mDb.collection("Todas las ids").document(Objects.requireNonNull(idNu)).update("codigo empleado", finalCodEmpl).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    mDb.collection("Todas las ids").document(idNu).update("codigo empleado", finalCodEmpl).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                         @Override
                                                         public void onSuccess(Void aVoid) {
                                                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(jefeAn).update("codigo empleado", finalCodEmpl).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -1289,14 +1467,16 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dCambiaNombreObra(final String obraAn) {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Nuevo nombre para la obra " + obraAn);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText sNuevoNom = mDosText.findViewById(R.id.TextDos);
         final Button btnCamb = mDosText.findViewById(R.id.btn1);
         final Button btnCancelar = mDosText.findViewById(R.id.btn2);
-        final AlertDialog.Builder alerta = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+        final AlertDialog.Builder alerta = new AlertDialog.Builder(getContext());
         alerta.setCustomTitle(myMsgtitle)
                 .setView(mDosText);
         final AlertDialog dialogoAlerta = alerta.create();
@@ -1343,14 +1523,16 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dObraEliminar(final String obraAd) {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("¿Seguro que quiere eliminar la obra " + obraAd + "?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnElim = mDos.findViewById(R.id.btn1);
         btnElim.setText("Eliminar");
         final Button btnCancelar = mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder obraEliminar = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder obraEliminar = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
         final AlertDialog dialogoObraEliminar = obraEliminar.create();
@@ -1361,7 +1543,6 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                     @Override
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         final String jef = documentSnapshot.getString("jefe");
-                        Objects.requireNonNull(jef);
                         if (!jef.equals("no")) {
                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(jef).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
@@ -1379,7 +1560,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                                 JFC = JFC.replace("JeF/" + obraAd, "");
                                             }
                                         }
-                                        if (Objects.requireNonNull(JFO).contains("," + obraAd)) {
+                                        if (JFO.contains("," + obraAd)) {
                                             JFO = JFO.replace("," + obraAd, "");
                                         } else if (JFO.contains(obraAd + ",")) {
                                             JFO = JFO.replace(obraAd + ",", "");
@@ -1443,14 +1624,16 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dJefeExiste(final String obraAd, final String obraAdJf) {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("El jefe de obra de " + obraAd + " es " + obraAdJf + "\n¿Desea cambiarlo?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnCamb = mDos.findViewById(R.id.btn1);
         btnCamb.setText("Cambiar");
         final Button btnCancelar = mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder obraJefeExiste = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder obraJefeExiste = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mDos);
         final AlertDialog dialogoObraJefeExiste = obraJefeExiste.create();
@@ -1491,16 +1674,18 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dJefes(final String obraAd, final String obraAdJf) {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Seleccione el nuevo jefe para la obra " + obraAd);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
         final Button btnSiguiente = mNombres.findViewById(R.id.btn1);
         final Button btnCancelar = mNombres.findViewById(R.id.btn2);
         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
-        final AlertDialog.Builder obraJefe = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder obraJefe = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
-        jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
+        jefeAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, jfs);
         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         jefeSpinner.setAdapter(jefeAdapter);
         jefeSpinner.setOnItemSelectedListener(this);
@@ -1562,13 +1747,13 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
                     codigoEmpleadoChech = documentSnapshot.getString(jefes);
-                    if (Objects.requireNonNull(codigoEmpleadoChech).length() >= 17) {
+                    if (codigoEmpleadoChech.length() >= 17) {
                         mDb.collection("Empresas").document(empresa).collection("Empleado").document(jefes).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 final String idNueva = documentSnapshot.getString("id");
                                 final String cE = documentSnapshot.getString("codigo empleado");
-                                mDb.collection("Todas las ids").document(Objects.requireNonNull(idNueva)).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                mDb.collection("Todas las ids").document(idNueva).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
@@ -1602,7 +1787,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 final String idNueva = documentSnapshot.getString("id");
                                 final String cE = documentSnapshot.getString("codigo empleado");
-                                mDb.collection("Todas las ids").document(Objects.requireNonNull(idNueva)).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                mDb.collection("Todas las ids").document(idNueva).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                     @Override
                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                         if (documentSnapshot.exists()) {
@@ -1653,7 +1838,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                                 JFC = JFC.replace("JeF/" + obraAd, "");
                             }
                         }
-                        if (Objects.requireNonNull(JFO).contains("," + obraAd)) {
+                        if (JFO.contains("," + obraAd)) {
                             JFO = JFO.replace("," + obraAd, "");
                         } else if (JFO.contains(obraAd + ",")) {
                             JFO = JFO.replace(obraAd + ",", "");
@@ -1664,7 +1849,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         MapC.put("codigo empleado", JFC);
                         MapC.put("jefe", JFO);
                         mDb.collection("Empresas").document(empresa).collection("Empleado").document(obraAdJf).update(MapC);
-                        mDb.collection("Todas las ids").document(Objects.requireNonNull(idCam)).update(MapC);
+                        mDb.collection("Todas las ids").document(idCam).update(MapC);
                         mDb.collection("Codigos").document(codigoEmpresa).update(obraAdJf, JFC);
                         mDb.collection("Jefes").document(idCam).update("jefe", JFO);
                         menu.cargando(false);
@@ -1680,9 +1865,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void crearObra() {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("¿Que nombre tendra la obra?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         final AlertDialog.Builder obraCrear = new AlertDialog.Builder(icCrear.getContext());
         mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         final EditText obra = mDosText.findViewById(R.id.TextDos);
@@ -1705,7 +1892,7 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
                         @Override
                         public void onComplete(@NonNull Task<QuerySnapshot> task) {
                             mLocalizacionObra = new localizacionObra();
-                            for (QueryDocumentSnapshot documentSnapshot : Objects.requireNonNull(task.getResult())) {
+                            for (QueryDocumentSnapshot documentSnapshot : task.getResult()) {
                                 ob = documentSnapshot.getString("obra");
                                 if (ob.equalsIgnoreCase(sobra)) {
                                     jf = documentSnapshot.getString("jefe");
@@ -1760,9 +1947,11 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
     private void dObraExiste() {
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("La obra " + ob + " ya existe\n¿Desea actualizar la localizacion de " + ob + "?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button btnAct = mDos.findViewById(R.id.btn1);
         btnAct.setText("Actualizar");
@@ -1808,6 +1997,726 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
 
     }
 
+    private void tipoHorario() {
+        menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Que tipo de horario laboral tiene " + empresa);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+        final Button btnPartida = mTres.findViewById(R.id.btn1);
+        btnPartida.setText("Jornada partida");
+        final Button btnCompleta = mTres.findViewById(R.id.btn2);
+        btnCompleta.setText("Jornada completa");
+        final Button btnCancelar = mTres.findViewById(R.id.Cancelar);
+        final AlertDialog.Builder horarioJornada = new AlertDialog.Builder(requireContext())
+                .setCustomTitle(myMsgtitle)
+                .setView(mTres);
+        final AlertDialog dialogoJorarioJornada = horarioJornada.create();
+        btnPartida.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoJorarioJornada.dismiss();
+                horarioCambiar(true);
+            }
+        });
+        btnCompleta.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoJorarioJornada.dismiss();
+                horarioCambiar(false);
+            }
+        });
+        btnCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoJorarioJornada.dismiss();
+            }
+        });
+        dialogoJorarioJornada.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                btnCancelar.setEnabled(true);
+                btnCompleta.setEnabled(true);
+                btnPartida.setEnabled(true);
+                menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoJorarioJornada.setCanceledOnTouchOutside(false);
+        if (mTres.getParent() != null) {
+            ((ViewGroup) mTres.getParent()).removeView(mTres);
+            mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+            dialogoJorarioJornada.show();
+        } else {
+            dialogoJorarioJornada.show();
+        }
+
+    }
+
+    private void horarioCambiar(final Boolean Partida) {
+        menu.cargando(true);
+        touch(true);
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("¿A que hora empiezan a trabajar sus empleados?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.GREEN);
+        mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+        final TimePicker timePicker = mDosText.findViewById(R.id.elegirHora);
+        timePicker.setIs24HourView(true);
+        timePicker.setHour(00);
+        timePicker.setMinute(00);
+        final Button btnCont = mDosText.findViewById(R.id.btn1);
+        final Button btnCancelar = mDosText.findViewById(R.id.btn2);
+        final AlertDialog.Builder alerta = new AlertDialog.Builder(getContext());
+        alerta.setCustomTitle(myMsgtitle)
+                .setView(mDosText);
+        final AlertDialog dialogoAlerta = alerta.create();
+        btnCont.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final DecimalFormat decimalFormat = new DecimalFormat("00");
+                final String entrada = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                if (!entrada.isEmpty()) {
+                    final TextView myMsgtitle = new TextView(getActivity());
+                    if (Partida) {
+                        myMsgtitle.setText("¿A que hora finalizan la primera mitad de la jornada partida sus empleados?");
+                    } else {
+                        myMsgtitle.setText("¿A que hora terminan de trabajar sus empleados?");
+                    }
+                    myMsgtitle.setTextColor(Color.RED);
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
+                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                    mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                    final TimePicker timePicker = mDosText.findViewById(R.id.elegirHora);
+                    timePicker.setIs24HourView(true);
+                    timePicker.setHour(00);
+                    timePicker.setMinute(00);
+                    final Button btnCon2 = mDosText.findViewById(R.id.btn1);
+                    final Button btnCancelar2 = mDosText.findViewById(R.id.btn2);
+                    btnCancelar2.setText("Atras");
+                    final AlertDialog.Builder alerta2 = new AlertDialog.Builder(getContext());
+                    alerta2.setCustomTitle(myMsgtitle)
+                            .setView(mDosText);
+                    final AlertDialog dialogoAlerta2 = alerta2.create();
+                    btnCon2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            if (Partida) {
+                                final String salida2 = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                                if (Integer.parseInt(entrada.substring(0, 2)) >= Integer.parseInt(salida2.substring(0, 2))
+                                        && Integer.parseInt(entrada.substring(3)) >= Integer.parseInt(salida2.substring(3))) {
+                                    final Snackbar snackbar = Snackbar.make(mDosText, "La hora de salida no puede ser antes o igual a la de entrada", 5000);
+                                    if (Integer.parseInt(entrada.substring(0, 2)) > Integer.parseInt(salida2.substring(0, 2))) {
+                                        snackbar.setText("La hora de salida no puede ser antes que la de entrada");
+                                    } else if (Integer.parseInt(entrada.substring(0, 2)) == Integer.parseInt(salida2.substring(0, 2))) {
+
+                                        snackbar.setText("La hora de salida no puede ser igual a la de entrada");
+                                    }
+                                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                                    snackbar.setAction("Entendido", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            snackbar.dismiss();
+                                        }
+                                    }).setActionTextColor(Color.WHITE);
+                                    snackbar.show();
+                                } else {
+                                    dialogoAlerta2.dismiss();
+                                    horarioCambiarPartida(entrada, salida2);
+                                }
+                            } else {
+                                final String salida = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                                if (Integer.parseInt(entrada.substring(0, 2)) >= Integer.parseInt(salida.substring(0, 2))
+                                        && Integer.parseInt(entrada.substring(3)) >= Integer.parseInt(salida.substring(3))) {
+                                    final Snackbar snackbar = Snackbar.make(mDosText, "La hora de salida no puede ser antes o igual a la de entrada", 5000);
+                                    if (Integer.parseInt(entrada.substring(0, 2)) > Integer.parseInt(salida.substring(0, 2))) {
+                                        snackbar.setText("La hora de salida no puede ser antes que la de entrada");
+                                    } else if (Integer.parseInt(entrada.substring(0, 2)) == Integer.parseInt(salida.substring(0, 2))) {
+
+                                        snackbar.setText("La hora de salida no puede ser igual a la de entrada");
+                                    }
+                                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                                    snackbar.setAction("Entendido", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            snackbar.dismiss();
+                                        }
+                                    }).setActionTextColor(Color.WHITE);
+                                    snackbar.show();
+                                } else {
+                                    if (hEntrada != null && hSalida != null && hEntrada.equals(entrada) && hSalida.equals(salida) && hSalida2 == null && hEntrada2 == null) {
+                                        final Snackbar snackbar = Snackbar.make(mDosText, "Su horario ya estaba asignado de " + entrada + " a " + salida, 5000);
+                                        final CountDownTimer timerAler = new CountDownTimer(5000, 1000) {
+                                            @Override
+                                            public void onTick(long millisUntilFinished) {
+                                            }
+
+                                            @Override
+                                            public void onFinish() {
+                                                dialogoAlerta.dismiss();
+                                            }
+                                        }.start();
+                                        TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                        tv.setTextSize(10);
+                                        snackbarDS.configSnackbar(getActivity(), snackbar);
+                                        snackbar.setAction("Entendido", new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                snackbar.dismiss();
+                                                dialogoAlerta.dismiss();
+                                                timerAler.cancel();
+                                            }
+                                        }).setActionTextColor(Color.WHITE);
+                                        snackbar.show();
+                                    } else {
+                                        dialogoAlerta.dismiss();
+                                        final TextView myMsgtitle = new TextView(getActivity());
+                                        myMsgtitle.setText("¿Desea guardar el siguiente horario laboral?");
+                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                        myMsgtitle.setLayoutParams(params);
+                                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                        myMsgtitle.setTextColor(Color.GRAY);
+                                        mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                        final TextView textView = mDosText.findViewById(R.id.elegirHora);
+                                        textView.setText("De " + entrada + " A " + salida);
+                                        textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                        Animation anim = new AlphaAnimation(0.0f, 1.0f);
+                                        anim.setDuration(200);
+                                        anim.setStartOffset(20);
+                                        anim.setRepeatMode(Animation.REVERSE);
+                                        anim.setRepeatCount(Animation.INFINITE);
+                                        anim.setAnimationListener(new Animation.AnimationListener() {
+                                            @Override
+                                            public void onAnimationStart(Animation animation) {
+                                                textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                            }
+
+                                            @Override
+                                            public void onAnimationEnd(Animation animation) {
+                                                textView.setTextColor(Color.parseColor("#8000ff00"));
+                                            }
+
+                                            @Override
+                                            public void onAnimationRepeat(Animation animation) {
+
+
+                                            }
+                                        });
+                                        textView.startAnimation(anim);
+                                        final Button btnConf = mDosText.findViewById(R.id.btn1);
+                                        btnConf.setText("Confirmar");
+                                        final Button btnCancelar3 = mDosText.findViewById(R.id.btn2);
+                                        final AlertDialog.Builder alerta3 = new AlertDialog.Builder(getContext());
+                                        alerta3.setCustomTitle(myMsgtitle)
+                                                .setView(mDosText);
+                                        final AlertDialog dialogoAlerta3 = alerta3.create();
+                                        btnConf.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                menu.cargando(true);
+                                                touch(true);
+                                                final Map<String, Object> horario = new HashMap<>();
+                                                if (hEntrada != null && !hEntrada.equals(entrada) || hEntrada == null) {
+                                                    hEntrada = entrada;
+                                                    horario.put("hora de entrada", entrada);
+                                                }
+                                                if (hSalida != null && !hSalida.equals(salida) || hSalida == null) {
+                                                    hSalida = salida;
+                                                    horario.put("hora de salida", salida);
+                                                }
+                                                if (hEntrada2 != null) {
+                                                    horario.put("hora de entrada partida", FieldValue.delete());
+                                                }
+                                                if (hSalida2 != null) {
+                                                    horario.put("hora de salida partida", FieldValue.delete());
+                                                }
+
+
+                                                mDb.collection("Todas las ids").document(id).set(horario, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void aVoid) {
+                                                        mDb.collection("Codigos").document(codigoEmpresa).set(horario, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                textView.clearAnimation();
+                                                                dialogoAlerta3.dismiss();
+                                                                menu.cargando(false);
+                                                                touch(false);
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                        btnCancelar3.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                dialogoAlerta3.dismiss();
+                                            }
+                                        });
+                                        dialogoAlerta3.setOnShowListener(new DialogInterface.OnShowListener() {
+                                            @Override
+                                            public void onShow(DialogInterface dialog) {
+                                                dialogoAlerta2.dismiss();
+                                                textView.setEnabled(true);
+                                                btnConf.setEnabled(true);
+                                                btnCancelar3.setEnabled(true);
+                                            }
+                                        });
+                                        dialogoAlerta3.setCanceledOnTouchOutside(false);
+                                        if (mDosText.getParent() != null) {
+                                            ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+                                            mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                            dialogoAlerta3.show();
+                                        } else {
+                                            dialogoAlerta3.show();
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    btnCancelar2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogoAlerta2.dismiss();
+                            horarioCambiar(Partida);
+                        }
+                    });
+                    dialogoAlerta2.setOnShowListener(new DialogInterface.OnShowListener() {
+                        @Override
+                        public void onShow(DialogInterface dialog) {
+                            dialogoAlerta.dismiss();
+                            timePicker.setEnabled(true);
+                            btnCon2.setEnabled(true);
+                            btnCancelar2.setEnabled(true);
+                        }
+                    });
+                    dialogoAlerta2.setCanceledOnTouchOutside(false);
+                    if (mDosText.getParent() != null) {
+                        ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+                        mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                        dialogoAlerta2.show();
+                    } else {
+                        dialogoAlerta2.show();
+                    }
+                    dialogoAlerta.show();
+                }
+            }
+        });
+        btnCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAlerta.dismiss();
+            }
+        });
+        dialogoAlerta.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                timePicker.setEnabled(true);
+                btnCont.setEnabled(true);
+                btnCancelar.setEnabled(true);
+                menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoAlerta.setCanceledOnTouchOutside(false);
+        if (mDosText.getParent() != null) {
+            ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+            mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+            dialogoAlerta.show();
+        } else {
+            dialogoAlerta.show();
+        }
+    }
+
+    private void horarioCambiarPartida(final String entrada, final String salida2) {
+
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("¿A que hora comienzan la segunda mitad de la jornada partida sus empleados?");
+        myMsgtitle.setTextColor(Color.GREEN);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+        final TimePicker timePicker = mDosText.findViewById(R.id.elegirHora);
+        timePicker.setIs24HourView(true);
+        timePicker.setHour(00);
+        timePicker.setMinute(00);
+        final Button btnCon3 = mDosText.findViewById(R.id.btn1);
+        final Button btnCancelar3 = mDosText.findViewById(R.id.btn2);
+        final AlertDialog.Builder alerta3 = new AlertDialog.Builder(getContext());
+        alerta3.setCustomTitle(myMsgtitle)
+                .setView(mDosText);
+        final AlertDialog dialogoAlerta3 = alerta3.create();
+        btnCon3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final DecimalFormat decimalFormat = new DecimalFormat("00");
+                final String entrada2 = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                if (Integer.parseInt(salida2.substring(0, 2)) >= Integer.parseInt(entrada2.substring(0, 2))
+                        && Integer.parseInt(salida2.substring(3)) >= Integer.parseInt(entrada2.substring(3))) {
+                    final Snackbar snackbar = Snackbar.make(mDosText, "La hora de entrada no puede ser antes o igual a la de salida", 5000);
+                    if (Integer.parseInt(salida2.substring(0, 2)) > Integer.parseInt(entrada2.substring(0, 2))) {
+                        snackbar.setText("La hora de entrada  no puede ser antes que la de salida");
+                    } else if (Integer.parseInt(salida2.substring(0, 2)) == Integer.parseInt(entrada2.substring(0, 2))) {
+
+                        snackbar.setText("La hora de entrada no puede ser igual a la de salida");
+                    }
+                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                    tv.setTextSize(10);
+                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                    snackbar.setAction("Entendido", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            snackbar.dismiss();
+                        }
+                    }).setActionTextColor(Color.WHITE);
+                    snackbar.show();
+                } else {
+                    final TextView myMsgtitle = new TextView(getActivity());
+                    myMsgtitle.setText("¿A que hora terminan de trabajar sus empleados?");
+                    myMsgtitle.setTextColor(Color.RED);
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
+                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                    mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                    final TimePicker timePicker = mDosText.findViewById(R.id.elegirHora);
+                    timePicker.setIs24HourView(true);
+                    timePicker.setHour(00);
+                    timePicker.setMinute(00);
+                    final Button btnCon4 = mDosText.findViewById(R.id.btn1);
+                    final Button btnCancelar4 = mDosText.findViewById(R.id.btn2);
+                    btnCancelar4.setText("Atras");
+                    final AlertDialog.Builder alerta4 = new AlertDialog.Builder(getContext());
+                    alerta4.setCustomTitle(myMsgtitle)
+                            .setView(mDosText);
+                    final AlertDialog dialogoAlerta4 = alerta4.create();
+                    btnCon4.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final String salida = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                            if (Integer.parseInt(entrada2.substring(0, 2)) >= Integer.parseInt(salida.substring(0, 2))
+                                    && Integer.parseInt(entrada2.substring(3)) >= Integer.parseInt(salida.substring(3))) {
+                                final Snackbar snackbar = Snackbar.make(mDosText, "La hora de salida no puede ser antes o igual a la de entrada", 5000);
+                                if (Integer.parseInt(entrada2.substring(0, 2)) > Integer.parseInt(salida.substring(0, 2))) {
+                                    snackbar.setText("La hora de salida no puede ser antes que la de entrada");
+                                } else if (Integer.parseInt(entrada2.substring(0, 2)) == Integer.parseInt(salida.substring(0, 2))) {
+
+                                    snackbar.setText("La hora de salida no puede ser igual a la de entrada");
+                                }
+                                TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                tv.setTextSize(10);
+                                snackbarDS.configSnackbar(getActivity(), snackbar);
+                                snackbar.setAction("Entendido", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        snackbar.dismiss();
+                                    }
+                                }).setActionTextColor(Color.WHITE);
+                                snackbar.show();
+                            } else {
+                                if (hEntrada != null && hSalida2 != null && hEntrada2 != null && hSalida != null && hEntrada.equals(entrada) && hSalida2.equals(salida2) && hEntrada2.equals(entrada2) && hSalida.equals(salida)) {
+                                    final Snackbar snackbar = Snackbar.make(mDosText, "Su horario partido ya estaba asignado de " + entrada + " a " + salida2 + " y de " + entrada2 + " a " + salida, 5000);
+                                    final CountDownTimer timerAler = new CountDownTimer(5000, 1000) {
+                                        @Override
+                                        public void onTick(long millisUntilFinished) {
+                                        }
+
+                                        @Override
+                                        public void onFinish() {
+                                            dialogoAlerta4.dismiss();
+                                        }
+                                    }.start();
+                                    TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                    tv.setTextSize(10);
+                                    snackbarDS.configSnackbar(getActivity(), snackbar);
+                                    snackbar.setAction("Entendido", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            snackbar.dismiss();
+                                            dialogoAlerta4.dismiss();
+                                            timerAler.cancel();
+                                        }
+                                    }).setActionTextColor(Color.WHITE);
+                                    snackbar.show();
+                                } else {
+                                    final TextView myMsgtitle = new TextView(getActivity());
+                                    myMsgtitle.setText("¿Desea guardar el siguiente horario laboral?");
+                                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                    myMsgtitle.setLayoutParams(params);
+                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                    myMsgtitle.setTextColor(Color.GRAY);
+                                    mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                    final TextView textView = mDosText.findViewById(R.id.elegirHora);
+                                    textView.setText("De " + entrada + " A " + salida2
+                                            + "\nY"
+                                            + "\n De " + entrada2 + " A " + salida);
+                                    textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                    Animation anim = new AlphaAnimation(0.0f, 1.0f);
+                                    anim.setDuration(200);
+                                    anim.setStartOffset(20);
+                                    anim.setRepeatMode(Animation.REVERSE);
+                                    anim.setRepeatCount(Animation.INFINITE);
+                                    anim.setAnimationListener(new Animation.AnimationListener() {
+                                        @Override
+                                        public void onAnimationStart(Animation animation) {
+                                            textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                        }
+
+                                        @Override
+                                        public void onAnimationEnd(Animation animation) {
+                                            textView.setTextColor(Color.parseColor("#8000ff00"));
+                                        }
+
+                                        @Override
+                                        public void onAnimationRepeat(Animation animation) {
+
+
+                                        }
+                                    });
+                                    textView.startAnimation(anim);
+                                    final Button btnConf = mDosText.findViewById(R.id.btn1);
+                                    btnConf.setText("Confirmar");
+                                    final Button btnCancelar5 = mDosText.findViewById(R.id.btn2);
+                                    final AlertDialog.Builder alerta5 = new AlertDialog.Builder(getContext());
+                                    alerta5.setCustomTitle(myMsgtitle)
+                                            .setView(mDosText);
+                                    final AlertDialog dialogoAlerta5 = alerta5.create();
+                                    btnConf.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            menu.cargando(true);
+                                            touch(true);
+                                            final Map<String, Object> horario = new HashMap<>();
+                                            if (hEntrada != null && !hEntrada.equals(entrada) || hEntrada == null) {
+                                                hEntrada = entrada;
+                                                horario.put("hora de entrada", entrada);
+                                            }
+                                            if (hSalida2 != null && !hSalida2.equals(salida2) || hSalida2 == null) {
+                                                hSalida2 = salida2;
+                                                horario.put("hora de salida partida", salida2);
+                                            }
+                                            if (hEntrada2 != null && !hEntrada2.equals(entrada2) || hEntrada2 == null) {
+                                                hEntrada2 = entrada2;
+                                                horario.put("hora de entrada partida", entrada2);
+                                            }
+                                            if (hSalida != null && !hSalida.equals(salida) || hSalida == null) {
+                                                hSalida = salida;
+                                                horario.put("hora de salida", salida);
+                                            }
+                                            mDb.collection("Todas las ids").document(id).set(horario, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    mDb.collection("Codigos").document(codigoEmpresa).set(horario, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            textView.clearAnimation();
+                                                            dialogoAlerta5.dismiss();
+                                                            menu.cargando(false);
+                                                            touch(false);
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                    btnCancelar5.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoAlerta5.dismiss();
+                                        }
+                                    });
+                                    dialogoAlerta5.setOnShowListener(new DialogInterface.OnShowListener() {
+                                        @Override
+                                        public void onShow(DialogInterface dialog) {
+                                            dialogoAlerta4.dismiss();
+                                            textView.setEnabled(true);
+                                            btnConf.setEnabled(true);
+                                            btnCancelar3.setEnabled(true);
+                                        }
+                                    });
+                                    dialogoAlerta5.setCanceledOnTouchOutside(false);
+                                    if (mDosText.getParent() != null) {
+                                        ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+                                        mDosText = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                        dialogoAlerta5.show();
+                                    } else {
+                                        dialogoAlerta5.show();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    btnCancelar4.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogoAlerta4.dismiss();
+                            horarioCambiarPartida(entrada, salida2);
+                        }
+                    });
+                    dialogoAlerta4.setOnShowListener(new DialogInterface.OnShowListener() {
+                        @Override
+                        public void onShow(DialogInterface dialog) {
+                            dialogoAlerta3.dismiss();
+                            timePicker.setEnabled(true);
+                            btnCon4.setEnabled(true);
+                            btnCancelar4.setEnabled(true);
+                        }
+                    });
+                    dialogoAlerta4.setCanceledOnTouchOutside(false);
+                    if (mDosText.getParent() != null) {
+                        ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+                        mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                        dialogoAlerta4.show();
+                    } else {
+                        dialogoAlerta4.show();
+                    }
+                    dialogoAlerta3.show();
+                }
+            }
+        });
+        btnCancelar3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAlerta3.dismiss();
+            }
+        });
+        dialogoAlerta3.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                timePicker.setEnabled(true);
+                btnCon3.setEnabled(true);
+                btnCancelar3.setEnabled(true);
+            }
+        });
+        dialogoAlerta3.setCanceledOnTouchOutside(false);
+        if (mDosText.getParent() != null) {
+            ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+            mDosText = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+            dialogoAlerta3.show();
+        } else {
+            dialogoAlerta3.show();
+        }
+    }
+
+    private void diasLibresSemanasCambiar() {
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("A continuacion seleccione los dias de descanso semanales");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.GRAY);
+        mDosText = getLayoutInflater().inflate(R.layout.dialogo_dias_semana, null);
+        final CheckBox checkLunes = mDosText.findViewById(R.id.check_lunes);
+        final CheckBox checkLMartes = mDosText.findViewById(R.id.check_martes);
+        final CheckBox checkMiercoles = mDosText.findViewById(R.id.check_miercoles);
+        final CheckBox checkJueves = mDosText.findViewById(R.id.check_jueves);
+        final CheckBox checkViernes = mDosText.findViewById(R.id.check_viernes);
+        final CheckBox checkSabado = mDosText.findViewById(R.id.check_sabado);
+        final CheckBox checkDomingo = mDosText.findViewById(R.id.check_domingo);
+        checkLunes.setOnCheckedChangeListener(this);
+        checkLMartes.setOnCheckedChangeListener(this);
+        checkMiercoles.setOnCheckedChangeListener(this);
+        checkJueves.setOnCheckedChangeListener(this);
+        checkViernes.setOnCheckedChangeListener(this);
+        checkSabado.setOnCheckedChangeListener(this);
+        checkDomingo.setOnCheckedChangeListener(this);
+        final Button btnConfDias = mDosText.findViewById(R.id.btn1);
+        final Button btnCancelar4 = mDosText.findViewById(R.id.btn2);
+        final AlertDialog.Builder alertaDias = new AlertDialog.Builder(getContext());
+        alertaDias.setCustomTitle(myMsgtitle)
+                .setView(mDosText);
+        final AlertDialog dialogoAlertaDias = alertaDias.create();
+        btnConfDias.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                menu.cargando(true);
+                touch(true);
+                if (!DLS.isEmpty()) {
+                    diasLibresSemana = DLS;
+                    final Map<String, ArrayList<String>> diasLS = new HashMap<>();
+                    diasLS.put("dias libres semana", DLS);
+                    mDb.collection("Todas las ids").document(id).set(diasLS, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            mDb.collection("Codigos").document(codigoEmpresa).set(diasLS, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    dialogoAlertaDias.dismiss();
+                                    menu.cargando(false);
+                                    touch(false);
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    menu.cargando(false);
+                    touch(false);
+                    new CountDownTimer(2000, 100) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            if (myMsgtitle.getCurrentTextColor() == Color.RED) {
+                                myMsgtitle.setTextColor(Color.GRAY);
+                            } else {
+                                myMsgtitle.setTextColor(Color.RED);
+                            }
+                            alertaDias.setCustomTitle(myMsgtitle);
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            myMsgtitle.setTextColor(Color.GRAY);
+                            alertaDias.setCustomTitle(myMsgtitle);
+                        }
+                    }.start();
+                }
+            }
+
+        });
+        btnCancelar4.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAlertaDias.dismiss();
+            }
+        });
+        dialogoAlertaDias.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                DLS.clear();
+                checkLunes.setEnabled(true);
+                checkLMartes.setEnabled(true);
+                checkMiercoles.setEnabled(true);
+                checkJueves.setEnabled(true);
+                checkViernes.setEnabled(true);
+                checkSabado.setEnabled(true);
+                checkDomingo.setEnabled(true);
+                btnConfDias.setEnabled(true);
+                btnCancelar4.setEnabled(true);
+            }
+        });
+        dialogoAlertaDias.setCanceledOnTouchOutside(false);
+        if (mDosText.getParent() != null) {
+            ((ViewGroup) mDosText.getParent()).removeView(mDosText);
+            mDosText = getLayoutInflater().inflate(R.layout.dialogo_dias_semana, null);
+            dialogoAlertaDias.show();
+        } else {
+            dialogoAlertaDias.show();
+        }
+    }
+
     @Override
     public void onClick(View v) {
 
@@ -1817,10 +2726,175 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
         }
         if (v.equals(icCrear)) {
 
-            if (slidingLayout2.getPanelState() == SlidingUpPanelLayout.PanelState.EXPANDED) {
-                slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-            }
+            slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
             crearObra();
+        }
+        if (v.equals(icHorario)) {
+            mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if (documentSnapshot.getString("hora de entrada") != null && documentSnapshot.getString("hora de salida") != null) {
+                        final TextView myMsgtitle = new TextView(getActivity());
+                        if (documentSnapshot.getString("hora de salida partida") != null && documentSnapshot.getString("hora de entrada partida") != null) {
+                            myMsgtitle.setText("El horario laboral de " + empresa
+                                    + "\nactualmente es de " + documentSnapshot.getString("hora de entrada") + " A " + documentSnapshot.getString("hora de salida partida")
+                                    + " Y De " + documentSnapshot.getString("hora de entrada partida") + " A " + documentSnapshot.getString("hora de salida")
+                                    + "\n¿Desea modificarlo?");
+                        } else {
+                            myMsgtitle.setText("El horario laboral de " + empresa
+                                    + "\nactualmente es de " + documentSnapshot.getString("hora de entrada") + " A " + documentSnapshot.getString("hora de salida")
+                                    + "\n¿Desea modificarlo?");
+                        }
+                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        myMsgtitle.setLayoutParams(params);
+                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                        myMsgtitle.setTextColor(Color.BLACK);
+
+                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                        final Button btnCamb = mDos.findViewById(R.id.btn1);
+                        btnCamb.setText("Cambiar");
+                        final Button btnCancelar = mDos.findViewById(R.id.btn2);
+                        final AlertDialog.Builder horarioCamb = new AlertDialog.Builder(getContext())
+                                .setCustomTitle(myMsgtitle)
+                                .setView(mDos);
+                        final AlertDialog dialogoHorarioCamb = horarioCamb.create();
+                        btnCamb.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialogoHorarioCamb.dismiss();
+                                tipoHorario();
+
+                            }
+                        });
+                        btnCancelar.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialogoHorarioCamb.dismiss();
+                            }
+                        });
+                        dialogoHorarioCamb.setOnShowListener(new DialogInterface.OnShowListener() {
+                            @Override
+                            public void onShow(DialogInterface dialog) {
+                                btnCamb.setEnabled(true);
+                                btnCancelar.setEnabled(true);
+
+
+                            }
+                        });
+                        dialogoHorarioCamb.setCanceledOnTouchOutside(false);
+                        if (mDos.getParent() != null) {
+                            ((ViewGroup) mDos.getParent()).removeView(mDos);
+                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            dialogoHorarioCamb.show();
+                        } else {
+                            dialogoHorarioCamb.show();
+                        }
+
+                    } else {
+                        tipoHorario();
+                    }
+                }
+            });
+
+        }
+        if (v.equals(icDiasLS)) {
+            mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if (diasLibresSemana != null) {
+                        final TextView myMsgtitle = new TextView(getActivity());
+                        if (diasLibresSemana.size() == 2) {
+
+                            myMsgtitle.setText("Actualmente estan asignados los siguientes dias libres semanales:\n"
+                                    + "(" + diasLibresSemana.toString()
+                                    .replaceAll("Monday", "Lunes")
+                                    .replaceAll("Tuesday", "Martes")
+                                    .replaceAll("Wednesday", "Miercoles")
+                                    .replaceAll("Thursday", "Jueves")
+                                    .replaceAll("Friday", "Viernes")
+                                    .replaceAll("Saturday", "Sabado")
+                                    .replaceAll("Sunday", "Domingo")
+                                    .replaceAll(",", " y")
+                                    .replaceAll("]", "")
+                                    .replaceAll("\\[", "") + ")"
+                                    + "\n ¿desea cambiarlos?");
+                        } else if (diasLibresSemana.size() >= 3) {
+                            myMsgtitle.setText("Actualmente estan asignados los siguientes dias libres semanales:\n"
+                                    + "(" + diasLibresSemana.toString()
+                                    .replaceAll("Monday", "Lunes")
+                                    .replaceAll("Tuesday", "Martes")
+                                    .replaceAll("Wednesday", "Miercoles")
+                                    .replaceAll("Thursday", "Jueves")
+                                    .replaceAll("Friday", "Viernes")
+                                    .replaceAll("Saturday", "Sabado")
+                                    .replaceAll("Sunday", "Domingo")
+                                    .replaceAll("]", "")
+                                    .replaceAll("\\[", "")
+                                    .replaceFirst(",([^,]+)$", " y$1") + ")"
+                                    + "\n ¿desea cambiarlos?");
+                        } else {
+                            myMsgtitle.setText("Actualmente estan asignados los siguientes dias libres semanales:\n"
+                                    + "(" + diasLibresSemana.toString()
+                                    .replaceAll("Monday", "Lunes")
+                                    .replaceAll("Tuesday", "Martes")
+                                    .replaceAll("Wednesday", "Miercoles")
+                                    .replaceAll("Thursday", "Jueves")
+                                    .replaceAll("Friday", "Viernes")
+                                    .replaceAll("Saturday", "Sabado")
+                                    .replaceAll("Sunday", "Domingo")
+                                    .replaceAll("]", "")
+                                    .replaceAll("\\[", "") + ")"
+                                    + "\n ¿desea cambiarlos?");
+                        }
+                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        myMsgtitle.setLayoutParams(params);
+                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                        myMsgtitle.setTextColor(Color.BLACK);
+
+                        mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                        final Button btnCamb = mDos.findViewById(R.id.btn1);
+                        btnCamb.setText("Cambiar");
+                        final Button btnCancelar = mDos.findViewById(R.id.btn2);
+                        final AlertDialog.Builder horarioCamb = new AlertDialog.Builder(requireContext())
+                                .setCustomTitle(myMsgtitle)
+                                .setView(mDos);
+                        final AlertDialog dialogoHorarioCamb = horarioCamb.create();
+                        btnCamb.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialogoHorarioCamb.dismiss();
+                                diasLibresSemanasCambiar();
+
+                            }
+                        });
+                        btnCancelar.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialogoHorarioCamb.dismiss();
+                            }
+                        });
+                        dialogoHorarioCamb.setOnShowListener(new DialogInterface.OnShowListener() {
+                            @Override
+                            public void onShow(DialogInterface dialog) {
+                                btnCamb.setEnabled(true);
+                                btnCancelar.setEnabled(true);
+                            }
+                        });
+                        dialogoHorarioCamb.setCanceledOnTouchOutside(false);
+                        if (mDos.getParent() != null) {
+                            ((ViewGroup) mDos.getParent()).removeView(mDos);
+                            mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
+                            dialogoHorarioCamb.show();
+                        } else {
+                            dialogoHorarioCamb.show();
+                        }
+
+
+                    } else {
+                        diasLibresSemanasCambiar();
+                    }
+                }
+            });
         }
 
     }
@@ -1855,6 +2929,36 @@ public class menuPrincipalAdministradores extends Fragment implements OnMapReady
             marker.showInfoWindow();
         }
         return true;
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        Log.d("isChecked", String.valueOf(isChecked));
+        String DLSEN = null;
+        if (buttonView.getText().toString().equals("Lunes")) {
+            DLSEN = "Monday";
+        } else if (buttonView.getText().toString().equals("Martes")) {
+            DLSEN = "Tuesday";
+        } else if (buttonView.getText().toString().equals("Miercoles")) {
+            DLSEN = "Wednesday";
+        } else if (buttonView.getText().toString().equals("Jueves")) {
+            DLSEN = "Thursday";
+        } else if (buttonView.getText().toString().equals("Viernes")) {
+            DLSEN = "Friday";
+        } else if (buttonView.getText().toString().equals("Sabado")) {
+            DLSEN = "Saturday";
+        } else if (buttonView.getText().toString().equals("Domingo")) {
+            DLSEN = "Sunday";
+        }
+        if (DLSEN != null) {
+            if (isChecked) {
+                Log.d("isChecked", "true");
+                DLS.add(DLSEN);
+            } else {
+                Log.d("isChecked", "false");
+                DLS.remove(DLSEN);
+            }
+        }
     }
 }
 

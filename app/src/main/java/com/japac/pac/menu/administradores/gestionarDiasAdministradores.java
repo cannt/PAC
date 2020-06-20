@@ -20,6 +20,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -27,12 +29,14 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -62,7 +66,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 
 /**
@@ -77,6 +80,10 @@ public class gestionarDiasAdministradores extends Fragment {
     private String empleSelec;
     private String otroMot;
     private String motiv;
+    private String hEntrada;
+    private String hEntrada2;
+    private String hSalida;
+    private String hSalida2;
 
     private CalendarPickerView calendarPickerView, calendarPickerView2;
 
@@ -85,7 +92,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private TextView diasSolicTextV2;
 
-    private View mEmpleados, mCambMot, mTresBtn, mDosBtn, mJustificar;
+    private View mEmpleados, mCambMot, mTresBtn, mDosBtn, mJustificar, mRango, mHoras, mCuatroBtn;
 
     private Spinner empleadosSpinner;
 
@@ -261,14 +268,18 @@ public class gestionarDiasAdministradores extends Fragment {
         });
 
         firebaseFirestore = FirebaseFirestore.getInstance();
-        String id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
-        NotificationManager notificationManager = (NotificationManager) Objects.requireNonNull(getActivity()).getSystemService(Context.NOTIFICATION_SERVICE);
-        Objects.requireNonNull(notificationManager).cancelAll();
+        String id = mAuth.getCurrentUser().getUid();
+        NotificationManager notificationManager = (NotificationManager) getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
         firebaseFirestore.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
                 empresa = documentSnapshot.getString("empresa");
                 nombre = documentSnapshot.getString("nombre");
+                hEntrada = documentSnapshot.getString("hora de entrada");
+                hSalida = documentSnapshot.getString("hora de salida");
+                hEntrada2 = documentSnapshot.getString("hora de entrada partida");
+                hSalida2 = documentSnapshot.getString("hora de salida partida");
                 actualizarCalendarioAd();
                 firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
@@ -277,7 +288,7 @@ public class gestionarDiasAdministradores extends Fragment {
 
                             return;
                         }
-                        for (final DocumentChange doc : Objects.requireNonNull(queryDocumentSnapshots).getDocumentChanges()) {
+                        for (final DocumentChange doc : queryDocumentSnapshots.getDocumentChanges()) {
                             if (doc.getDocument().exists()) {
                                 switch (doc.getType()) {
                                     case ADDED:
@@ -285,7 +296,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                     case REMOVED:
                                         actualizarCalendarioAd();
                                         if (doc.getDocument().getBoolean("solicita") != null && doc.getDocument().getBoolean("solicita")) {
-                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getDocument().getString("nombre"))).update("solicita", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(doc.getDocument().getString("nombre")).update("solicita", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
                                                     if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.ANCHORED)) {
@@ -304,8 +315,8 @@ public class gestionarDiasAdministradores extends Fragment {
                                                     menu.snackbar.show();
                                                 }
                                             });
-                                        }else if(doc.getDocument().getBoolean("asignado")!=null && doc.getDocument().getBoolean("asignado")){
-                                            hayDias  = true;
+                                        } else if (doc.getDocument().getBoolean("asignado") != null && doc.getDocument().getBoolean("asignado")) {
+                                            hayDias = true;
                                             if (menu.getCambioDeFragment()) {
                                                 actualizarCalendarioAd();
                                                 if (hayDias) {
@@ -340,7 +351,7 @@ public class gestionarDiasAdministradores extends Fragment {
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 final ArrayList<String> contieneDias = new ArrayList<>();
                 if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
                         String diasS = document.getString("Dias libres");
                         if (diasS != null) {
                             if (diasS.contains(datefull)) {
@@ -373,9 +384,11 @@ public class gestionarDiasAdministradores extends Fragment {
                             empleadosSpinner.setAdapter(empleadoAdapter);
                             final TextView myMsgtitle = new TextView(getActivity());
                             myMsgtitle.setText("Dia " + datefull + " libre " + "actualmente asignado a los siguientes empleados" + contieneDias.get(0) + "\nSeleccione uno de la lista para gestionarlo");
+                            ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            myMsgtitle.setLayoutParams(params);
                             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                             myMsgtitle.setTextColor(Color.BLACK);
-                            myMsgtitle.setPadding(2, 2, 2, 2);
+
                             final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
                             final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                             AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -449,9 +462,11 @@ public class gestionarDiasAdministradores extends Fragment {
                                 empleadosSpinner.setAdapter(empleadoAdapter);
                                 final TextView myMsgtitle = new TextView(getActivity());
                                 myMsgtitle.setText("Empleados que quieren el dia " + datefull + " libre\nSeleccione uno de la lista para consultar sus motivos");
+                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                myMsgtitle.setLayoutParams(params);
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
-                                myMsgtitle.setPadding(2, 2, 2, 2);
+
                                 final Button btnSiguient = mEmpleados.findViewById(R.id.btn1);
                                 final Button btnCance = mEmpleados.findViewById(R.id.btn2);
                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -497,7 +512,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                 public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                     final ArrayList<String> contieneDias3 = new ArrayList<>();
                                     if (task.isSuccessful()) {
-                                        for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                                        for (QueryDocumentSnapshot document : task.getResult()) {
                                             if (!document.getBoolean("desactivado")) {
                                                 contieneDias3.add(document.getString("nombre"));
                                             }
@@ -506,13 +521,15 @@ public class gestionarDiasAdministradores extends Fragment {
                                             if (contieneDias3.size() == 1) {
                                                 final TextView myMsgtitle = new TextView(getActivity());
                                                 myMsgtitle.setText("¿Desea darle el dia " + datefull + " libre a " + contieneDias3.get(0) + "?");
+                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                myMsgtitle.setLayoutParams(params);
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
-                                                myMsgtitle.setPadding(2, 2, 2, 2);
+
                                                 mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                                                 final Button btnAsigDia = mDosBtn.findViewById(R.id.btn1);
                                                 final Button btnCancelar = mDosBtn.findViewById(R.id.btn2);
-                                                AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                                                AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mDosBtn);
                                                 final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
@@ -534,10 +551,10 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                                                         final String datefull = formato.format(date);
                                                         titulo.setText("¿Porque motivo deseas darle el dia " + datefull + " libre a " + contieneDias3.get(0) + "?");
-                                                        mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                                                        final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
-                                                        final Button btnBaja = mCambMot.findViewById(R.id.Baja);
-                                                        final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                                                        mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
+                                                        final Button btnVaca = mCambMot.findViewById(R.id.btn1);
+                                                        final Button btnBaja = mCambMot.findViewById(R.id.btn2);
+                                                        final Button btnOtros = mCambMot.findViewById(R.id.btn3);
                                                         final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
                                                         AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
@@ -547,7 +564,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             @Override
                                                             public void onClick(View v) {
 
-                                                                asignariDiaLibreAd(contieneDias3.get(0), datefull + "V");
+                                                                rango(contieneDias3.get(0), datefull + "V");
                                                                 dialogoAdministrarDiasLibres.dismiss();
 
                                                             }
@@ -556,7 +573,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             @Override
                                                             public void onClick(View v) {
 
-                                                                asignariDiaLibreAd(contieneDias3.get(0), datefull + "B");
+                                                                rango(contieneDias3.get(0), datefull + "B");
                                                                 dialogoAdministrarDiasLibres.dismiss();
 
                                                             }
@@ -583,7 +600,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                             otroMot = JustTexto;
                                                                             sJustificar.setHintTextColor(Color.GRAY);
                                                                             sJustificar.setError(null);
-                                                                            asignariDiaLibreAd(contieneDias3.get(0), datefull + "O");
+                                                                            rango(contieneDias3.get(0), datefull + "O");
                                                                             dialogoLogin.dismiss();
 
 
@@ -632,7 +649,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         dialogoAdministrarDiasLibres.setCanceledOnTouchOutside(false);
                                                         if (mCambMot.getParent() != null) {
                                                             ((ViewGroup) mCambMot.getParent()).removeView(mCambMot);
-                                                            mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
+                                                            mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
                                                             dialogoAdministrarDiasLibres.show();
                                                         } else {
                                                             dialogoAdministrarDiasLibres.show();
@@ -676,9 +693,11 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 empleadosSpinner.setAdapter(empleadoAdapter);
                                                 final TextView myMsgtitle = new TextView(getActivity());
                                                 myMsgtitle.setText("¿Desea asignar el dia " + datefull + " libre? \nSeleccione un empleado de la lista primero");
+                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                myMsgtitle.setLayoutParams(params);
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
-                                                myMsgtitle.setPadding(2, 2, 2, 2);
+
                                                 final Button btnSiguiente = mEmpleados.findViewById(R.id.btn1);
                                                 final Button btnCancelar = mEmpleados.findViewById(R.id.btn2);
                                                 AlertDialog.Builder AdministrarDiasLibresAd = new AlertDialog.Builder(getContext())
@@ -703,10 +722,10 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                                                         final String datefull = formato.format(date);
                                                         titulo.setText("¿Porque motivo deseas darle el dia " + datefull + " libre a " + empleSelec + "?");
-                                                        mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                                                        final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
-                                                        final Button btnBaja = mCambMot.findViewById(R.id.Baja);
-                                                        final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                                                        mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
+                                                        final Button btnVaca = mCambMot.findViewById(R.id.btn1);
+                                                        final Button btnBaja = mCambMot.findViewById(R.id.btn2);
+                                                        final Button btnOtros = mCambMot.findViewById(R.id.btn3);
                                                         final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
                                                         AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                                                                 .setCustomTitle(titulo)
@@ -716,7 +735,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             @Override
                                                             public void onClick(View v) {
 
-                                                                asignariDiaLibreAd(empleSelec, datefull + "V");
+                                                                rango(empleSelec, datefull + "V");
                                                                 dialogoAdministrarDiasLibres.dismiss();
 
                                                             }
@@ -725,7 +744,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             @Override
                                                             public void onClick(View v) {
 
-                                                                asignariDiaLibreAd(empleSelec, datefull + "B");
+                                                                rango(empleSelec, datefull + "B");
                                                                 dialogoAdministrarDiasLibres.dismiss();
 
                                                             }
@@ -753,7 +772,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                             otroMot = JustTexto;
                                                                             sJustificar.setError(null);
                                                                             sJustificar.setHintTextColor(Color.GRAY);
-                                                                            asignariDiaLibreAd(empleSelec, datefull + "O");
+                                                                            rango(empleSelec, datefull + "O");
                                                                             dialogoLogin.dismiss();
 
 
@@ -801,7 +820,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         dialogoAdministrarDiasLibres.setCanceledOnTouchOutside(false);
                                                         if (mCambMot.getParent() != null) {
                                                             ((ViewGroup) mCambMot.getParent()).removeView(mCambMot);
-                                                            mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
+                                                            mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
                                                             dialogoAdministrarDiasLibres.show();
                                                         } else {
                                                             dialogoAdministrarDiasLibres.show();
@@ -842,10 +861,440 @@ public class gestionarDiasAdministradores extends Fragment {
         });
     }
 
-    private void asignariDiaLibreAd(final String nombre2, final String fecha) {
+    private void rango(final String nombre1, final String fecha1) {
         menu.cargando(true);
         touch(true);
-        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre2).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("Asigne todo el dia libre o seleccione las horas libres");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.BLACK);
+        mRango = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+        final Button btnTodo = mRango.findViewById(R.id.btn2);
+        btnTodo.setText("Todo el dia");
+        final Button btnHoras = mRango.findViewById(R.id.btn1);
+        btnHoras.setText("Seleccionar horas");
+        final Button btnCancelar = mRango.findViewById(R.id.Cancelar);
+        final AlertDialog.Builder rango = new AlertDialog.Builder(requireContext())
+                .setCustomTitle(myMsgtitle)
+                .setView(mRango);
+        final AlertDialog dialogoRango = rango.create();
+        btnTodo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRango.dismiss();
+                asignarDiaLibreAd(nombre1, fecha1);
+            }
+        });
+        btnHoras.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRango.dismiss();
+                horasSelec(nombre1, fecha1);
+            }
+        });
+        btnCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRango.dismiss();
+            }
+        });
+        dialogoRango.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                btnTodo.setEnabled(true);
+                btnHoras.setEnabled(true);
+                btnCancelar.setEnabled(true);
+                menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoRango.setCanceledOnTouchOutside(false);
+        if (mRango.getParent() != null) {
+            ((ViewGroup) mRango.getParent()).removeView(mRango);
+            mRango = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+            dialogoRango.show();
+        } else {
+            dialogoRango.show();
+        }
+    }
+
+    private void horasSelec(final String nombre2, final String fecha2) {
+        menu.cargando(true);
+        touch(true);
+        final int[] horaEntOSal = {0};
+        final TextView myMsgtitle = new TextView(getActivity());
+        myMsgtitle.setText("¿A que hora empezara a librar " + nombre2 + " ?");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
+        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        myMsgtitle.setTextColor(Color.GREEN);
+        mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+        final TimePicker timePicker = mHoras.findViewById(R.id.elegirHora);
+        timePicker.setIs24HourView(true);
+        if (hEntrada != null) {
+            SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+            Date entrada = null;
+            try {
+                entrada = format.parse(hEntrada);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            timePicker.setHour(new DateTime(entrada).getHourOfDay());
+            timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+        } else {
+            timePicker.setHour(00);
+            timePicker.setMinute(00);
+        }
+        timePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+            @Override
+            public void onTimeChanged(TimePicker timePicker, int hourOfDay, int minute) {
+                SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                if (hEntrada != null && hSalida != null && hEntrada2 == null && hSalida2 == null) {
+                    Date entrada = null;
+                    Date salida = null;
+                    try {
+                        entrada = format.parse(hEntrada);
+                        salida = format.parse(hSalida);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    if (hourOfDay < new DateTime(entrada).getHourOfDay() || hourOfDay > new DateTime(salida).getHourOfDay()) {
+                        timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                    } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                    } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                    }
+                } else if (hEntrada != null && hSalida != null && hEntrada2 != null && hSalida2 != null) {
+                    Date entrada = null;
+                    Date salida = null;
+                    Date entrada2 = null;
+                    Date salida2 = null;
+                    try {
+                        entrada = format.parse(hEntrada);
+                        salida2 = format.parse(hSalida2);
+                        entrada2 = format.parse(hEntrada2);
+                        salida = format.parse(hSalida);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                        timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                    } else if ((hourOfDay > new DateTime(salida2).getHourOfDay() && hourOfDay < new DateTime(entrada2).getHourOfDay())) {
+                        if (horaEntOSal[0] == 0) {
+                            horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                            timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                        } else if (horaEntOSal[0] == new DateTime(entrada2).getHourOfDay()) {
+                            horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                            timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                        } else if (horaEntOSal[0] == new DateTime(salida2).getHourOfDay()) {
+                            horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                            timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                        }
+                    } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                        timePicker.setHour(new DateTime(salida).getHourOfDay());
+                    } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                    } else if (hourOfDay == new DateTime(salida2).getHourOfDay() && minute > new DateTime(salida2).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(salida2).getMinuteOfHour());
+                    } else if (hourOfDay == new DateTime(entrada2).getHourOfDay() && minute < new DateTime(entrada2).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(entrada2).getMinuteOfHour());
+                    } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                    }
+                }
+            }
+        });
+        final Button btnCont = mHoras.findViewById(R.id.btn1);
+        final Button btnCancelar = mHoras.findViewById(R.id.btn2);
+        final AlertDialog.Builder rangoHora = new AlertDialog.Builder(getContext());
+        rangoHora.setCustomTitle(myMsgtitle)
+                .setView(mHoras);
+        final AlertDialog dialogoRangoHora = rangoHora.create();
+        btnCont.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final DecimalFormat decimalFormat = new DecimalFormat("00");
+                final String entradaDef = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                if (!entradaDef.isEmpty()) {
+                    final int[] horaEntOSal = {0};
+                    final TextView myMsgtitle = new TextView(getActivity());
+                    myMsgtitle.setText("¿A que hora terminara de librar " + nombre2 + " ?");
+                    myMsgtitle.setTextColor(Color.RED);
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
+                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                    mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                    final TimePicker timePicker = mHoras.findViewById(R.id.elegirHora);
+                    timePicker.setIs24HourView(true);
+                    if (hSalida != null) {
+                        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                        Date salida = null;
+                        try {
+                            salida = format.parse(hSalida);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                        timePicker.setHour(new DateTime(salida).getHourOfDay());
+                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                    } else {
+                        timePicker.setHour(00);
+                        timePicker.setMinute(00);
+                    }
+                    timePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+                        @Override
+                        public void onTimeChanged(TimePicker timePicker, int hourOfDay, int minute) {
+                            SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                            if (hEntrada != null && hSalida != null && hEntrada2 == null && hSalida2 == null) {
+                                Date entrada = null;
+                                Date salida = null;
+                                Date entDef = null;
+                                try {
+                                    entrada = format.parse(hEntrada);
+                                    salida = format.parse(hSalida);
+                                    entDef = format.parse(entradaDef);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                                if (hourOfDay < new DateTime(entDef).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(entDef).getHourOfDay());
+                                } else if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(entDef).getHourOfDay() && minute < new DateTime(entDef).getMinuteOfHour()) {
+                                    timePicker.setHour(new DateTime(entDef).getMinuteOfHour());
+                                }
+                            } else if (hEntrada != null && hSalida != null && hEntrada2 != null && hSalida2 != null) {
+                                Date entrada = null;
+                                Date salida = null;
+                                Date entrada2 = null;
+                                Date salida2 = null;
+                                Date entDef = null;
+                                try {
+                                    entrada = format.parse(hEntrada);
+                                    salida2 = format.parse(hSalida2);
+                                    entrada2 = format.parse(hEntrada2);
+                                    salida = format.parse(hSalida);
+                                    entDef = format.parse(entradaDef);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                                if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                } else if ((hourOfDay > new DateTime(salida2).getHourOfDay() && hourOfDay < new DateTime(entrada2).getHourOfDay())) {
+                                    if (horaEntOSal[0] == 0) {
+                                        horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                                        timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                                    } else if (horaEntOSal[0] == new DateTime(salida2).getHourOfDay()) {
+                                        horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                                        timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                                    } else if (horaEntOSal[0] == new DateTime(entrada2).getHourOfDay()) {
+                                        horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                                        timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                                    }
+                                } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                } else if (hourOfDay < new DateTime(entDef).getHourOfDay()) {
+                                    timePicker.setHour(new DateTime(entDef).getHourOfDay());
+                                } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(salida2).getHourOfDay() && minute > new DateTime(salida2).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(salida2).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(entrada2).getHourOfDay() && minute < new DateTime(entrada2).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(entrada2).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                    timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                } else if (hourOfDay == new DateTime(entDef).getHourOfDay() && minute < new DateTime(entDef).getMinuteOfHour()) {
+                                    timePicker.setHour(new DateTime(entDef).getMinuteOfHour());
+                                }
+                            }
+                        }
+                    });
+                    final Button btnCon2 = mHoras.findViewById(R.id.btn1);
+                    final Button btnCancelar2 = mHoras.findViewById(R.id.btn2);
+                    btnCancelar2.setText("Atras");
+                    final AlertDialog.Builder rangoHora2 = new AlertDialog.Builder(getContext());
+                    rangoHora2.setCustomTitle(myMsgtitle)
+                            .setView(mHoras);
+                    final AlertDialog dialogoRangoHora2 = rangoHora2.create();
+                    btnCon2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final String salidaDef = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                            if (Integer.parseInt(entradaDef.substring(0, 2)) >= Integer.parseInt(salidaDef.substring(0, 2))
+                                    && Integer.parseInt(entradaDef.substring(3)) >= Integer.parseInt(salidaDef.substring(3))) {
+                                final Snackbar snackbar = Snackbar.make(mHoras, "La hora de finalizacion del tiempo libre no puede ser antes o igual a la de inicio", 5000);
+                                if (Integer.parseInt(entradaDef.substring(0, 2)) > Integer.parseInt(salidaDef.substring(0, 2))) {
+                                    snackbar.setText("La hora de finalizacion del tiempo libre no puede ser antes que la de inicio");
+                                } else if (Integer.parseInt(entradaDef.substring(0, 2)) == Integer.parseInt(salidaDef.substring(0, 2))) {
+                                    snackbar.setText("La hora de finalizacion del tiempo libre no puede ser igual a la de inicio");
+                                }
+                                TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                tv.setTextSize(10);
+                                snackbarDS.configSnackbar(getActivity(), snackbar);
+                                snackbar.setAction("Entendido", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        snackbar.dismiss();
+                                    }
+                                }).setActionTextColor(Color.WHITE);
+                                snackbar.show();
+                            } else {
+                                dialogoRangoHora2.dismiss();
+                                final TextView myMsgtitle = new TextView(getActivity());
+                                if (fecha2.contains("V")) {
+                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre2 + "?\n El dia " + fecha2.replace("V", "") + " por vacaciones");
+                                } else if (fecha2.contains("B")) {
+                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre2 + "?\n El dia " + fecha2.replace("B", "") + " por baja laboral");
+                                } else if (fecha2.contains("O")) {
+                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre2 + "?\n El dia " + fecha2.replace("O", "") + " por " + otroMot);
+                                }
+                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                myMsgtitle.setLayoutParams(params);
+                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                myMsgtitle.setTextColor(Color.GRAY);
+                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                final TextView textView = mDosBtn.findViewById(R.id.elegirHora);
+                                textView.setText("De " + entradaDef + " A " + salidaDef);
+                                textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                Animation anim = new AlphaAnimation(0.0f, 1.0f);
+                                anim.setDuration(200);
+                                anim.setStartOffset(20);
+                                anim.setRepeatMode(Animation.REVERSE);
+                                anim.setRepeatCount(Animation.INFINITE);
+                                anim.setAnimationListener(new Animation.AnimationListener() {
+                                    @Override
+                                    public void onAnimationStart(Animation animation) {
+                                        textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                    }
+
+                                    @Override
+                                    public void onAnimationEnd(Animation animation) {
+                                        textView.setTextColor(Color.parseColor("#8000ff00"));
+                                    }
+
+                                    @Override
+                                    public void onAnimationRepeat(Animation animation) {
+
+
+                                    }
+                                });
+                                textView.startAnimation(anim);
+                                final Button btnConf = mDosBtn.findViewById(R.id.btn1);
+                                btnConf.setText("Confirmar");
+                                final Button btnCancelar3 = mDosBtn.findViewById(R.id.btn2);
+                                final AlertDialog.Builder alerta3 = new AlertDialog.Builder(getContext());
+                                alerta3.setCustomTitle(myMsgtitle)
+                                        .setView(mDosBtn);
+                                final AlertDialog dialogoAlerta3 = alerta3.create();
+                                btnConf.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        menu.cargando(true);
+                                        touch(true);
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).update(fecha2.replaceAll("/", "-"), entradaDef + ";" + salidaDef).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                menu.cargando(false);
+                                                touch(false);
+                                                dialogoAlerta3.dismiss();
+                                                asignarDiaLibreAd(nombre2, fecha2);
+                                            }
+                                        });
+                                    }
+                                });
+                                btnCancelar3.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialogoAlerta3.dismiss();
+                                    }
+                                });
+                                dialogoAlerta3.setOnShowListener(new DialogInterface.OnShowListener() {
+                                    @Override
+                                    public void onShow(DialogInterface dialog) {
+                                        dialogoRangoHora2.dismiss();
+                                        textView.setEnabled(true);
+                                        btnConf.setEnabled(true);
+                                        btnCancelar3.setEnabled(true);
+                                    }
+                                });
+                                dialogoAlerta3.setCanceledOnTouchOutside(false);
+                                if (mDosBtn.getParent() != null) {
+                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                    dialogoAlerta3.show();
+                                } else {
+                                    dialogoAlerta3.show();
+                                }
+                            }
+                        }
+                    });
+                    btnCancelar2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogoRangoHora2.dismiss();
+                            horasSelec(nombre2, fecha2);
+                        }
+                    });
+                    dialogoRangoHora2.setOnShowListener(new DialogInterface.OnShowListener() {
+                        @Override
+                        public void onShow(DialogInterface dialog) {
+                            dialogoRangoHora.dismiss();
+                            timePicker.setEnabled(true);
+                            btnCon2.setEnabled(true);
+                            btnCancelar2.setEnabled(true);
+                        }
+                    });
+                    dialogoRangoHora2.setCanceledOnTouchOutside(false);
+                    if (mHoras.getParent() != null) {
+                        ((ViewGroup) mHoras.getParent()).removeView(mHoras);
+                        mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                        dialogoRangoHora2.show();
+                    } else {
+                        dialogoRangoHora2.show();
+                    }
+                    dialogoRangoHora.show();
+                }
+            }
+        });
+        btnCancelar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoRangoHora.dismiss();
+                rango(nombre2, fecha2);
+            }
+        });
+        dialogoRangoHora.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                timePicker.setEnabled(true);
+                btnCont.setEnabled(true);
+                btnCancelar.setEnabled(true);
+                menu.cargando(false);
+                touch(false);
+            }
+        });
+        dialogoRangoHora.setCanceledOnTouchOutside(false);
+        if (mHoras.getParent() != null) {
+            ((ViewGroup) mHoras.getParent()).removeView(mHoras);
+            mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+            dialogoRangoHora.show();
+        } else {
+            dialogoRangoHora.show();
+        }
+    }
+
+    private void asignarDiaLibreAd(final String nombre3, final String fecha3) {
+        menu.cargando(true);
+        touch(true);
+        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre3).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
                 final String id2 = documentSnapshot.getString("id");
@@ -857,7 +1306,7 @@ public class gestionarDiasAdministradores extends Fragment {
                     final String[] diasSotLista = tip.split("\\s*;\\s*");
                     final List<String> dias2 = new ArrayList<>();
                     for (String ds : diasSotLista) {
-                        if (!ds.contains(fecha)) {
+                        if (!ds.contains(fecha3)) {
                             dias2.add(ds);
                         }
                     }
@@ -871,30 +1320,30 @@ public class gestionarDiasAdministradores extends Fragment {
                     mapSolis.put("Dias libres solicitados", fin);
                 }
                 if (aceptD != null) {
-                    aceptD = documentSnapshot.getString("Dias libres") + fecha + ";";
+                    aceptD = documentSnapshot.getString("Dias libres") + fecha3 + ";";
                 } else {
-                    aceptD = fecha + ";";
+                    aceptD = fecha3 + ";";
                 }
                 mapSolis.put("Dias libres", aceptD);
-                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre2).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre3).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre2).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre3).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(id2)).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                firebaseFirestore.collection("Todas las ids").document(id2).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                     public void onSuccess(Void aVoid) {
                                         mapSolis.put("asignado", true);
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                if (fecha.contains("O")) {
-                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre2).update(fecha.replace("O", "").replaceAll("/", "-"), otroMot);
+                                                if (fecha3.contains("O")) {
+                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(fecha3.replace("O", "").replaceAll("/", "-"), otroMot);
                                                 }
                                             }
                                         });
-                                        menu.snackbar.setText("Dia libre " + fecha.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
+                                        menu.snackbar.setText("Dia libre " + fecha3.replaceAll("O", "").replaceAll("V", "").replaceAll("B", "") + " asignado.");
                                         TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
                                         tv.setTextSize(12);
                                         tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
@@ -919,21 +1368,21 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
                 String motiv2 = documentSnapshot.getString("Dias libres solicitados");
-                final String[] listaMotiv = Objects.requireNonNull(motiv2).split("\\s*;\\s*");
+                final String[] listaMotiv = motiv2.split("\\s*;\\s*");
                 for (String mot : listaMotiv) {
                     if (mot.contains(fechaText)) {
+                        Log.d("fecha", fechaText.replaceAll("/", "-"));
+
                         if (mot.contains("V")) {
-                            dialogoAcReDia(nombreEm, "vacaciones.", fechaText);
+                            final String rangHor = documentSnapshot.getString(fechaText.replaceAll("/", "-") + "V");
+                            dialogoAcReDia(nombreEm, "vacaciones", fechaText, rangHor);
                         } else if (mot.contains("B")) {
-                            dialogoAcReDia(nombreEm, "baja laboral.", fechaText);
+                            final String rangHor = documentSnapshot.getString(fechaText.replaceAll("/", "-") + "B");
+                            dialogoAcReDia(nombreEm, "baja laboral", fechaText, rangHor);
                         } else if (mot.contains("O")) {
-                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombreEm).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                                @Override
-                                public void onSuccess(DocumentSnapshot documentSnapshot2) {
-                                    String camb = fechaText.replaceAll("/", "-");
-                                    dialogoAcReDia(nombreEm, documentSnapshot.getString(camb), fechaText);
-                                }
-                            });
+                            final String rangHor = documentSnapshot.getString(fechaText.replaceAll("/", "-") + "O");
+                            String camb = fechaText.replaceAll("/", "-");
+                            dialogoAcReDia(nombreEm, documentSnapshot.getString(camb), fechaText, rangHor);
                         }
                         break;
                     }
@@ -942,20 +1391,28 @@ public class gestionarDiasAdministradores extends Fragment {
         });
     }
 
-    private void dialogoAcReDia(final String nom, String mot, final String fech) {
-
+    private void dialogoAcReDia(final String nom, String mot, final String fech, final String rangoHour) {
         final TextView myMsgtitle = new TextView(getActivity());
-        myMsgtitle.setText(nom + " quiere el dia " + fech + " libre por " + mot);
+        if (rangoHour != null) {
+            Log.d("rangohour", rangoHour);
+            final String[] rangoHourSplited = rangoHour.split("\\s*;\\s*");
+            Log.d("rangoHourSplited", rangoHourSplited[0] + " y " + rangoHourSplited[1]);
+            myMsgtitle.setText(nom + " quiere el dia " + fech + " libre desde las " + rangoHourSplited[0] + " hasta las " + rangoHourSplited[1] + " por " + mot);
+        } else {
+            myMsgtitle.setText(nom + " quiere todo el dia " + fech + " libre por " + mot);
+        }
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
         final Button btnAceptar = mTresBtn.findViewById(R.id.btn2);
         btnAceptar.setText("Aceptar");
         final Button btnRechazar = mTresBtn.findViewById(R.id.btn1);
         btnRechazar.setText("Rechazar");
         final Button btnCance = mTresBtn.findViewById(R.id.Cancelar);
-        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
                 .setView(mTresBtn);
         final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
@@ -981,24 +1438,26 @@ public class gestionarDiasAdministradores extends Fragment {
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 try {
                                     final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(fech);
-                                    DecimalFormat mFormat= new DecimalFormat("00");
-                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
+                                    DecimalFormat mFormat = new DecimalFormat("00");
+                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear()) != null) {
                                         firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
                                     }
                                 } catch (ParseException e) {
                                     e.printStackTrace();
                                 }
-
                             }
                         });
                         String tip = documentSnapshot.getString("Dias libres solicitados");
                         String fin = null;
-                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
+                        final String[] diasSotLista = tip.split("\\s*;\\s*");
                         final List<String> dias2 = new ArrayList<>();
                         for (String ds : diasSotLista) {
                             if (!ds.contains(fech)) {
                                 dias2.add(ds);
+                            } else {
+                                if (rangoHour != null) {
+                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).update(ds.replaceAll("/", "-"), FieldValue.delete());
+                                }
                             }
                         }
                         for (String ds2 : dias2) {
@@ -1010,7 +1469,7 @@ public class gestionarDiasAdministradores extends Fragment {
                         }
                         final Map<String, Object> mapD = new HashMap<>();
                         mapD.put("Dias libres solicitados", fin);
-                        firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id")))
+                        firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id"))
                                 .set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
@@ -1059,8 +1518,8 @@ public class gestionarDiasAdministradores extends Fragment {
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 try {
                                     final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(fech);
-                                    final DecimalFormat mFormat= new DecimalFormat("00");
-                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
+                                    final DecimalFormat mFormat = new DecimalFormat("00");
+                                    if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear()) != null) {
                                         firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nom).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
@@ -1078,13 +1537,21 @@ public class gestionarDiasAdministradores extends Fragment {
                         String fin = null;
                         String aceptD = documentSnapshot.getString("Dias libres");
                         String acept = null;
-                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
+                        final String[] diasSotLista = tip.split("\\s*;\\s*");
                         final List<String> dias2 = new ArrayList<>();
-                        for (String ds : diasSotLista) {
+                        for (final String ds : diasSotLista) {
                             if (!ds.contains(fech)) {
                                 dias2.add(ds);
                             } else {
                                 acept = ds;
+                                if (rangoHour != null) {
+                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nom).update(ds.replaceAll("/", "-"), rangoHour).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nom).update(ds.replaceAll("/", "-"), FieldValue.delete());
+                                        }
+                                    });
+                                }
                             }
                         }
                         for (String ds2 : dias2) {
@@ -1107,10 +1574,12 @@ public class gestionarDiasAdministradores extends Fragment {
                                     .set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nom)
+                                            .set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
-                                            firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id"))
+                                                    .set(mapSolis, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
                                                     mapSolis.put("aceptado", true);
@@ -1136,7 +1605,6 @@ public class gestionarDiasAdministradores extends Fragment {
                                                             tv.setTextSize(12);
                                                             snackbarDS.configSnackbar(getContext(), menu.snackbar);
                                                             menu.snackbar.show();
-
                                                             menu.cargando(false);
                                                             touch(false);
                                                         }
@@ -1179,15 +1647,15 @@ public class gestionarDiasAdministradores extends Fragment {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 motiv = documentSnapshot.getString("Dias libres");
-                final String[] listaMotiv = Objects.requireNonNull(motiv).split("\\s*;\\s*");
+                final String[] listaMotiv = motiv.split("\\s*;\\s*");
                 for (String mot : listaMotiv) {
                     if (mot.contains(date)) {
                         if (mot.contains("V")) {
-                            dialogoYaDia(nombre2, date, "vacaciones.");
+                            dialogoYaDia(nombre2, date, "vacaciones", documentSnapshot.getString(mot.replaceAll("/", "-")), mot);
                         } else if (mot.contains("B")) {
-                            dialogoYaDia(nombre2, date, "baja laboral.");
+                            dialogoYaDia(nombre2, date, "baja laboral", documentSnapshot.getString(mot.replaceAll("/", "-")), mot);
                         } else if (mot.contains("O")) {
-                            dialogoYaDia(nombre2, date, documentSnapshot.getString(date.replaceAll("/", "-")));
+                            dialogoYaDia(nombre2, date, documentSnapshot.getString(date.replaceAll("/", "-")), documentSnapshot.getString(mot.replaceAll("/", "-")), mot);
                         }
                         break;
                     }
@@ -1196,54 +1664,64 @@ public class gestionarDiasAdministradores extends Fragment {
         });
     }
 
-    private void dialogoYaDia(final String nombre3, final String date, final String motivo) {
-
-        mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
-        final Button btnEliminar = mTresBtn.findViewById(R.id.btn1);
+    private void dialogoYaDia(final String nombre3, final String date, final String motivo, final String rangoHour, final String dateMasMot) {
+        menu.cargando(true);
+        touch(true);
+        mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
+        final Button btnCambMot = mCuatroBtn.findViewById(R.id.btn1);
+        btnCambMot.setText("Cambiar motivo");
+        final Button btnEliminar = mCuatroBtn.findViewById(R.id.btn2);
         btnEliminar.setText("Eliminar dia libre");
-        final Button btnCambMot = mTresBtn.findViewById(R.id.btn2);
-        final Button btnCance = mTresBtn.findViewById(R.id.Cancelar);
+        final Button btnCambRang = mCuatroBtn.findViewById(R.id.btn3);
+        btnCambRang.setText("Cambiar horas libres");
+        final Button btnCance = mCuatroBtn.findViewById(R.id.Cancelar);
         final TextView myMsgtitle = new TextView(getActivity());
-        myMsgtitle.setText(nombre3 + " tiene el dia " + date + " libre por " + motivo);
+        if (rangoHour != null) {
+            final String[] rangoHourSplited = rangoHour.split("\\s*;\\s*");
+            myMsgtitle.setText(nombre3 + " tiene el dia " + date + " libre desde las " + rangoHourSplited[0] + " hasta las " + rangoHourSplited[1] + " por " + motivo);
+        } else {
+            myMsgtitle.setText(nombre3 + " tiene todo el dia " + date + " libre por " + motivo);
+        }
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        AlertDialog.Builder AdministrarDiasLibresAd2 = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle)
-                .setView(mTresBtn);
+                .setView(mCuatroBtn);
         final AlertDialog dialogoAdministrarDiasLibresAd2 = AdministrarDiasLibresAd2.create();
-
-        btnCance.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialogoAdministrarDiasLibresAd2.dismiss();
-                ((ViewGroup) myMsgtitle.getParent()).removeView(myMsgtitle);
-
-            }
-        });
 
         btnCambMot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String motAn = motivo;
+                if(motivo.equals("vacaciones")){
+                    motAn = "V";
+                }else if(motivo.equals("baja laboral")){
+                    motAn = "B";
+                }else{
+                    motAn = "O";
+                }
                 dialogoAdministrarDiasLibresAd2.dismiss();
                 final TextView titulo = new TextView(getActivity());
                 titulo.setGravity(Gravity.CENTER_HORIZONTAL);
                 titulo.setTextColor(Color.BLACK);
                 titulo.setText("Seleccione el nuevo motivo para el dia " + date + " libre de " + nombre3);
-                mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
-                final Button btnVaca = mCambMot.findViewById(R.id.Vacas);
-                final Button btnBaja = mCambMot.findViewById(R.id.Baja);
-                final Button btnOtros = mCambMot.findViewById(R.id.Otros);
+                mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
+                final Button btnVaca = mCambMot.findViewById(R.id.btn1);
+                final Button btnBaja = mCambMot.findViewById(R.id.btn2);
+                final Button btnOtros = mCambMot.findViewById(R.id.btn3);
                 final Button btnCance = mCambMot.findViewById(R.id.Cancelar);
-                AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                AlertDialog.Builder AdministrarDiasLibres = new AlertDialog.Builder(getContext())
                         .setCustomTitle(titulo)
                         .setView(mCambMot);
                 final AlertDialog dialogoAdministrarDiasLibres = AdministrarDiasLibres.create();
+                final String finalMotAn = motAn;
                 btnVaca.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         dialogoAdministrarDiasLibres.dismiss();
-                        motivNu(nombre3, date, "V");
+                        motivNu(nombre3, date, "V", rangoHour, finalMotAn);
 
                     }
                 });
@@ -1251,7 +1729,7 @@ public class gestionarDiasAdministradores extends Fragment {
                     @Override
                     public void onClick(View v) {
                         dialogoAdministrarDiasLibres.dismiss();
-                        motivNu(nombre3, date, "B");
+                        motivNu(nombre3, date, "B", rangoHour, finalMotAn);
 
                     }
                 });
@@ -1278,7 +1756,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                     otroMot = JustTexto;
                                     sJustificar.setError(null);
                                     sJustificar.setHintTextColor(Color.GRAY);
-                                    motivNu(nombre3, date, "O");
+                                    motivNu(nombre3, date, "O", rangoHour, finalMotAn);
                                     dialogoLogin.dismiss();
 
 
@@ -1326,11 +1804,20 @@ public class gestionarDiasAdministradores extends Fragment {
                 dialogoAdministrarDiasLibres.setCanceledOnTouchOutside(false);
                 if (mCambMot.getParent() != null) {
                     ((ViewGroup) mCambMot.getParent()).removeView(mCambMot);
-                    mCambMot = getLayoutInflater().inflate(R.layout.dialogo_motivo, null);
+                    mCambMot = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
                     dialogoAdministrarDiasLibres.show();
                 } else {
                     dialogoAdministrarDiasLibres.show();
                 }
+            }
+        });
+
+        btnCance.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoAdministrarDiasLibresAd2.dismiss();
+                ((ViewGroup) myMsgtitle.getParent()).removeView(myMsgtitle);
+
             }
         });
 
@@ -1345,12 +1832,12 @@ public class gestionarDiasAdministradores extends Fragment {
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         final String diasLibresAcept = documentSnapshot.getString("Dias libres");
                         String insertar = null;
-                        insertar = Objects.requireNonNull(diasLibresAcept).replace(date + "V;", "").replace(date + "B;", "").replace(date + "O;", "");
+                        insertar = diasLibresAcept.replace(date + "V;", "").replace(date + "B;", "").replace(date + "O;", "");
                         if (insertar.equals("")) {
                             insertar = null;
                         }
                         final String finalInsertar = insertar;
-                        firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("Dias libres", insertar).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id")).update("Dias libres", insertar).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
                                 firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre3).update("Dias libres", finalInsertar).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -1365,36 +1852,32 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).set(mapins, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre3).update(date.replaceAll("/", "-"), FieldValue.delete()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                            @Override
-                                                            public void onSuccess(Void aVoid) {
-                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(date.replaceAll("/", "-"), FieldValue.delete()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                    @Override
-                                                                    public void onSuccess(Void aVoid) {
-                                                                        if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
-                                                                            if (menu.getCambioDeFragment()) {
-                                                                                actualizarCalendarioAd();
-                                                                                if (hayDias) {
-                                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
-                                                                                }
-                                                                                menu.setCambioDeFragmento(false);
-                                                                            } else {
-                                                                                if (hayDias) {
-                                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        menu.snackbar.setText("Dia libre eliminado correctamente");
-                                                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                                                        tv.setTextSize(12);
-                                                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
-                                                                        menu.snackbar.show();
-                                                                        menu.cargando(false);
-                                                                        touch(false);
-                                                                    }
-                                                                });
+                                                        if(dateMasMot.contains("O")){
+                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(date.replaceAll("/", "-"), FieldValue.delete());
+                                                        }
+                                                        if(rangoHour!=null){
+                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(dateMasMot.replaceAll("/", "-"), FieldValue.delete());
+                                                        }
+                                                        if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
+                                                            if (menu.getCambioDeFragment()) {
+                                                                actualizarCalendarioAd();
+                                                                if (hayDias) {
+                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                }
+                                                                menu.setCambioDeFragmento(false);
+                                                            } else {
+                                                                if (hayDias) {
+                                                                    slidingLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
+                                                                }
                                                             }
-                                                        });
+                                                        }
+                                                        menu.snackbar.setText("Dia libre eliminado correctamente");
+                                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                        tv.setTextSize(12);
+                                                        snackbarDS.configSnackbar(getContext(), menu.snackbar);
+                                                        menu.snackbar.show();
+                                                        menu.cargando(false);
+                                                        touch(false);
                                                     }
                                                 });
                                             }
@@ -1409,44 +1892,489 @@ public class gestionarDiasAdministradores extends Fragment {
                 ((ViewGroup) myMsgtitle.getParent()).removeView(myMsgtitle);
             }
         });
+
+        btnCambRang.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                menu.cargando(true);
+                touch(true);
+                final int[] horaEntOSal = {0};
+                dialogoAdministrarDiasLibresAd2.dismiss();
+                final TextView myMsgtitle = new TextView(getActivity());
+                myMsgtitle.setText("Asigne todo el dia libre o seleccione las horas libres");
+                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                myMsgtitle.setLayoutParams(params);
+                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                myMsgtitle.setTextColor(Color.BLACK);
+                mRango = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+                final Button btnTodo = mRango.findViewById(R.id.btn2);
+                btnTodo.setText("Todo el dia");
+                final Button btnHoras = mRango.findViewById(R.id.btn1);
+                btnHoras.setText("Seleccionar horas");
+                final Button btnCancelar = mRango.findViewById(R.id.Cancelar);
+                final AlertDialog.Builder rango = new AlertDialog.Builder(requireContext())
+                        .setCustomTitle(myMsgtitle)
+                        .setView(mRango);
+                final AlertDialog dialogoRango = rango.create();
+                btnTodo.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        menu.cargando(true);
+                        touch(true);
+                        if(rangoHour!=null){
+                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(dateMasMot.replaceAll("/", "-"), FieldValue.delete());
+                            dialogoRango.dismiss();
+                            menu.snackbar.setText("Se ha asignado todo el dia " + date + " libre correctamente");
+                            TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                            tv.setTextSize(12);
+                            snackbarDS.configSnackbar(getContext(), menu.snackbar);
+                            menu.snackbar.show();
+                            menu.cargando(false);
+                            touch(false);
+                        }
+                    }
+                });
+                btnHoras.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        menu.cargando(true);
+                        touch(true);
+                        final TextView myMsgtitle = new TextView(getActivity());
+                        myMsgtitle.setText("¿A que hora empezara a librar " + nombre3 + " el dia " + date + "?");
+                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        myMsgtitle.setLayoutParams(params);
+                        myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                        myMsgtitle.setTextColor(Color.GREEN);
+                        mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                        final TimePicker timePicker = mHoras.findViewById(R.id.elegirHora);
+                        timePicker.setIs24HourView(true);
+                        if (hEntrada != null) {
+                            SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                            Date entrada = null;
+                            try {
+                                entrada = format.parse(hEntrada);
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                            timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                            timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                        } else {
+                            timePicker.setHour(00);
+                            timePicker.setMinute(00);
+                        }
+                        timePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+                            @Override
+                            public void onTimeChanged(TimePicker timePicker, int hourOfDay, int minute) {
+                                SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                if (hEntrada != null && hSalida != null && hEntrada2 == null && hSalida2 == null) {
+                                    Date entrada = null;
+                                    Date salida = null;
+                                    try {
+                                        entrada = format.parse(hEntrada);
+                                        salida = format.parse(hSalida);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                    if (hourOfDay < new DateTime(entrada).getHourOfDay() || hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                        timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                    } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                    } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                    }
+                                } else if (hEntrada != null && hSalida != null && hEntrada2 != null && hSalida2 != null) {
+                                    Date entrada = null;
+                                    Date salida = null;
+                                    Date entrada2 = null;
+                                    Date salida2 = null;
+                                    try {
+                                        entrada = format.parse(hEntrada);
+                                        salida2 = format.parse(hSalida2);
+                                        entrada2 = format.parse(hEntrada2);
+                                        salida = format.parse(hSalida);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                    if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                                        timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                    } else if ((hourOfDay > new DateTime(salida2).getHourOfDay() && hourOfDay < new DateTime(entrada2).getHourOfDay())) {
+                                        if (horaEntOSal[0] == 0) {
+                                            horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                                            timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                                        } else if (horaEntOSal[0] == new DateTime(entrada2).getHourOfDay()) {
+                                            horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                                            timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                                        } else if (horaEntOSal[0] == new DateTime(salida2).getHourOfDay()) {
+                                            horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                                            timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                                        }
+                                    } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                        timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                    } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                    } else if (hourOfDay == new DateTime(salida2).getHourOfDay() && minute > new DateTime(salida2).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(salida2).getMinuteOfHour());
+                                    } else if (hourOfDay == new DateTime(entrada2).getHourOfDay() && minute < new DateTime(entrada2).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(entrada2).getMinuteOfHour());
+                                    } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                    }
+                                }
+                            }
+                        });
+                        final Button btnCont = mHoras.findViewById(R.id.btn1);
+                        final Button btnCancelar = mHoras.findViewById(R.id.btn2);
+                        final AlertDialog.Builder rangoHora = new AlertDialog.Builder(getContext());
+                        rangoHora.setCustomTitle(myMsgtitle)
+                                .setView(mHoras);
+                        final AlertDialog dialogoRangoHora = rangoHora.create();
+                        btnCont.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                final DecimalFormat decimalFormat = new DecimalFormat("00");
+                                final String entradaDef = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                                if (!entradaDef.isEmpty()) {
+                                    final TextView myMsgtitle = new TextView(getActivity());
+                                    myMsgtitle.setText("¿A que hora terminara de librar " + nombre3 + " el dia " + date + "?");
+                                    myMsgtitle.setTextColor(Color.RED);
+                                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                    myMsgtitle.setLayoutParams(params);
+                                    myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                    mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                                    final TimePicker timePicker = mHoras.findViewById(R.id.elegirHora);
+                                    timePicker.setIs24HourView(true);
+                                    if (hSalida != null) {
+                                        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                        Date salida = null;
+                                        try {
+                                            salida = format.parse(hSalida);
+                                        } catch (ParseException e) {
+                                            e.printStackTrace();
+                                        }
+                                        timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                        timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                    } else {
+                                        timePicker.setHour(00);
+                                        timePicker.setMinute(00);
+                                    }
+                                    timePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+                                        @Override
+                                        public void onTimeChanged(TimePicker timePicker, int hourOfDay, int minute) {
+                                            SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                            if (hEntrada != null && hSalida != null && hEntrada2 == null && hSalida2 == null) {
+                                                Date entrada = null;
+                                                Date salida = null;
+                                                Date entDef = null;
+                                                try {
+                                                    entrada = format.parse(hEntrada);
+                                                    salida = format.parse(hSalida);
+                                                    entDef = format.parse(entradaDef);
+                                                } catch (ParseException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                if (hourOfDay < new DateTime(entDef).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(entDef).getHourOfDay());
+                                                } else if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                                } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                                } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(entDef).getHourOfDay() && minute < new DateTime(entDef).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(entDef).getMinuteOfHour());
+                                                }
+                                            } else if (hEntrada != null && hSalida != null && hEntrada2 != null && hSalida2 != null) {
+                                                Date entrada = null;
+                                                Date salida = null;
+                                                Date entrada2 = null;
+                                                Date salida2 = null;
+                                                Date entDef = null;
+                                                try {
+                                                    entrada = format.parse(hEntrada);
+                                                    salida2 = format.parse(hSalida2);
+                                                    entrada2 = format.parse(hEntrada2);
+                                                    salida = format.parse(hSalida);
+                                                    entDef = format.parse(entradaDef);
+                                                } catch (ParseException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                if (hourOfDay < new DateTime(entrada).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(entrada).getHourOfDay());
+                                                } else if ((hourOfDay > new DateTime(salida2).getHourOfDay() && hourOfDay < new DateTime(entrada2).getHourOfDay())) {
+                                                    if (horaEntOSal[0] == 0) {
+                                                        horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                                                        timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                                                    } else if (horaEntOSal[0] == new DateTime(salida2).getHourOfDay()) {
+                                                        horaEntOSal[0] = new DateTime(entrada2).getHourOfDay();
+                                                        timePicker.setHour(new DateTime(entrada2).getHourOfDay());
+                                                    } else if (horaEntOSal[0] == new DateTime(entrada2).getHourOfDay()) {
+                                                        horaEntOSal[0] = new DateTime(salida2).getHourOfDay();
+                                                        timePicker.setHour(new DateTime(salida2).getHourOfDay());
+                                                    }
+                                                } else if (hourOfDay > new DateTime(salida).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(salida).getHourOfDay());
+                                                } else if (hourOfDay < new DateTime(entDef).getHourOfDay()) {
+                                                    timePicker.setHour(new DateTime(entDef).getHourOfDay());
+                                                } else if (hourOfDay == new DateTime(entrada).getHourOfDay() && minute < new DateTime(entrada).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(entrada).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(salida2).getHourOfDay() && minute > new DateTime(salida2).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(salida2).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(entrada2).getHourOfDay() && minute < new DateTime(entrada2).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(entrada2).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(salida).getHourOfDay() && minute > new DateTime(salida).getMinuteOfHour()) {
+                                                    timePicker.setMinute(new DateTime(salida).getMinuteOfHour());
+                                                } else if (hourOfDay == new DateTime(entDef).getHourOfDay() && minute < new DateTime(entDef).getMinuteOfHour()) {
+                                                    timePicker.setHour(new DateTime(entDef).getMinuteOfHour());
+                                                }
+                                            }
+                                        }
+                                    });
+                                    final Button btnCon2 = mHoras.findViewById(R.id.btn1);
+                                    final Button btnCancelar2 = mHoras.findViewById(R.id.btn2);
+                                    final AlertDialog.Builder rangoHora2 = new AlertDialog.Builder(getContext());
+                                    rangoHora2.setCustomTitle(myMsgtitle)
+                                            .setView(mHoras);
+                                    final AlertDialog dialogoRangoHora2 = rangoHora2.create();
+                                    btnCon2.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            final String salidaDef = decimalFormat.format(timePicker.getHour()) + ":" + decimalFormat.format(timePicker.getMinute());
+                                            if (Integer.parseInt(entradaDef.substring(0, 2)) >= Integer.parseInt(salidaDef.substring(0, 2))
+                                                    && Integer.parseInt(entradaDef.substring(3)) >= Integer.parseInt(salidaDef.substring(3))) {
+                                                final Snackbar snackbar = Snackbar.make(mHoras, "La hora de finalizacion del tiempo libre no puede ser antes o igual a la de inicio", 5000);
+                                                if (Integer.parseInt(entradaDef.substring(0, 2)) > Integer.parseInt(salidaDef.substring(0, 2))) {
+                                                    snackbar.setText("La hora de finalizacion del tiempo libre no puede ser antes que la de inicio");
+                                                } else if (Integer.parseInt(entradaDef.substring(0, 2)) == Integer.parseInt(salidaDef.substring(0, 2))) {
+                                                    snackbar.setText("La hora de finalizacion del tiempo libre no puede ser igual a la de inicio");
+                                                }
+                                                TextView tv = (snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                tv.setTextSize(10);
+                                                snackbarDS.configSnackbar(getActivity(), snackbar);
+                                                snackbar.setAction("Entendido", new View.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(View v) {
+                                                        snackbar.dismiss();
+                                                    }
+                                                }).setActionTextColor(Color.WHITE);
+                                                snackbar.show();
+                                            } else {
+                                                dialogoRangoHora2.dismiss();
+                                                final TextView myMsgtitle = new TextView(getActivity());
+                                                if (dateMasMot.contains("V")) {
+                                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre3 + "?\n El dia " + date + " por vacaciones");
+                                                } else if (dateMasMot.contains("B")) {
+                                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre3 + "?\n El dia " + date + " por baja laboral");
+                                                } else if (dateMasMot.contains("O")) {
+                                                    myMsgtitle.setText("¿Desea asignar el siguiente dia libre para " + nombre3 + "?\n El dia " + date + " por " + motivo);
+                                                }
+                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                myMsgtitle.setLayoutParams(params);
+                                                myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+                                                myMsgtitle.setTextColor(Color.GRAY);
+                                                mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                                final TextView textView = mDosBtn.findViewById(R.id.elegirHora);
+                                                textView.setText("De " + entradaDef + " A " + salidaDef);
+                                                textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                                Animation anim = new AlphaAnimation(0.0f, 1.0f);
+                                                anim.setDuration(200);
+                                                anim.setStartOffset(20);
+                                                anim.setRepeatMode(Animation.REVERSE);
+                                                anim.setRepeatCount(Animation.INFINITE);
+                                                anim.setAnimationListener(new Animation.AnimationListener() {
+                                                    @Override
+                                                    public void onAnimationStart(Animation animation) {
+                                                        textView.setTextColor(Color.parseColor("#FF00ff00"));
+                                                    }
+
+                                                    @Override
+                                                    public void onAnimationEnd(Animation animation) {
+                                                        textView.setTextColor(Color.parseColor("#8000ff00"));
+                                                    }
+
+                                                    @Override
+                                                    public void onAnimationRepeat(Animation animation) {
+
+
+                                                    }
+                                                });
+                                                textView.startAnimation(anim);
+                                                final Button btnConf = mDosBtn.findViewById(R.id.btn1);
+                                                btnConf.setText("Confirmar");
+                                                final Button btnCancelar3 = mDosBtn.findViewById(R.id.btn2);
+                                                final AlertDialog.Builder alerta3 = new AlertDialog.Builder(getContext());
+                                                alerta3.setCustomTitle(myMsgtitle)
+                                                        .setView(mDosBtn);
+                                                final AlertDialog dialogoAlerta3 = alerta3.create();
+                                                btnConf.setOnClickListener(new View.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(View v) {
+                                                        menu.cargando(true);
+                                                        touch(true);
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre3).update(dateMasMot.replaceAll("/", "-"), entradaDef + ";" + salidaDef).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                dialogoAlerta3.dismiss();
+                                                                menu.snackbar.setText("Se ha asignado el dia " + date + " libre desde las " + entradaDef + " hasta las " + salidaDef + " a " + nombre3 + " correctamente");
+                                                                TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
+                                                                tv.setTextSize(12);
+                                                                snackbarDS.configSnackbar(getContext(), menu.snackbar);
+                                                                menu.snackbar.show();
+                                                                menu.cargando(false);
+                                                                touch(false);
+
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                                btnCancelar3.setOnClickListener(new View.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(View v) {
+                                                        dialogoAlerta3.dismiss();
+                                                    }
+                                                });
+                                                dialogoAlerta3.setOnShowListener(new DialogInterface.OnShowListener() {
+                                                    @Override
+                                                    public void onShow(DialogInterface dialog) {
+                                                        dialogoRangoHora2.dismiss();
+                                                        textView.setEnabled(true);
+                                                        btnConf.setEnabled(true);
+                                                        btnCancelar3.setEnabled(true);
+                                                    }
+                                                });
+                                                dialogoAlerta3.setCanceledOnTouchOutside(false);
+                                                if (mDosBtn.getParent() != null) {
+                                                    ((ViewGroup) mDosBtn.getParent()).removeView(mDosBtn);
+                                                    mDosBtn = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_textview, null);
+                                                    dialogoAlerta3.show();
+                                                } else {
+                                                    dialogoAlerta3.show();
+                                                }
+                                            }
+                                        }
+                                    });
+                                    btnCancelar2.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            dialogoRangoHora2.dismiss();
+                                        }
+                                    });
+                                    dialogoRangoHora2.setOnShowListener(new DialogInterface.OnShowListener() {
+                                        @Override
+                                        public void onShow(DialogInterface dialog) {
+                                            dialogoRangoHora.dismiss();
+                                            timePicker.setEnabled(true);
+                                            btnCon2.setEnabled(true);
+                                            btnCancelar2.setEnabled(true);
+                                        }
+                                    });
+                                    dialogoRangoHora2.setCanceledOnTouchOutside(false);
+                                    if (mHoras.getParent() != null) {
+                                        ((ViewGroup) mHoras.getParent()).removeView(mHoras);
+                                        mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                                        dialogoRangoHora2.show();
+                                    } else {
+                                        dialogoRangoHora2.show();
+                                    }
+                                    dialogoRangoHora.show();
+                                }
+                            }
+                        });
+                        btnCancelar.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialogoRangoHora.dismiss();
+                            }
+                        });
+                        dialogoRangoHora.setOnShowListener(new DialogInterface.OnShowListener() {
+                            @Override
+                            public void onShow(DialogInterface dialog) {
+                                dialogoRango.dismiss();
+                                timePicker.setEnabled(true);
+                                btnCont.setEnabled(true);
+                                btnCancelar.setEnabled(true);
+                                menu.cargando(false);
+                                touch(false);
+                            }
+                        });
+                        dialogoRangoHora.setCanceledOnTouchOutside(false);
+                        if (mHoras.getParent() != null) {
+                            ((ViewGroup) mHoras.getParent()).removeView(mHoras);
+                            mHoras = getLayoutInflater().inflate(R.layout.dialogo_horario, null);
+                            dialogoRangoHora.show();
+                        } else {
+                            dialogoRangoHora.show();
+                        }
+
+                    }
+                });
+                btnCancelar.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialogoRango.dismiss();
+                    }
+                });
+                dialogoRango.setOnShowListener(new DialogInterface.OnShowListener() {
+                    @Override
+                    public void onShow(DialogInterface dialog) {
+                        btnTodo.setEnabled(true);
+                        btnHoras.setEnabled(true);
+                        btnCancelar.setEnabled(true);
+                        menu.cargando(false);
+                        touch(false);
+                    }
+                });
+                dialogoRango.setCanceledOnTouchOutside(false);
+                if (mRango.getParent() != null) {
+                    ((ViewGroup) mRango.getParent()).removeView(mRango);
+                    mRango = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
+                    dialogoRango.show();
+                } else {
+                    dialogoRango.show();
+                }
+            }
+        });
         dialogoAdministrarDiasLibresAd2.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialog) {
                 btnCambMot.setEnabled(true);
+                btnCambRang.setEnabled(true);
                 btnEliminar.setEnabled(true);
                 btnCance.setEnabled(true);
+                menu.cargando(false);
+                touch(false);
             }
         });
         dialogoAdministrarDiasLibresAd2.setCanceledOnTouchOutside(false);
-        if (mTresBtn.getParent() != null) {
-            ((ViewGroup) mTresBtn.getParent()).removeView(mTresBtn);
-            mTresBtn = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null, false);
+        if (mCuatroBtn.getParent() != null) {
+            ((ViewGroup) mCuatroBtn.getParent()).removeView(mCuatroBtn);
+            mCuatroBtn = getLayoutInflater().inflate(R.layout.dialogo_cuatrobtn, null);
             dialogoAdministrarDiasLibresAd2.show();
-
         } else {
             dialogoAdministrarDiasLibresAd2.show();
         }
     }
 
-    private void motivNu(final String nombre4, final String fecha, final String motivo) {
+    private void motivNu(final String nombre4, final String fecha, final String motivo, final String rango, final String motivoAn) {
         menu.cargando(true);
         touch(true);
         firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre4).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(final DocumentSnapshot documentSnapshot) {
-                final String[] listaMotiv = Objects.requireNonNull(documentSnapshot.getString("Dias libres")).split("\\s*;\\s*");
+                final String[] listaMotiv = documentSnapshot.getString("Dias libres").split("\\s*;\\s*");
                 for (final String m : listaMotiv) {
                     if (m.contains(fecha)) {
-                        firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("Dias libres", Objects.requireNonNull(documentSnapshot.getString("Dias libres")).replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id")).update("Dias libres", documentSnapshot.getString("Dias libres").replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre4).update("Dias libres", Objects.requireNonNull(documentSnapshot.getString("Dias libres")).replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(nombre4).update("Dias libres", documentSnapshot.getString("Dias libres").replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                     public void onSuccess(Void aVoid) {
-                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre4).update("Dias libres", Objects.requireNonNull(documentSnapshot.getString("Dias libres")).replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre4).update("Dias libres", documentSnapshot.getString("Dias libres").replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre4).update("Dias libres", Objects.requireNonNull(documentSnapshot.getString("Dias libres")).replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre4).update("Dias libres", documentSnapshot.getString("Dias libres").replace(m, fecha + motivo)).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                     @Override
                                                     public void onSuccess(Void aVoid) {
                                                         if (motivo.equals("O")) {
@@ -1466,6 +2394,12 @@ public class gestionarDiasAdministradores extends Fragment {
                                                                     firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(nombre4).update(fecha.replaceAll("/", "-"), FieldValue.delete());
                                                                 }
                                                             });
+                                                        }
+                                                        if(rango!=null){
+                                                            final Map<String, Object> mapRango = new HashMap<>();
+                                                            mapRango.put(fecha.replaceAll("/", "-")+motivo, rango);
+                                                            mapRango.put(fecha.replaceAll("/", "-")+motivoAn, FieldValue.delete());
+                                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(nombre4).set(mapRango, SetOptions.merge());
                                                         }
                                                         if (slidingLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.COLLAPSED)) {
                                                             if (menu.getCambioDeFragment()) {
@@ -1541,32 +2475,32 @@ public class gestionarDiasAdministradores extends Fragment {
                     if (doc.getString("Dias libres solicitados") != null) {
                         collectionDates.clear();
                         calendarPickerView.clearHighlightedDates();
-                        final String[] diasSoliLista = Objects.requireNonNull(doc.getString("Dias libres solicitados")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
+                        final String[] diasSoliLista = doc.getString("Dias libres solicitados").replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
                         for (String ds : diasSoliLista) {
                             if (ds != null) {
                                 try {
                                     final Date date1 = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(ds);
                                     Date currentTime = Calendar.getInstance().getTime();
                                     SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-                                    final String dateS = fmt.format(Objects.requireNonNull(date1));
+                                    final String dateS = fmt.format(date1);
                                     if (date1.before(currentTime)) {
                                         if (new DateTime(date1).getMonthOfYear() == new DateTime(currentTime).getMonthOfYear()
                                                 && new DateTime(date1).getMonthOfYear() == new DateTime(currentTime).getMonthOfYear()
-                                                && new DateTime(date1).getDayOfMonth() == new DateTime(currentTime).getDayOfMonth()){
+                                                && new DateTime(date1).getDayOfMonth() == new DateTime(currentTime).getDayOfMonth()) {
                                             collectionDates.add(date1);
                                             calendarPickerView.highlightDates(collectionDates);
-                                        }else{
-                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                        } else {
+                                            firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(doc.getString("nombre")).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                 @Override
                                                 public void onSuccess(final DocumentSnapshot documentSnapshot) {
                                                     if (documentSnapshot.getString("Dias libres solicitados") != null) {
-                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(doc.getString("nombre")).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                DecimalFormat mFormat= new DecimalFormat("00");
-                                                                if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear())!=null) {
-                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
-                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getString("nombre"))).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                                                DecimalFormat mFormat = new DecimalFormat("00");
+                                                                if (documentSnapshot.getString(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear()) != null) {
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(doc.getString("nombre")).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
+                                                                    firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(doc.getString("nombre")).update(mFormat.format(new DateTime(date1).getDayOfMonth()) + "-" + mFormat.format(new DateTime(date1).getMonthOfYear()) + "-" + new DateTime(date1).getYear(), FieldValue.delete());
                                                                 }
 
                                                             }
@@ -1574,7 +2508,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         String tip = documentSnapshot.getString("Dias libres solicitados");
                                                         String fin = null;
                                                         final Map<String, Object> mapD = new HashMap<>();
-                                                        final String[] diasSotLista = Objects.requireNonNull(tip).split("\\s*;\\s*");
+                                                        final String[] diasSotLista = tip.split("\\s*;\\s*");
                                                         final List<String> dias2 = new ArrayList<>();
                                                         for (String ds : diasSotLista) {
                                                             if (!ds.contains(dateS)) {
@@ -1590,20 +2524,20 @@ public class gestionarDiasAdministradores extends Fragment {
                                                         }
 
                                                         mapD.put("Dias libres solicitados", fin);
-                                                        firebaseFirestore.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id")))
+                                                        firebaseFirestore.collection("Todas las ids").document(documentSnapshot.getString("id"))
                                                                 .set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Empleado").document(doc.getString("nombre")).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
                                                                         if (documentSnapshot.getString("nombre") == null) {
                                                                             mapD.put("nombre", nombre);
                                                                         }
-                                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres solicitados").document(doc.getString("nombre")).set(mapD, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                             @Override
                                                                             public void onSuccess(Void aVoid) {
-                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(Objects.requireNonNull(doc.getString("nombre"))).set(mapD, SetOptions.merge());
+                                                                                firebaseFirestore.collection("Empresas").document(empresa).collection("Dias libres").document(doc.getString("nombre")).set(mapD, SetOptions.merge());
                                                                             }
                                                                         });
                                                                     }
@@ -1630,10 +2564,10 @@ public class gestionarDiasAdministradores extends Fragment {
                         @Override
                         public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
                             List<Task<QuerySnapshot>> tasks = new ArrayList<>();
-                            for (QueryDocumentSnapshot doc : Objects.requireNonNull(task.getResult())) {
+                            for (QueryDocumentSnapshot doc : task.getResult()) {
                                 if (doc.getString("Dias libres") != null && !doc.getBoolean("desactivado")) {
                                     try {
-                                        String diasnomot = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("B", "").replaceAll("O", "").replaceAll("V", "");
+                                        String diasnomot = doc.getString("Dias libres").replaceAll("B", "").replaceAll("O", "").replaceAll("V", "");
                                         final String[] contieneDiasString = diasnomot.split("\\s*;\\s*");
                                         for (String di : contieneDiasString) {
                                             contieneDias.add(formato.parse(di));
@@ -1717,7 +2651,7 @@ public class gestionarDiasAdministradores extends Fragment {
                                                 calendarPickerView2.clearHighlightedDates();
                                                 for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                                                     if (doc.getString("Dias libres") != null && !doc.getBoolean("desactivado")) {
-                                                        final String[] diasAceptLista = Objects.requireNonNull(doc.getString("Dias libres")).replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
+                                                        final String[] diasAceptLista = doc.getString("Dias libres").replaceAll("V", "").replaceAll("B", "").replaceAll("O", "").split("\\s*;\\s*");
                                                         List<Date> listaDates = new ArrayList<>();
                                                         for (String ds : diasAceptLista) {
                                                             try {
@@ -1771,10 +2705,10 @@ public class gestionarDiasAdministradores extends Fragment {
 
     private void touch(Boolean touch) {
         if (touch) {
-            Objects.requireNonNull(getActivity()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         } else {
-            Objects.requireNonNull(getActivity()).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         }
     }
 }

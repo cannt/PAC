@@ -108,7 +108,7 @@ public class menu extends AppCompatActivity implements
             cargando(true);
             FirebaseAuth mAuth = FirebaseAuth.getInstance();
             mDb = FirebaseFirestore.getInstance();
-            mDb.collection("Todas las ids").document(Objects.requireNonNull(mAuth.getCurrentUser()).getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            mDb.collection("Todas las ids").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                     startLocationService();
@@ -137,19 +137,19 @@ public class menu extends AppCompatActivity implements
                                     case 0: {
                                         tab.setText("Obras");
                                         tab.setIcon(R.drawable.ic_obras);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                     case 1: {
                                         tab.setText("Empleados");
                                         tab.setIcon(R.drawable.ic_empleados);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                     default: {
                                         tab.setText("Dias libres");
                                         tab.setIcon(R.drawable.ic_gesdias);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                 }
@@ -158,19 +158,19 @@ public class menu extends AppCompatActivity implements
                                     case 0: {
                                         tab.setText("Mapa");
                                         tab.setIcon(R.drawable.ic_obras);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                     case 1: {
                                         tab.setText("Generar registro");
                                         tab.setIcon(R.drawable.ic_registro);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                     default: {
                                         tab.setText("Dias libres");
                                         tab.setIcon(R.drawable.ic_gesdias);
-                                        Objects.requireNonNull(tab.getIcon()).setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
+                                        tab.getIcon().setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
                                         break;
                                     }
                                 }
@@ -181,13 +181,13 @@ public class menu extends AppCompatActivity implements
                     tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
                         @Override
                         public void onTabSelected(TabLayout.Tab tab) {
-                            Objects.requireNonNull(tabLayout.getTabAt(tab.getPosition()).getIcon()).setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
+                            tabLayout.getTabAt(tab.getPosition()).getIcon().setColorFilter(ContextCompat.getColor(menu.this, android.R.color.white), PorterDuff.Mode.SRC_IN);
                             cambio = true;
                         }
 
                         @Override
                         public void onTabUnselected(TabLayout.Tab tab) {
-                            Objects.requireNonNull(tabLayout.getTabAt(tab.getPosition()).getIcon()).setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
+                            tabLayout.getTabAt(tab.getPosition()).getIcon().setColorFilter(ContextCompat.getColor(menu.this, R.color.transparenteBlanco), PorterDuff.Mode.SRC_IN);
                         }
 
                         @Override
@@ -318,7 +318,7 @@ public class menu extends AppCompatActivity implements
 
                         String jobName = "PAC Registro PDF";
 
-                        Objects.requireNonNull(printManager).print(jobName, new myPrintDocumentAdapter(getContext(), fileShare.getPath()), new PrintAttributes.Builder().build());
+                        printManager.print(jobName, new myPrintDocumentAdapter(getContext(), fileShare.getPath()), new PrintAttributes.Builder().build());
                         cargando(false);
                         break;
                 }
@@ -340,7 +340,7 @@ public class menu extends AppCompatActivity implements
 
     private boolean isLocationServiceRunning() {
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : Objects.requireNonNull(manager).getRunningServices(Integer.MAX_VALUE)) {
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if ("com.japac.pac.Servicios.servicioLocalizacion".equals(service.service.getClassName())) {
                 return true;
             }

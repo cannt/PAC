@@ -84,7 +84,7 @@ public class servicioLocalizacion extends Service {
                     "Mi Canal",
                     NotificationManager.IMPORTANCE_DEFAULT);
 
-            ((NotificationManager) Objects.requireNonNull(getSystemService(Context.NOTIFICATION_SERVICE))).createNotificationChannel(channel);
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
 
             Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("")
@@ -131,7 +131,7 @@ public class servicioLocalizacion extends Service {
     private void saveUserLocation(final GeoPoint geoPoint) {
         try {
             FirebaseAuth mAuth = FirebaseAuth.getInstance();
-            id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+            id = mAuth.getCurrentUser().getUid();
             mDb = FirebaseFirestore.getInstance();
             mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override

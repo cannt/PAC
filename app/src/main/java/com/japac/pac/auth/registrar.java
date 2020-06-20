@@ -16,6 +16,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,6 +70,8 @@ public class registrar extends AppCompatActivity {
 
     private FirebaseStorage almacen;
     private StorageReference almacenRef;
+
+    private CountDownTimer timer;
 
     private StorageReference firmaRef;
 
@@ -196,10 +199,10 @@ public class registrar extends AppCompatActivity {
 
     private void codigoEmpresaCheck() {
 
-        firebaseFirestore.collection("Codigos").document(scodigoEmpresa).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        firebaseFirestore.collection("Codigos").document(scodigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if (task.isSuccessful()) {
+            public void onSuccess(final DocumentSnapshot documentSnapshot) {
+                if (documentSnapshot.getString("Codigo de empresa").equals(scodigoEmpresa)) {
                     codigoEmpleadoCheck();
                 } else {
                     codigoEmpresa.setError("El codigo de empresa no existe");
@@ -228,9 +231,13 @@ public class registrar extends AppCompatActivity {
                             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                 if (task.isSuccessful()) {
                                     DocumentSnapshot documentSnapshot = task.getResult();
-                                    empresas = Objects.requireNonNull(documentSnapshot.get("Empresa")).toString();
-                                    roles();
-                                    confirma = Objects.requireNonNull(documentSnapshot.get(snombre)).toString();
+                                    empresas = documentSnapshot.get("Empresa").toString();
+                                    if (cod.charAt(4) == 'E') {
+                                        roles = "Empleado";
+                                    } else if (cod.charAt(4) == 'a') {
+                                        roles = "Administrador";
+                                    }
+                                    confirma = documentSnapshot.get(snombre).toString();
                                     codConfirma();
                                 }
                             }
@@ -240,18 +247,9 @@ public class registrar extends AppCompatActivity {
         alerta.show();
     }
 
-    private void roles() {
-        if (cod.charAt(4) == 'E') {
-            roles = "Empleado";
-        } else if (cod.charAt(4) == 'a') {
-            roles = "Administrador";
-        }
-    }
-
     private void codConfirma() {
         if (cod.equals(confirma)) {
             privacyPolicy();
-
         } else {
             codigoEmpleadoCheck();
             cargando(false);
@@ -333,7 +331,7 @@ public class registrar extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if (task.isSuccessful()) {
-                    final String id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                    final String id = mAuth.getCurrentUser().getUid();
                     final Map<String, Object> map = new HashMap<>();
                     map.put("empresa", empresas);
                     map.put("rol", roles);
@@ -345,7 +343,7 @@ public class registrar extends AppCompatActivity {
                     map.put("id", id);
                     map.put("NIF", snif);
                     map.put("NAF", snaf);
-                    if(roles.equals("Empleado")){
+                    if (roles.equals("Empleado")) {
                         map.put("desactivado", false);
                     }
                     map.put("Dias libres", null);
@@ -377,7 +375,7 @@ public class registrar extends AppCompatActivity {
                                                 public void onSuccess(Void aVoid) {
                                                     InputMethodManager inputManager = (InputMethodManager)
                                                             getSystemService(Context.INPUT_METHOD_SERVICE);
-                                                    Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getCurrentFocus()).getWindowToken(),
+                                                    inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
                                                             InputMethodManager.HIDE_NOT_ALWAYS);
                                                     cargando(false);
                                                     firmar();
@@ -408,11 +406,13 @@ public class registrar extends AppCompatActivity {
         cargando(true);
         final TextView myMsgtitle = new TextView(registrar.this);
         myMsgtitle.setText(snombre + " debe firmar para confirmar la operación");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
-        final AlertDialog.Builder Firmar = new AlertDialog.Builder(Objects.requireNonNull(this));
+        final AlertDialog.Builder Firmar = new AlertDialog.Builder(this);
         final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
         final Button botonFirm = mFirmar.findViewById(R.id.btn1);
         final Button botonBor = mFirmar.findViewById(R.id.btn2);
@@ -490,7 +490,7 @@ public class registrar extends AppCompatActivity {
                                 if (documentSnapshot.contains("empresa")) {
                                     if (compruebapermisos()) {
                                         if (mAuth.getCurrentUser() != null) {
-                                            firmaRef = almacenRef.child(Objects.requireNonNull(documentSnapshot.getString("empresa"))).child("Firmas").child(Objects.requireNonNull(documentSnapshot.getString("nombre"))).child(mAuth.getCurrentUser().getUid() + ".jpg");
+                                            firmaRef = almacenRef.child(documentSnapshot.getString("empresa")).child("Firmas").child(documentSnapshot.getString("nombre")).child(mAuth.getCurrentUser().getUid() + ".jpg");
                                             cargando(false);
                                         }
                                     }
@@ -558,4 +558,5 @@ public class registrar extends AppCompatActivity {
         }
     }
 }
+
 

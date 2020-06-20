@@ -145,7 +145,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         if (compruebapermisos()) {
             detalles();
 
-            if (ActivityCompat.checkSelfPermission(Objects.requireNonNull(getActivity()),
+            if (ActivityCompat.checkSelfPermission(getActivity(),
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(getActivity(),
                             Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -299,7 +299,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         if (compruebapermisos() && isServicesOK()) {
 
             mAuth = FirebaseAuth.getInstance();
-            id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+            id = mAuth.getCurrentUser().getUid();
             mDb = FirebaseFirestore.getInstance();
             almacen = FirebaseStorage.getInstance();
             almacenRef = almacen.getReference();
@@ -319,7 +319,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         if (documentSnapshot.contains("obra")) {
                             obcomprueba = documentSnapshot.getString("obra");
                         }
-                        slidingLayout2 = Objects.requireNonNull(getView()).findViewById(R.id.sliding_layout2);
+                        slidingLayout2 = getView().findViewById(R.id.sliding_layout2);
                         slidingLayout2.setTouchEnabled(false);
                         xpand2 = getView().findViewById(R.id.btnXpand2);
                         mBuscar = getView().findViewById(R.id.input_buscar);
@@ -397,7 +397,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
         adaptadorEmpleadosLista = new adaptadorEmpleadosLista(optionsEm);
 
-        RecyclerView recyclerViewEm = Objects.requireNonNull(getView()).findViewById(R.id.recyclerviewEm);
+        RecyclerView recyclerViewEm = getView().findViewById(R.id.recyclerviewEm);
         recyclerViewEm.setHasFixedSize(true);
         recyclerViewEm.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerViewEm.setAdapter(adaptadorEmpleadosLista);
@@ -427,11 +427,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         public void onSuccess(DocumentSnapshot documentSnapshot) {
                             final TextView myMsgtitle = new TextView(getActivity());
                             myMsgtitle.setText("Introduzca los credenciales del empleado " + adaptadorEmpleadosLista.getItem(viewHolder.getAdapterPosition()).getNombre());
+                            ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            myMsgtitle.setLayoutParams(params);
                             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                             myMsgtitle.setTextColor(Color.BLACK);
-                            myMsgtitle.setPadding(2, 2, 2, 2);
-                            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
-                            final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+                            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null);
+                            final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                             final EditText semail = mLogin.findViewById(R.id.emailDialogo);
                             semail.setEnabled(false);
                             semail.setText(documentSnapshot.getString("email"));
@@ -455,12 +457,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                 @Override
                                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                                     if (task.isSuccessful()) {
-                                                        id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                                        id = mAuth.getCurrentUser().getUid();
                                                         mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                 if (documentSnapshot.exists()) {
-
                                                                     codigoEmpresa = documentSnapshot.getString("codigo empresa");
                                                                     comp = documentSnapshot.getString("comprobar");
                                                                     empresa = documentSnapshot.getString("empresa");
@@ -528,7 +529,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             dialogoLogin.setCanceledOnTouchOutside(false);
                             if (mLogin.getParent() != null) {
                                 ((ViewGroup) mLogin.getParent()).removeView(mLogin);
-                                mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+                                mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null);
                                 dialogoLogin.show();
 
                             } else {
@@ -579,9 +580,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 if (task.isSuccessful()) {
                     menu.cargando(true);
                     touch(true);
-                    GeoPoint geoPoint1 = Objects.requireNonNull(task.getResult()).getGeoPoint("geoPoint");
+                    GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
 
-                    mLocaliza = new LatLng(Objects.requireNonNull(geoPoint1).getLatitude(), geoPoint1.getLongitude());
+                    mLocaliza = new LatLng(geoPoint1.getLatitude(), geoPoint1.getLongitude());
                     menu.cargando(false);
                     touch(false);
                     setCamara();
@@ -592,10 +593,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
     private void touch(Boolean touch) {
         if (touch) {
-            Objects.requireNonNull(getActivity()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         } else {
-            Objects.requireNonNull(getActivity()).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         }
     }
 
@@ -698,18 +699,18 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         busquedaString = mBuscar.getText().toString();
         String busc = Normalizer.normalize(busquedaString.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         InputMethodManager inputManager = (InputMethodManager)
-                Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(inputManager).hideSoftInputFromWindow(Objects.requireNonNull(getActivity().getCurrentFocus()).getWindowToken(),
+                getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(),
                 InputMethodManager.HIDE_NOT_ALWAYS);
         if (!busquedaString.isEmpty()) {
             mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(busc).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (Objects.requireNonNull(task.getResult()).exists()) {
+                    if (task.getResult().exists()) {
                         if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                             slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                         }
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLatitude(), Objects.requireNonNull(task.getResult().getGeoPoint("geoPoint")).getLongitude()), ZOOM_PREDETERMINADO));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(task.getResult().getGeoPoint("geoPoint").getLatitude(), task.getResult().getGeoPoint("geoPoint").getLongitude()), ZOOM_PREDETERMINADO));
                         mBuscar.getText().clear();
                     } else if (!task.getResult().exists()) {
                         Geocoder geocoder = new Geocoder(getActivity());
@@ -727,55 +728,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             menu.cargando(true);
                             touch(true);
                             final Address address = list.get(0);
-                            MarkerOptions options = new MarkerOptions()
-                                    .title("Crear obra")
-                                    .position(new LatLng(address.getLatitude(), address.getLongitude()))
-                                    .draggable(true)
-                                    .icon(bitmapDescriptorFromVector(getContext(), R.drawable.ic_marcador_add_obra));
                             if (slidingLayout2.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
                                 slidingLayout2.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
                             }
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(address.getLatitude(), address.getLongitude()), ZOOM_PREDETERMINADO));
-                            if (marcadorCrea != null) {
-
-                                marcadorCrea.remove();
-
-                            }
-
-                            marcadorCrea = mMap.addMarker(options);
-                            marcadorCrea.showInfoWindow();
-                            mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
-                                @Override
-                                public void onMarkerDragStart(Marker marker) {
-                                    arrastrado = true;
-                                }
-
-                                @Override
-                                public void onMarkerDrag(Marker marker) {
-
-                                }
-
-                                @Override
-                                public void onMarkerDragEnd(Marker marker) {
-
-                                }
-                            });
-                            mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-                                @Override
-                                public void onInfoWindowClick(Marker marker) {
-                                    marcadorCrea.remove();
-                                    crearMark = true;
-                                    if (!arrastrado) {
-                                        direccionLat = address.getLatitude();
-                                        direccionLong = address.getLongitude();
-                                    } else {
-                                        direccionLat = marker.getPosition().latitude;
-                                        direccionLong = marker.getPosition().longitude;
-                                    }
-                                    mLocalizaAddress = new LatLng(direccionLat, direccionLong);
-                                    mMap.setOnInfoWindowClickListener(this);
-                                }
-                            });
                             mBuscar.getText().clear();
                         } else {
                             mBuscar.getText().clear();
@@ -793,7 +749,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     private void localizacion() {
         menu.cargando(true);
         touch(true);
-        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(Objects.requireNonNull(getActivity()));
+        FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
                 final Task localizacion = mProovedor.getLastLocation();
@@ -802,7 +758,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onComplete(@NonNull Task task) {
                         if (task.isSuccessful()) {
                             Location locacizacionActual = (Location) task.getResult();
-                            geoPointLocalizayo = new GeoPoint(Objects.requireNonNull(locacizacionActual).getLatitude(), locacizacionActual.getLongitude());
+                            geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
                             mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
                             mLocalizarUsuario.setTimestamp(null);
                             menu.cargando(false);
@@ -825,7 +781,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         menu.cargando(true);
         touch(true);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapa);
-        Objects.requireNonNull(mapFragment).getMapAsync(gestionarEmpleados.this);
+        mapFragment.getMapAsync(gestionarEmpleados.this);
         menu.cargando(false);
         touch(false);
 
@@ -864,13 +820,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
-            resultado = ContextCompat.checkSelfPermission(Objects.requireNonNull(getActivity()), perm);
+            resultado = ContextCompat.checkSelfPermission(getActivity(), perm);
             if (resultado != PackageManager.PERMISSION_GRANTED) {
                 listaPermisosNecesarios.add(perm);
             }
         }
         if (!listaPermisosNecesarios.isEmpty()) {
-            ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
+            ActivityCompat.requestPermissions(getActivity(), listaPermisosNecesarios.toArray(new String[listaPermisosNecesarios.size()]), Permisos);
             return false;
         }
         menu.cargando(false);
@@ -879,8 +835,8 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void ocultarTeclado() {
-        InputMethodManager imm = (InputMethodManager) Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-        Objects.requireNonNull(imm).hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(mBuscar.getWindowToken(), 0);
     }
 
     private void firestoreNombres() {
@@ -915,7 +871,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
+                    for (QueryDocumentSnapshot document : task2.getResult()) {
                         String jefe = document.getString("nombre");
                         if (!jfs.contains(jefe)) {
                             jfs.add(jefe);
@@ -936,7 +892,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task1) {
                         List<Task<QuerySnapshot>> tasks4 = new ArrayList<>();
                         if (task1.isSuccessful()) {
-                            for (final QueryDocumentSnapshot document1 : Objects.requireNonNull(task1.getResult())) {
+                            for (final QueryDocumentSnapshot document1 : task1.getResult()) {
                                 String jefe = document1.getString("nombre");
                                 String emailLis1 = document1.getString("email");
                                 if (!jfs.contains(jefe)) {
@@ -962,9 +918,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onComplete(@NonNull Task<List<QuerySnapshot>> task) {
-                        mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+                        mNombres = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                         jefeSpinner = mNombres.findViewById(R.id.spinnerObra);
-                        jefeAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, jfs);
+                        jefeAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, jfs);
                         jefeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         jefeSpinner.setAdapter(jefeAdapter);
                         lM = new ArrayList();
@@ -974,7 +930,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task2) {
                                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                                 if (task2.isSuccessful()) {
-                                    for (final QueryDocumentSnapshot document2 : Objects.requireNonNull(task2.getResult())) {
+                                    for (final QueryDocumentSnapshot document2 : task2.getResult()) {
                                         String jefe = document2.getString("nombre");
                                         if (!lM.contains(jefe)) {
                                             lM.add(jefe);
@@ -1094,7 +1050,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public Task<List<QuerySnapshot>> then(@NonNull Task<QuerySnapshot> task) {
                 List<Task<QuerySnapshot>> tasks2 = new ArrayList<>();
                 if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
                         String obran = document.getString("obra");
                         String jefe1 = document.getString("jefe");
                         GeoPoint geoPoint2 = document.getGeoPoint("geoPoint");
@@ -1107,7 +1063,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             jefe1 = "sin jefe de obra";
                         }
                         if (!obs.contains(obran)) {
-                            anadirMarcadores(Objects.requireNonNull(geoPoint2), obran, jefe1, online);
+                            anadirMarcadores(geoPoint2, obran, jefe1, online);
                         }
                     }
                     mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -1220,7 +1176,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         menu.cargando(true);
         touch(true);
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
-        Objects.requireNonNull(vectorDrawable).setBounds(0, 0, 60, 60);
+        vectorDrawable.setBounds(0, 0, 60, 60);
         Bitmap bitmap = Bitmap.createBitmap(60, 60, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         vectorDrawable.draw(canvas);
@@ -1299,16 +1255,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         markersMapEmpleado.put(nombre, mkr);
         markersMapEmpleados.add(mkr);
         markersMapEmpleados2.put(nombre, markersIntEmpleados);
-        if(!jfs.contains(nombre)) {
+        if (!jfs.contains(nombre)) {
             jfs.add(nombre);
         }
-        if(!empleList.contains(nombre)) {
+        if (!empleList.contains(nombre)) {
             empleList.add(nombre);
         }
         mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                if(!emailList.contains(documentSnapshot.getString("email"))) {
+                if (!emailList.contains(documentSnapshot.getString("email"))) {
                     emailList.add(documentSnapshot.getString("email"));
                 }
 
@@ -1327,16 +1283,18 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("menu de administracion de empleados");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         View mTres = getLayoutInflater().inflate(R.layout.dialogo_tresbtn, null);
         final Button botonDesactivar = mTres.findViewById(R.id.btn2);
         botonDesactivar.setText("Desactivar");
         final Button botonRegistro = mTres.findViewById(R.id.btn1);
         botonRegistro.setText("Generar Registro");
         final Button botonCancelar = mTres.findViewById(R.id.Cancelar);
-        final AlertDialog.Builder obraAdministrarEmpledos = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder obraAdministrarEmpledos = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
         obraAdministrarEmpledos
                 .setView(mTres);
@@ -1411,7 +1369,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         public void onSuccess(DocumentSnapshot documentSnapshot2) {
                                             String ans = documentSnapshot2.getString("años");
                                             if (ans != null) {
-                                                final List<String> ansL = Arrays.asList(Objects.requireNonNull(ans).split("\\s*,\\s*"));
+                                                final List<String> ansL = Arrays.asList(ans.split("\\s*,\\s*"));
                                                 mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleado).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                     @Override
                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -1514,10 +1472,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Elija el año");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
         anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -1530,7 +1490,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
             }
         });
-        anoAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, anos);
+        anoAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, anos);
         anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         anoMesSpinner.setAdapter(anoAdapter);
         final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
@@ -1559,7 +1519,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot3) {
                                 String ms = documentSnapshot3.getString("meses");
-                                List<String> msL = Arrays.asList(Objects.requireNonNull(ms).split("\\s*,\\s*"));
+                                List<String> msL = Arrays.asList(ms.split("\\s*,\\s*"));
                                 menu.cargando(false);
                                 touch(false);
                                 elegirFechasMeses(msL, empleado, ano1, nif, naf, id1);
@@ -1611,9 +1571,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Elija el mes");
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+
+        mAnoMes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
         anoMesSpinner = mAnoMes.findViewById(R.id.spinnerObra);
         anoMesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -1665,7 +1627,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
 
             }
         });
-        anoAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, meses);
+        anoAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, meses);
         anoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         anoMesSpinner.setAdapter(anoAdapter);
         final Button botonSiguiente = mAnoMes.findViewById(R.id.btn1);
@@ -1700,7 +1662,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     menu.cargando(false);
                                     touch(false);
                                     String dia = documentSnapshotd.getString("dias");
-                                    List<String> diL = Arrays.asList(Objects.requireNonNull(dia).split("\\s*,\\s*"));
+                                    List<String> diL = Arrays.asList(dia.split("\\s*,\\s*"));
                                     creacionPdf(diL, empleado, mesnu, ano3, empresa, id1, nif, naf);
                                     dialogoMesEle.dismiss();
                                 }
@@ -1782,7 +1744,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                 List<String> horas = new ArrayList<>();
                                 if (task.isSuccessful()) {
-                                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
                                         horas.add(document.getId());
                                     }
                                 }
@@ -1793,7 +1755,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 try {
                                     Date dateEn = simpleDateFormat.parse(horaEn);
                                     Date dateSa = simpleDateFormat.parse(horaSa);
-                                    diferencia = Objects.requireNonNull(dateSa).getTime() - Objects.requireNonNull(dateEn).getTime();
+                                    diferencia = dateSa.getTime() - dateEn.getTime();
                                     int days = (int) (diferencia / (1000 * 60 * 60 * 24));
                                     int hours = (int) ((diferencia - (1000 * 60 * 60 * 24 * days)) / (1000 * 60 * 60));
                                     int mindif = (int) (diferencia - (1000 * 60 * 60 * 24 * days) - (1000 * 60 * 60 * hours)) / (1000 * 60);
@@ -1877,7 +1839,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     private void deleteRecursive(File fileOrDirectory) {
         if (fileOrDirectory != null) {
             if (fileOrDirectory.isDirectory()) {
-                for (File child : Objects.requireNonNull(fileOrDirectory.listFiles())) {
+                for (File child : fileOrDirectory.listFiles()) {
                     deleteRecursive(child);
                 }
             }
@@ -1890,14 +1852,16 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Seguro que desea desactivar al empleado\n" + empleadoSeleccionado);
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         final Button botonDesactivar = mDos.findViewById(R.id.btn1);
         botonDesactivar.setText("Desactivar");
         final Button botonCancelar = mDos.findViewById(R.id.btn2);
-        final AlertDialog.Builder EliminarEmpleado = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+        final AlertDialog.Builder EliminarEmpleado = new AlertDialog.Builder(getContext())
                 .setCustomTitle(myMsgtitle);
         EliminarEmpleado
                 .setView(mDos);
@@ -1911,15 +1875,17 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.exists()) {
                             String roll = documentSnapshot.getString(empleadoSeleccionado);
-                            if (Objects.requireNonNull(roll).contains("_ELIMINADO")) {
+                            if (roll.contains("_ELIMINADO")) {
                                 menu.cargando(true);
                                 touch(true);
                                 final TextView myMsgtitle = new TextView(getActivity());
                                 myMsgtitle.setText("El empleado " + jefes + " ya esta desactivado");
+                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                myMsgtitle.setLayoutParams(params);
                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                 myMsgtitle.setTextColor(Color.BLACK);
-                                myMsgtitle.setPadding(2, 2, 2, 2);
-                                final AlertDialog.Builder yaElim = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+
+                                final AlertDialog.Builder yaElim = new AlertDialog.Builder(getContext())
                                         .setCustomTitle(myMsgtitle);
                                 yaElim
                                         .setPositiveButton("Ok", null);
@@ -1985,12 +1951,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
                     final DocumentSnapshot documento1 = task.getResult();
-                    final String idElim = Objects.requireNonNull(documento1).getString("id");
+                    final String idElim = documento1.getString("id");
                     final String code = documento1.getString("codigo empleado");
                     mDb.collection("Empresas").document(empresa).collection("Empleado").document(empleadoSele).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            mDb.collection("Todas las ids").document(Objects.requireNonNull(idElim)).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            mDb.collection("Todas las ids").document(idElim).update("desactivado", true).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
                                     mDb.collection("Codigos").document(codigoEmpresa).update(empleadoSele, code + "_ELIMINADO").addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2002,7 +1968,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     mDb.collection("Todas las ids").document(idElim).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                         @Override
                                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                            if(documentSnapshot.getString("Dias libres solicitados")!=null){
+                                                            if (documentSnapshot.getString("Dias libres solicitados") != null) {
                                                                 mDb.collection("Todas las ids").document(idElim).update("Dias libres solicitados", null).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
@@ -2026,11 +1992,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                         @Override
                                                         public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                                             if (task.isSuccessful()) {
-                                                                for (QueryDocumentSnapshot document : Objects.requireNonNull(task.getResult())) {
+                                                                for (QueryDocumentSnapshot document : task.getResult()) {
                                                                     String JFob = document.getString("jefe");
                                                                     String obran = document.getString("obra");
                                                                     if (empleadoSele.equals(JFob)) {
-                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(Objects.requireNonNull(obran)).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                        mDb.collection("Empresas").document(empresa).collection("Obras").document(obran).update("jefe", "no").addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                             @Override
                                                                             public void onSuccess(Void aVoid) {
                                                                                 mDb.collection("Jefes").document(idElim).delete();
@@ -2059,10 +2025,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Generar empleado");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
+
         final AlertDialog.Builder empleadoGen = new AlertDialog.Builder(icCrear.getContext());
         mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn_texto, null);
         nom = mDos.findViewById(R.id.TextDos);
@@ -2108,18 +2076,20 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     @Override
                                     public void onComplete(@NonNull final Task<DocumentSnapshot> task) {
                                         if (task.isSuccessful()) {
-                                            Boolean desEli = Objects.requireNonNull(task.getResult()).getBoolean("desactivado");
+                                            Boolean desEli = task.getResult().getBoolean("desactivado");
                                             if (desEli) {
                                                 menu.cargando(true);
                                                 touch(true);
                                                 dialogoEmpleadoGen.dismiss();
                                                 final TextView myMsgtitle = new TextView(getActivity());
                                                 myMsgtitle.setText("Empleado desactivado\n¿Desea reactivar al empleado " + finalSnombre + "?");
+                                                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                myMsgtitle.setLayoutParams(params);
                                                 myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                 myMsgtitle.setTextColor(Color.BLACK);
-                                                myMsgtitle.setPadding(2, 2, 2, 2);
+
                                                 mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
-                                                final AlertDialog.Builder reactivar = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                                                final AlertDialog.Builder reactivar = new AlertDialog.Builder(getContext())
                                                         .setCustomTitle(myMsgtitle)
                                                         .setView(mDos);
                                                 jefeSpinner.setOnItemSelectedListener(gestionarEmpleados.this);
@@ -2133,7 +2103,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                         mDb.collection("Empresas").document(empresa).collection("Empleado").document(finalSnombre).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                             @Override
                                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                mDb.collection("Todas las ids").document(documentSnapshot.getString("id")).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                     @Override
                                                                     public void onSuccess(Void aVoid) {
                                                                         mDb.collection("Empresas").document(empresa).collection("Empleado").document(finalSnombre).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2142,7 +2112,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                 mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                                     @Override
                                                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                                        mDb.collection("Codigos").document(codigoEmpresa).update(finalSnombre, Objects.requireNonNull(documentSnapshot.getString(finalSnombre)).replace("_ELIMINADO", "")).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                        mDb.collection("Codigos").document(codigoEmpresa).update(finalSnombre, documentSnapshot.getString(finalSnombre).replace("_ELIMINADO", "")).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                             @Override
                                                                                             public void onSuccess(Void aVoid) {
                                                                                                 String norm = Normalizer.normalize(finalSnombre.toLowerCase().trim(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
@@ -2194,7 +2164,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     @Override
                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                         codigoEmpleadoChech = documentSnapshot.getString(finalSnombre);
-                                                        if (Objects.requireNonNull(codigoEmpleadoChech).charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
+                                                        if (codigoEmpleadoChech.charAt(0) == 'J' && codigoEmpleadoChech.charAt(1) == 'e' && codigoEmpleadoChech.charAt(2) == 'F') {
                                                             if (codigoEmpleadoChech.charAt(7) == 'E') {
                                                                 nom.setError(finalSnombre + " ya es un empleado y jefe de obra de " + empresa);
                                                             } else if (codigoEmpleadoChech.charAt(7) == 'a') {
@@ -2263,7 +2233,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 touch(true);
                 List<Task<QuerySnapshot>> tasks3 = new ArrayList<>();
                 if (task2.isSuccessful()) {
-                    for (QueryDocumentSnapshot document : Objects.requireNonNull(task2.getResult())) {
+                    for (QueryDocumentSnapshot document : task2.getResult()) {
                         String nomb = document.getString("nombre");
                         boolean des = document.getBoolean("desactivado");
                         if (des) {
@@ -2284,10 +2254,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 if (!emplesDesac.isEmpty()) {
                     mDos = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                     Spinner desSpinner = mDos.findViewById(R.id.spinnerObra);
-                    ArrayAdapter<String> desAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, emplesDesac);
+                    ArrayAdapter<String> desAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, emplesDesac);
                     desAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     desSpinner.setAdapter(desAdapter);
-                    final String[] desSelec = {Objects.requireNonNull(desAdapter.getItem(0))};
+                    final String[] desSelec = {desAdapter.getItem(0)};
                     desSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -2301,10 +2271,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     });
                     final TextView myMsgtitle = new TextView(getActivity());
                     myMsgtitle.setText("Seleccione un empleado que reactivar");
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                     myMsgtitle.setTextColor(Color.BLACK);
-                    myMsgtitle.setPadding(2, 2, 2, 2);
-                    final AlertDialog.Builder reactivar = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+
+                    final AlertDialog.Builder reactivar = new AlertDialog.Builder(getContext())
                             .setCustomTitle(myMsgtitle)
                             .setView(mDos);
                     final Button btnReactivar = mDos.findViewById(R.id.btn1);
@@ -2319,7 +2291,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                 @Override
                                 public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                    mDb.collection("Todas las ids").document(Objects.requireNonNull(documentSnapshot.getString("id"))).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    mDb.collection("Todas las ids").document(documentSnapshot.getString("id")).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
                                             mDb.collection("Empresas").document(empresa).collection("Empleado").document(desSelec[0]).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2328,7 +2300,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     mDb.collection("Codigos").document(codigoEmpresa).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                         @Override
                                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                            mDb.collection("Codigos").document(codigoEmpresa).update(desSelec[0], Objects.requireNonNull(documentSnapshot.getString(desSelec[0])).replace("_ELIMINADO", "")).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                            mDb.collection("Codigos").document(codigoEmpresa).update(desSelec[0], documentSnapshot.getString(desSelec[0]).replace("_ELIMINADO", "")).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                                 @Override
                                                                 public void onComplete(@NonNull Task<Void> task) {
                                                                     mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(desSelec[0]).update("desactivado", false).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -2423,12 +2395,14 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Seleccione la obra");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        View mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+        View mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
         obraSpinner = mObras.findViewById(R.id.spinnerObra);
-        ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, obs);
+        Log.d("obs", obs.toString());
+        ArrayAdapter<String> obraAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, obs);
         obraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         obraSpinner.setAdapter(obraAdapter);
         final Button botonJornada = mObras.findViewById(R.id.btn1);
@@ -2548,7 +2522,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         dialogoRegistro.setCanceledOnTouchOutside(false);
         if (mObras.getParent() != null) {
             ((ViewGroup) mObras.getParent()).removeView(mObras);
-            mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+            mObras = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
             dialogoRegistro.show();
         } else {
             dialogoRegistro.show();
@@ -2562,11 +2536,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText("Introduzca los credenciales del empleado invitado");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
-        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+        mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null);
+        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
         final EditText semail = mLogin.findViewById(R.id.emailDialogo);
         final EditText scontrasena = mLogin.findViewById(R.id.contrasenaDialogo);
         final Button botonSig = mLogin.findViewById(R.id.btn1);
@@ -2591,7 +2567,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 @Override
                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                     if (task.isSuccessful()) {
-                                        id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                        id = mAuth.getCurrentUser().getUid();
                                         mDb.collection("Todas las ids").document(id).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                             @Override
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -2618,7 +2594,9 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     final Button botonCancelar = mDos.findViewById(R.id.btn2);
                                                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                     myMsgtitle.setTextColor(Color.BLACK);
-                                                    myMsgtitle.setPadding(2, 2, 2, 2);
+                                                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                    myMsgtitle.setLayoutParams(params);
+
                                                     String obFin = null;
                                                     if (obcomprueba != null) {
                                                         if (obcomprueba.equals(obraMarker)) {
@@ -2634,7 +2612,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                         obFin = obraMarker;
                                                         botonJornada.setText("Iniciar");
                                                     }
-                                                    final AlertDialog.Builder Otro = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+                                                    final AlertDialog.Builder Otro = new AlertDialog.Builder(getContext());
                                                     Otro
                                                             .setCustomTitle(myMsgtitle)
                                                             .setView(mDos);
@@ -2742,7 +2720,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         dialogoLogin.setCanceledOnTouchOutside(false);
         if (mLogin.getParent() != null) {
             ((ViewGroup) mLogin.getParent()).removeView(mLogin);
-            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null, false);
+            mLogin = getLayoutInflater().inflate(R.layout.dialogo_login, null);
             dialogoLogin.show();
 
         } else {
@@ -2755,11 +2733,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText(nombre + " confirme la operación");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null, false);
-        final AlertDialog.Builder Confirma = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+        mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null);
+        final AlertDialog.Builder Confirma = new AlertDialog.Builder(getContext());
         final EditText semail = mLogin.findViewById(R.id.emailDialogo);
         semail.setEnabled(false);
         semail.setText(emailAn);
@@ -2779,17 +2759,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
-                                id = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                                id = mAuth.getCurrentUser().getUid();
                                 dialogoConfirma.dismiss();
                                 new CountDownTimer(6000, 6000) {
                                     @Override
                                     public void onTick(long millisUntilFinished) {
                                         menu.cargando(true);
                                         touch(true);
-                                        TextView tv = (menu.snackbar.getView()).findViewById(com.google.android.material.R.id.snackbar_text);
-                                        tv.setTextSize(10);
-                                        snackbarDS.configSnackbar(getActivity(), menu.snackbar);
-                                        menu.snackbar.show();
                                     }
 
                                     @Override
@@ -2828,7 +2804,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         dialogoConfirma.setCanceledOnTouchOutside(false);
         if (mLogin.getParent() != null) {
             ((ViewGroup) mLogin.getParent()).removeView(mLogin);
-            mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null, false);
+            mLogin = getLayoutInflater().inflate(R.layout.dialogo_confirmar, null);
             dialogoConfirma.show();
 
         } else {
@@ -2838,19 +2814,20 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void leerGeo(final String obra) {
-
+        menu.cargando(true);
+        touch(true);
         mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
-                menu.cargando(true);
-                touch(true);
                 dis = 50.0;
                 GeoPoint geopointGuardado = documentSnapshot.getGeoPoint("geoPoint");
-                latitudGuardada = Objects.requireNonNull(geopointGuardado).getLatitude();
+                latitudGuardada = geopointGuardado.getLatitude();
                 longitudGuardada = geopointGuardado.getLongitude();
                 timerLeergeo = new CountDownTimer(60000, 5000) {
                     @Override
                     public void onTick(long millisUntilFinished) {
+                        menu.cargando(true);
+                        touch(true);
                         latitudDetectada = geoPointLocalizayo.getLatitude();
                         longitudDetectada = geoPointLocalizayo.getLongitude();
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
@@ -2892,8 +2869,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                 distan2 = 1.2;
                                                                                 menu.cargando(false);
                                                                                 touch(false);
-                                                                                enviajornada(obra, null);
+                                                                                if(timerSnackLocaliza!=null){
+                                                                                    timerSnackLocaliza.cancel();
+                                                                                }
                                                                                 cancel();
+                                                                                enviajornada(obra, null);
                                                                             }
                                                                         });
                                                                     }
@@ -2910,8 +2890,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 distan2 = 1.2;
                                 menu.cargando(false);
                                 touch(false);
-                                compruebaObra(obra);
+                                if(timerSnackLocaliza!=null){
+                                    timerSnackLocaliza.cancel();
+                                }
                                 cancel();
+                                compruebaObra(obra);
                             }
                         } else if (Double.compare(distan, 50.0) > 0) {
                             distan2 = 1.0;
@@ -2956,9 +2939,11 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                         distan = SphericalUtil.computeDistanceBetween(new LatLng(latitudDetectada, longitudDetectada), new LatLng(latitudGuardada, longitudGuardada));
                         if (distan2 == 1.2) {
                             distan2 = 1.0;
+                            if(timerSnackLocaliza!=null){
+                                timerSnackLocaliza.cancel();
+                            }
                             menu.cargando(false);
                             touch(false);
-                            cancel();
                         } else if (distan2 == 1.0) {
                             distan2 = 1.1;
                             if (latitudDetectada == null || longitudDetectada == null || Double.compare(distan, dis) > 0) {
@@ -3003,11 +2988,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                         touch(true);
                                                                                         final TextView myMsgtitle = new TextView(getActivity());
                                                                                         myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                                                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                                                                        myMsgtitle.setLayoutParams(params);
                                                                                         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                                                                         myMsgtitle.setTextColor(Color.BLACK);
-                                                                                        myMsgtitle.setPadding(2, 2, 2, 2);
-                                                                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+                                                                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null);
+                                                                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                                                                         final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
                                                                                         final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
                                                                                         Login
@@ -3047,7 +3034,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                                         dialogoLogin.setCanceledOnTouchOutside(false);
                                                                                         if (mFueraObra.getParent() != null) {
                                                                                             ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
-                                                                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+                                                                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null);
 
                                                                                             dialogoLogin.show();
 
@@ -3070,17 +3057,17 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     });
                                 } else if (entrada_salida.equals("Salida")) {
                                     if (dis >= 650) {
-                                        menu.cargando(false);
-                                        touch(false);
                                         menu.cargando(true);
                                         touch(true);
                                         final TextView myMsgtitle = new TextView(getActivity());
                                         myMsgtitle.setText("Se te ha detectado muy lejos de la obra " + obra);
+                                        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                        myMsgtitle.setLayoutParams(params);
                                         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                                         myMsgtitle.setTextColor(Color.BLACK);
-                                        myMsgtitle.setPadding(2, 2, 2, 2);
-                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
-                                        final AlertDialog.Builder Login = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+                                        mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null);
+                                        final AlertDialog.Builder Login = new AlertDialog.Builder(getContext());
                                         final EditText sJustificar = mFueraObra.findViewById(R.id.justificaDialogo);
                                         final Button botonSiguiente = mFueraObra.findViewById(R.id.btn1);
                                         Login
@@ -3120,7 +3107,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         dialogoLogin.setCanceledOnTouchOutside(false);
                                         if (mFueraObra.getParent() != null) {
                                             ((ViewGroup) mFueraObra.getParent()).removeView(mFueraObra);
-                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null, false);
+                                            mFueraObra = getLayoutInflater().inflate(R.layout.dialogo_justificar, null);
 
                                             dialogoLogin.show();
 
@@ -3204,13 +3191,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 touch(false);
             }
         });
-        Objects.requireNonNull(getActivity()).overridePendingTransition(0, 0);
+        getActivity().overridePendingTransition(0, 0);
     }
 
     private void enviajornada(final String obra, String obcomp) {
         menu.cargando(true);
         touch(true);
-
         DateFormat dfecha = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         DateFormat dano = new SimpleDateFormat("yyyy", Locale.getDefault());
         DateFormat dmes = new SimpleDateFormat("MM", Locale.getDefault());
@@ -3310,7 +3296,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 if (documentSnapshot.contains("años")) {
                                     String a = documentSnapshot.getString("años");
-                                    if (Objects.requireNonNull(a).isEmpty()) {
+                                    if (a.isEmpty()) {
                                         mapA.put("años", ano1);
                                     } else {
                                         if (!a.contains(ano1)) {
@@ -3325,7 +3311,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                         public void onSuccess(DocumentSnapshot documentSnapshot) {
                                             if (documentSnapshot.contains("meses")) {
                                                 String m = documentSnapshot.getString("meses");
-                                                if (Objects.requireNonNull(m).isEmpty()) {
+                                                if (m.isEmpty()) {
                                                     mapM.put("meses", mes);
                                                 } else {
                                                     if (!m.contains(mes)) {
@@ -3339,7 +3325,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                         if (documentSnapshot.contains("dias")) {
                                                             String d = documentSnapshot.getString("dias");
-                                                            if (Objects.requireNonNull(d).isEmpty()) {
+                                                            if (d.isEmpty()) {
                                                                 mapD.put("dias", dia);
                                                             } else {
                                                                 if (!d.contains(dia)) {
@@ -3379,13 +3365,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                 mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                                                     @Override
                                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                                                        int valorOnline = Objects.requireNonNull(documentSnapshot.getLong("online")).intValue();
+                                                                        int valorOnline = documentSnapshot.getLong("online").intValue();
                                                                         final Map<String, Object> mapES = new HashMap<>();
                                                                         if (entrada_salida.equals("Entrada")) {
                                                                             if (valorOnline >= 0) {
                                                                                 valorOnline = valorOnline + 1;
                                                                                 mapES.put("online", valorOnline);
-                                                                                mapES.put("obra", obra);
                                                                                 mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                     @Override
                                                                                     public void onSuccess(Void aVoid) {
@@ -3399,7 +3384,6 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                                                             if (valorOnline > 0) {
                                                                                 valorOnline = valorOnline - 1;
                                                                                 mapES.put("online", valorOnline);
-                                                                                mapES.put("obra", null);
                                                                                 mDb.collection("Empresas").document(empresa).collection("Obras").document(obra).set(mapES, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                                                     @Override
                                                                                     public void onSuccess(Void aVoid) {
@@ -3457,11 +3441,13 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         touch(true);
         final TextView myMsgtitle = new TextView(getActivity());
         myMsgtitle.setText(nombre + " debe firmar para confirmar la operación");
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        myMsgtitle.setLayoutParams(params);
         myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
         myMsgtitle.setTextColor(Color.BLACK);
-        myMsgtitle.setPadding(2, 2, 2, 2);
-        View mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
-        final AlertDialog.Builder Firmar = new AlertDialog.Builder(Objects.requireNonNull(getContext()));
+
+        View mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null);
+        final AlertDialog.Builder Firmar = new AlertDialog.Builder(getContext());
         final SignaturePad firma = mFirmar.findViewById(R.id.firmaCon2);
         final Button botonFirm = mFirmar.findViewById(R.id.btn1);
         final Button botonBor = mFirmar.findViewById(R.id.btn2);
@@ -3551,23 +3537,23 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                 if (mAuth2.getCurrentUser() != null) {
                                     String desde = documentSnapshot.getString("Desde");
                                     firmaRef[0] = almacenRef2
-                                            .child(Objects.requireNonNull(documentSnapshot.getString("empresa")))
+                                            .child(documentSnapshot.getString("empresa"))
                                             .child("Registros desde " + desde)
-                                            .child(Objects.requireNonNull(documentSnapshot.getString("nombre")))
-                                            .child(Objects.requireNonNull(documentSnapshot.get("obraR")).toString())
-                                            .child(Objects.requireNonNull(documentSnapshot.get("fechaR")).toString())
-                                            .child(Objects.requireNonNull(documentSnapshot.get("horaR")).toString())
+                                            .child(documentSnapshot.getString("nombre"))
+                                            .child(documentSnapshot.get("obraR").toString())
+                                            .child(documentSnapshot.get("fechaR").toString())
+                                            .child(documentSnapshot.get("horaR").toString())
                                             .child(documentSnapshot.getString("saR") +
                                                     " de " +
                                                     documentSnapshot.getString("nombre") +
                                                     " en la obra " +
-                                                    Objects.requireNonNull(documentSnapshot.get("obraR")).toString() +
+                                                    documentSnapshot.get("obraR").toString() +
                                                     " desde la cuenta de " +
                                                     desde +
                                                     " el dia " +
-                                                    Objects.requireNonNull(documentSnapshot.get("fechaR")).toString() +
+                                                    documentSnapshot.get("fechaR").toString() +
                                                     " a las " +
-                                                    Objects.requireNonNull(documentSnapshot.get("fechaR")).toString() +
+                                                    documentSnapshot.get("fechaR").toString() +
                                                     ".jpg");
                                 }
                             }
@@ -3581,7 +3567,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
         dialogoFirmar.setCanceledOnTouchOutside(false);
         if (mFirmar.getParent() != null) {
             ((ViewGroup) mFirmar.getParent()).removeView(mFirmar);
-            mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null, false);
+            mFirmar = getLayoutInflater().inflate(R.layout.dialogo_firmar, null);
 
             dialogoFirmar.show();
 
@@ -3631,10 +3617,10 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             }
             mDos = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
             final Spinner resSpinner = mDos.findViewById(R.id.spinnerObra);
-            ArrayAdapter<String> resAdapter = new ArrayAdapter<>(Objects.requireNonNull(getActivity()), android.R.layout.simple_spinner_item, empleList);
+            ArrayAdapter<String> resAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, empleList);
             resAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             resSpinner.setAdapter(resAdapter);
-            final String[] resSelec = {Objects.requireNonNull(resAdapter.getItem(0))};
+            final String[] resSelec = {resAdapter.getItem(0)};
             resSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -3648,10 +3634,12 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
             });
             final TextView myMsgtitle = new TextView(getActivity());
             myMsgtitle.setText("Seleccione un empleado para generar un registro");
+            ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            myMsgtitle.setLayoutParams(params);
             myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
             myMsgtitle.setTextColor(Color.BLACK);
-            myMsgtitle.setPadding(2, 2, 2, 2);
-            final AlertDialog.Builder registroBu = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+
+            final AlertDialog.Builder registroBu = new AlertDialog.Builder(getContext())
                     .setCustomTitle(myMsgtitle)
                     .setView(mDos);
             final Button btnRegistro = mDos.findViewById(R.id.btn1);
@@ -3708,7 +3696,7 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
                     String data = documentSnapshot.getData().toString().replaceAll("\\{", "").replaceAll("\\}", "");
                     for (String res : Arrays.asList(data.split("\\s*, \\s*"))) {
-                        if (!res.contains("Empresa") && !res.contains("Codigo de empresa") && !res.contains("Registrando")) {
+                        if (!res.contains("Empresa") && !res.contains("Codigo de empresa")) {
                             String substr = res.substring(0, res.indexOf("="));
                             substr.trim();
                             codigosList.add(substr);
@@ -3718,15 +3706,17 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                     }
                     final TextView myMsgtitle = new TextView(getActivity());
                     myMsgtitle.setText(empresa + " (" + codigoEmpresa + ")\n" + "Seleccione un empleado para consultar su codigo");
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    myMsgtitle.setLayoutParams(params);
                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
                     myMsgtitle.setTextColor(Color.BLACK);
-                    myMsgtitle.setPadding(2, 2, 2, 2);
-                    View mCodes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null, false);
+
+                    View mCodes = getLayoutInflater().inflate(R.layout.dialogo_spinner, null);
                     final Spinner spinnerEmples = mCodes.findViewById(R.id.spinnerObra);
-                    ArrayAdapter<String> codeAdapt = new ArrayAdapter<String>(Objects.requireNonNull(getContext()), android.R.layout.simple_spinner_item, codigosList);
+                    ArrayAdapter<String> codeAdapt = new ArrayAdapter<String>(getContext(), android.R.layout.simple_spinner_item, codigosList);
                     codeAdapt.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     spinnerEmples.setAdapter(codeAdapt);
-                    final String[] empleCode = {Objects.requireNonNull(codeAdapt.getItem(0))};
+                    final String[] empleCode = {codeAdapt.getItem(0)};
                     spinnerEmples.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -3757,13 +3747,15 @@ public class gestionarEmpleados extends Fragment implements OnMapReadyCallback,
                                     final TextView myMsgtitle = new TextView(getActivity());
                                     myMsgtitle.setTextColor(Color.BLACK);
                                     myMsgtitle.setText("El codigo de " + empresa + " es: " + codigoEmpresa + "\n\n" + "El codigo del empleado es: " + documentSnapshot.getString(empleCode[0]));
+                                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                                    myMsgtitle.setLayoutParams(params);
                                     myMsgtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-                                    myMsgtitle.setPadding(2, 2, 2, 2);
+
                                     mDos = getLayoutInflater().inflate(R.layout.dialogo_dosbtn, null);
                                     final Button botonCompartir = mDos.findViewById(R.id.btn1);
                                     botonCompartir.setText("Compartir");
                                     final Button botonCancelar = mDos.findViewById(R.id.btn2);
-                                    final AlertDialog.Builder codigoAlert = new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                                    final AlertDialog.Builder codigoAlert = new AlertDialog.Builder(getContext())
                                             .setCustomTitle(myMsgtitle);
                                     codigoAlert
                                             .setView(mDos);
