@@ -1,8 +1,9 @@
 <component name="libraryTable">
   <library name="Gradle: com.github.gcacace:android-signaturepad:87dd157dab@aar">
     <CLASSES>
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/a77d87d999975d14c8d9371411a27e55/jetified-android-signaturepad-87dd157dab/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/a77d87d999975d14c8d9371411a27e55/jetified-android-signaturepad-87dd157dab/res" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/4660d27baeab65900f940075ae3b4981/transformed/jetified-android-signaturepad-87dd157dab/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/4660d27baeab65900f940075ae3b4981/transformed/jetified-android-signaturepad-87dd157dab/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/4660d27baeab65900f940075ae3b4981/transformed/jetified-android-signaturepad-87dd157dab/AndroidManifest.xml" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>

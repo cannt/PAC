@@ -3191,11 +3191,13 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void centrarCamara() {
-
+        Log.d("centrarCamara", "ENTRA");
         mDb.collection("Empresas").document(empresa).collection("Localizaciones Empleado").document(nombre).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                Log.d("mDb onComplete", "ENTRA");
                 if (task.isSuccessful()) {
+                    Log.d("mDb task", "ENTRA");
                     menu.cargando(true);
                     touch(true);
                     GeoPoint geoPoint1 = task.getResult().getGeoPoint("geoPoint");
@@ -3210,6 +3212,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void setCamara() {
+        Log.d("setCamara", "ENTRA");
         menu.cargando(true);
         touch(true);
         double boundaryAbajo = mLocaliza.latitude - .1;
@@ -3258,8 +3261,9 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void guardarLocalizacion() {
-
+        Log.d("guardarLocalizacion", "ENTRA");
         if (mLocalizarUsuario != null) {
+            Log.d("mLocalizarUsuario", "no null");
             menu.cargando(true);
             touch(true);
             DocumentReference locationRef = mDb
@@ -3270,6 +3274,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             locationRef.set(mLocalizarUsuario).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
+                    Log.d("locationRef onComplete", "entra");
                     menu.cargando(false);
                     touch(false);
                     centrarCamara();
@@ -3277,6 +3282,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
+                    Log.d("locationRef onFailure", String.valueOf(e));
                     menu.cargando(false);
                     touch(false);
                 }
@@ -3385,21 +3391,27 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
     }
 
     private void localizacion() {
+        Log.d("localizacion", "ENTRA");
         menu.cargando(true);
         touch(true);
         FusedLocationProviderClient mProovedor = LocationServices.getFusedLocationProviderClient(getActivity());
         try {
             if (compruebapermisos()) {
+                Log.d("compruebapermisos()", "ENTRA");
                 final Task localizacion = mProovedor.getLastLocation();
                 localizacion.addOnCompleteListener(new OnCompleteListener() {
                     @Override
                     public void onComplete(@NonNull Task task) {
+                        Log.d("onComplete", "ENTRA");
                         if (task.isSuccessful()) {
+                            Log.d("task", "isSuccessful");
                             Location locacizacionActual = (Location) task.getResult();
                             if (locacizacionActual != null) {
+                                Log.d("locacizacionActual", "NO null");
                                 geoPointLocalizayo = new GeoPoint(locacizacionActual.getLatitude(), locacizacionActual.getLongitude());
                             }
                             if (geoPointLocalizayo != null) {
+                                Log.d("geoPointLocalizayo", "NO null");
                                 mLocalizarUsuario.setGeoPoint(geoPointLocalizayo);
                                 mLocalizarUsuario.setTimestamp(null);
                                 menu.cargando(false);
@@ -3407,6 +3419,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                                 guardarLocalizacion();
                             }
                         } else {
+                            Log.d("task", "NO isSuccessful");
                             menu.cargando(false);
                             touch(false);
                         }
@@ -3414,7 +3427,7 @@ public class mapaEmpleados extends Fragment implements OnMapReadyCallback,
                 });
             }
         } catch (SecurityException ignored) {
-
+            Log.d("CATCH", ignored.toString());
         }
 
     }

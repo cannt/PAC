@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -56,6 +57,7 @@ public class servicioLocalizacion extends Service {
     private Boolean des;
 
     public servicioLocalizacion() {
+        Log.d("servicioLocalizacion", "ENTRA");
         servicioLocalizacion = this;
     }
 
@@ -77,6 +79,7 @@ public class servicioLocalizacion extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d("servicioLocalizacion onCreate", "ENTRA");
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (Build.VERSION.SDK_INT >= 26) {
             String CHANNEL_ID = "mi_canal_01";
@@ -97,12 +100,13 @@ public class servicioLocalizacion extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d("onStartCommand", "ENTRA");
         getLocation();
         return START_NOT_STICKY;
     }
 
     private void getLocation() {
-
+        Log.d("getLocation", "ENTRA");
         LocationRequest mLocationRequestHighAccuracy = new LocationRequest();
         mLocationRequestHighAccuracy.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         mLocationRequestHighAccuracy.setInterval(UPDATE_INTERVAL);
@@ -116,10 +120,10 @@ public class servicioLocalizacion extends Service {
         mFusedLocationClient.requestLocationUpdates(mLocationRequestHighAccuracy, new LocationCallback() {
                     @Override
                     public void onLocationResult(LocationResult locationResult) {
-
+                        Log.d("onLocationResult", "ENTRA");
                         Location location = locationResult.getLastLocation();
-
                         if (location != null) {
+                            Log.d("location", "ENTRA");
                             GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                             saveUserLocation(geoPoint);
                         }

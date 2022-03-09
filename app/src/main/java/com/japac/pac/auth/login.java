@@ -1,6 +1,7 @@
 package com.japac.pac.auth;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
@@ -16,6 +17,7 @@ import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Color;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -100,9 +102,11 @@ public class login extends AppCompatActivity {
 
     private static final int ERROR_DIALOGO_PEDIR = 9001;
 
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("ONCREATE", "ENTRA");
         setContentView(R.layout.activity_login);
         progressBar = findViewById(R.id.progressbar);
         view = findViewById(R.id.viewGrey);
@@ -112,82 +116,89 @@ public class login extends AppCompatActivity {
                 .setActionTextColor(Color.WHITE);
         cargando(true);
         if (compruebapermisos() && isServicesOK()) {
+            Log.d("if (compruebapermisos() && isServicesOK())", "ENTRA");
             final LocationRequest locationRequest = new LocationRequest();
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             locationRequest.setInterval(10000);
             locationRequest.setFastestInterval(10000 / 2);
-            LocationServices.getFusedLocationProviderClient(login.this)
-                    .requestLocationUpdates(locationRequest, new LocationCallback() {
-                        @Override
-                        public void onLocationResult(LocationResult locationResult) {
-                            super.onLocationResult(locationResult);
-                            LocationServices.getFusedLocationProviderClient(login.this)
-                                    .removeLocationUpdates(this);
-                            if (locationResult != null && locationResult.getLocations().size() > 0) {
-                                mAuth = FirebaseAuth.getInstance();
-                                firebaseFirestore = FirebaseFirestore.getInstance();
-                                FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                                        .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
-                                        .build();
-                                firebaseFirestore.setFirestoreSettings(settings);
+            Log.d("locationRequest", locationRequest.toString());
+            LocationServices.getFusedLocationProviderClient(login.this).requestLocationUpdates(locationRequest, new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    super.onLocationResult(locationResult);
+                    Log.d("onLocationResult", "ENTRA");
+                    LocationServices.getFusedLocationProviderClient(login.this)
+                            .removeLocationUpdates(this);
+                    if (locationResult != null && locationResult.getLocations().size() > 0) {
+                        Log.d("locationResult != null", "ENTRA");
+                        mAuth = FirebaseAuth.getInstance();
+                        firebaseFirestore = FirebaseFirestore.getInstance();
+                        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                                .build();
+                        firebaseFirestore.setFirestoreSettings(settings);
 
-                                email = findViewById(R.id.logEmail);
-                                contrasena = findViewById(R.id.logContraseña);
-                                pPt = findViewById(R.id.PrivacyPolicy);
+                        email = findViewById(R.id.logEmail);
+                        contrasena = findViewById(R.id.logContraseña);
+                        pPt = findViewById(R.id.PrivacyPolicy);
 
-                                usuario();
+                        usuario();
 
-                                pPt.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View view) {
-                                        String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
-                                        Intent i = new Intent(Intent.ACTION_VIEW);
-                                        i.setData(Uri.parse(url));
-                                        startActivity(i);
-                                    }
-                                });
-
-                                registrar.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        registro();
-
-                                    }
-                                });
-
-                                entrar.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View view) {
-                                        cargando(true);
-                                        semail = email.getText().toString();
-                                        scontrasena = contrasena.getText().toString();
-
-                                        if (!semail.isEmpty() && !scontrasena.isEmpty()) {
-
-                                            loginUsuario();
-
-                                        } else if (semail.isEmpty()) {
-                                            email.setError("Introduzca su email");
-                                            cargando(false);
-                                            if (scontrasena.isEmpty()) {
-                                                contrasena.setError("Introduzca su contraseña");
-                                                cargando(false);
-                                            }
-
-                                        } else {
-                                            contrasena.setError("Introduzca su contraseña");
-                                            cargando(false);
-                                            if (semail.isEmpty()) {
-                                                email.setError("Introduzca su email");
-                                                cargando(false);
-                                            }
-                                        }
-                                    }
-                                });
-                                cargando(false);
+                        pPt.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                String url = "https://jatj98231.wixsite.com/pac-privacy-policy";
+                                Intent i = new Intent(Intent.ACTION_VIEW);
+                                i.setData(Uri.parse(url));
+                                startActivity(i);
                             }
-                        }
-                    }, Looper.getMainLooper());
+                        });
+
+                        registrar.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                registro();
+
+                            }
+                        });
+
+                        entrar.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                cargando(true);
+                                semail = email.getText().toString();
+                                scontrasena = contrasena.getText().toString();
+
+                                if (!semail.isEmpty() && !scontrasena.isEmpty()) {
+
+                                    loginUsuario();
+
+                                } else if (semail.isEmpty()) {
+                                    email.setError("Introduzca su email");
+                                    cargando(false);
+                                    if (scontrasena.isEmpty()) {
+                                        contrasena.setError("Introduzca su contraseña");
+                                        cargando(false);
+                                    }
+
+                                } else {
+                                    contrasena.setError("Introduzca su contraseña");
+                                    cargando(false);
+                                    if (semail.isEmpty()) {
+                                        email.setError("Introduzca su email");
+                                        cargando(false);
+                                    }
+                                }
+                            }
+                        });
+                        cargando(false);
+                    } else {
+                        Log.d("locationResult != null", "NO ENTRA");
+                    }
+                }
+            }, Looper.getMainLooper());
+        } else {
+            Log.d("if (compruebapermisos() && isServicesOK())", "NO ENTRA");
         }
 
     }
@@ -346,6 +357,7 @@ public class login extends AppCompatActivity {
         int resultado;
         List<String> listaPermisosNecesarios = new ArrayList<>();
         for (String perm : permisos) {
+            Log.d("compruebapermisos:", "SUCCESS");
             resultado = ContextCompat.checkSelfPermission(this, perm);
             if (resultado != PackageManager.PERMISSION_GRANTED) {
                 listaPermisosNecesarios.add(perm);

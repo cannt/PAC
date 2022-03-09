@@ -1,8 +1,9 @@
 <component name="libraryTable">
   <library name="Gradle: com.github.barteksc:pdfium-android:1.9.0@aar">
     <CLASSES>
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/8e14dfb2df5649788f551ab280dd6f23/jetified-pdfium-android-1.9.0/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/8e14dfb2df5649788f551ab280dd6f23/jetified-pdfium-android-1.9.0/res" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/2dc9d97eeb535ec85cea1d06f0e502b4/transformed/jetified-pdfium-android-1.9.0/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/2dc9d97eeb535ec85cea1d06f0e502b4/transformed/jetified-pdfium-android-1.9.0/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/2dc9d97eeb535ec85cea1d06f0e502b4/transformed/jetified-pdfium-android-1.9.0/AndroidManifest.xml" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.barteksc/pdfium-android/1.9.0/a9e3efce867c5e49a12afa7f5ab4c24a94b1f2e1/pdfium-android-1.9.0-javadoc.jar!/" />

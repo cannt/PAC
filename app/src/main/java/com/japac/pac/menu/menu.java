@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.os.StrictMode;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -327,21 +328,29 @@ public class menu extends AppCompatActivity implements
     }
 
     private void startLocationService() {
+        Log.d("startLocationService", "ENTRA");
         if (!isLocationServiceRunning()) {
+            Log.d("isLocationServiceRunning()", "FALSE");
             Intent serviceIntent = new Intent(this, servicioLocalizacion.class);
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
+                Log.d("isLocationServiceRunning() 1", "ENTRA");
                 menu.this.startForegroundService(serviceIntent);
             } else {
+                Log.d("isLocationServiceRunning() 2", "ENTRA");
                 startService(serviceIntent);
             }
+        }else{
+            Log.d("isLocationServiceRunning()", "TRUE");
         }
     }
 
     private boolean isLocationServiceRunning() {
+        Log.d("isLocationServiceRunning", "ENTRA");
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            Log.d("isLocationServiceRunning", "ENTRA 2");
             if ("com.japac.pac.Servicios.servicioLocalizacion".equals(service.service.getClassName())) {
+                Log.d("isLocationServiceRunning", "ENTRA equals");
                 return true;
             }
         }
